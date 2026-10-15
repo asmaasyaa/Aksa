@@ -52,6 +52,7 @@ import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaProgressBar
 import com.aksa.app.ui.components.AksaProfileCard
 import com.aksa.app.ui.components.MascotHeadband
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaBlueDark
 import com.aksa.app.ui.theme.AksaBlueLight
@@ -95,10 +96,11 @@ fun HomeScreen(
         ) {
             // TOP WHITE ROUNDED PROFILE CARD
             AksaProfileCard(
-                name = "MARVIN",
-                age = "12 tahun",
-                level = "LV 3 Master",
-                streakCount = 9
+                name = AksaUserState.username.uppercase(),
+                age = "${AksaUserState.age} tahun",
+                level = AksaUserState.level,
+                streakCount = AksaUserState.streakCount,
+                avatarId = AksaUserState.avatarId
             )
 
             Spacer(modifier = Modifier.height(20.dp))

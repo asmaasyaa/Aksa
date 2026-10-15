@@ -32,7 +32,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aksa.app.ui.components.AksaAvatar
 import com.aksa.app.ui.components.MascotStanding
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaGrayText
@@ -125,7 +127,7 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Avatar Circle with Mascot
+                    // Avatar Circle with Selected Avatar
                     Box(
                         modifier = Modifier
                             .size(96.dp)
@@ -134,13 +136,13 @@ fun ProfileScreen(
                             .border(3.5.dp, AksaSoftPeach, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        MascotStanding(size = 80.dp, animated = false)
+                        AksaAvatar(avatarId = AksaUserState.avatarId, size = 80.dp)
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Marvin",
+                        text = AksaUserState.username,
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
@@ -148,7 +150,7 @@ fun ProfileScreen(
                     )
 
                     Text(
-                        text = "12 tahun • NISN: 0012345678",
+                        text = "${AksaUserState.age} tahun",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Medium,
                         fontSize = 13.sp,
@@ -181,7 +183,7 @@ fun ProfileScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "LV 3 Master",
+                                    text = AksaUserState.level,
                                     fontFamily = Poppins,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
@@ -208,7 +210,7 @@ fun ProfileScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "9 Hari Streak",
+                                    text = "${AksaUserState.streakCount} Hari Streak",
                                     fontFamily = Poppins,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,

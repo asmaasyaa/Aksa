@@ -56,8 +56,8 @@ import com.aksa.app.ui.theme.Poppins
 fun ChildAgeScreen(
     onNavigateToHome: () -> Unit
 ) {
-    var selectedAge by remember { mutableIntStateOf(12) }
-    val ages = listOf(10, 11, 12, 13, 14, 15)
+    var selectedAge by remember { mutableIntStateOf(8) }
+    val ages = listOf(6, 7, 8, 9, 10, 11, 12)
 
     Box(
         modifier = Modifier
@@ -121,27 +121,35 @@ fun ChildAgeScreen(
                         modifier = Modifier.padding(top = 6.dp, bottom = 24.dp)
                     )
 
-                    // 2x3 Grid of selectable age cards (10, 11, 12, 13, 14, 15)
+                    // Grid of selectable age cards (6, 7, 8, 9, 10, 11, 12)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        for (rowIndex in 0..1) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                for (colIndex in 0..2) {
-                                    val age = ages[rowIndex * 3 + colIndex]
-                                    val isSelected = age == selectedAge
-
-                                    AgeSelectionCard(
-                                        age = age,
-                                        isSelected = isSelected,
-                                        onClick = { selectedAge = age },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            for (age in listOf(6, 7, 8, 9)) {
+                                AgeSelectionCard(
+                                    age = age,
+                                    isSelected = age == selectedAge,
+                                    onClick = { selectedAge = age },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            for (age in listOf(10, 11, 12)) {
+                                AgeSelectionCard(
+                                    age = age,
+                                    isSelected = age == selectedAge,
+                                    onClick = { selectedAge = age },
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
                         }
                     }

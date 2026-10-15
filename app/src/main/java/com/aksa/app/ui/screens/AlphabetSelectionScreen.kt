@@ -50,7 +50,8 @@ private data class AlphabetData(
 @Composable
 fun AlphabetSelectionScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToPronunciation: (String) -> Unit
+    onNavigateToPronunciation: (String) -> Unit,
+    onNavigateToHurufMirip: () -> Unit = {}
 ) {
     val alphabetList = listOf(
         AlphabetData("A", "Apel", AlphabetCardStatus.ACTIVE),
@@ -125,7 +126,7 @@ fun AlphabetSelectionScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 6.dp)
+                    .padding(horizontal = 24.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = "Pulau Alfabet",
@@ -145,7 +146,87 @@ fun AlphabetSelectionScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // REVISION 11: HURUF MIRIP MENU CARD
+            val featureCardShape = RoundedCornerShape(26.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .shadow(elevation = 6.dp, shape = featureCardShape, spotColor = androidx.compose.ui.graphics.Color(0x33441100))
+                    .clip(featureCardShape)
+                    .background(AksaWhite)
+                    .clickable(onClick = onNavigateToHurufMirip)
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(PillShape)
+                                    .background(AksaYellow)
+                                    .padding(horizontal = 10.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "Latihan Khusus",
+                                    fontFamily = Poppins,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = AksaDarkBrown
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "b vs d • p vs q",
+                                fontFamily = Poppins,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = AksaOrange
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "Huruf Mirip",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = AksaDarkBrown
+                        )
+
+                        Text(
+                            text = "Yuk belajar membedakan huruf yang bentuknya hampir sama!",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
+                            color = AksaDarkBrown.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    // Mascot appearing beside the card
+                    Box(
+                        modifier = Modifier
+                            .size(68.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(AksaYellow.copy(alpha = 0.25f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        MascotStanding(size = 56.dp, animated = false)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Two-column Alphabet Cards Grid
             LazyVerticalGrid(

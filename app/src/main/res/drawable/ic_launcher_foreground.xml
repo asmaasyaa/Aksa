@@ -1,30 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
+
+    <!-- 1. Left Ear Outer (White) -->
     <path
         android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
+        android:pathData="M38,38m-7.5,0a7.5,7.5 0,1 1,15 0a7.5,7.5 0,1 1,-15 0" />
+
+    <!-- 2. Left Ear Inner (Soft Peach) -->
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M38,38m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+
+    <!-- 3. Right Ear Outer (White) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M70,38m-7.5,0a7.5,7.5 0,1 1,15 0a7.5,7.5 0,1 1,-15 0" />
+
+    <!-- 4. Right Ear Inner (Soft Peach) -->
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M70,38m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+
+    <!-- 5. Head & Body Silhouette (Pure White Dome) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,37 C66,37 75,45 75,57 C75,67 71,76 54,76 C37,76 33,67 33,57 C33,45 42,37 54,37 Z" />
+
+    <!-- 6. Left Eye (Dark Brown Oval) -->
+    <path
+        android:fillColor="#6B240C"
+        android:pathData="M46.5,50.8 C47.5,50.8 48.3,52.2 48.3,54 C48.3,55.8 47.5,57.2 46.5,57.2 C45.5,57.2 44.7,55.8 44.7,54 C44.7,52.2 45.5,50.8 46.5,50.8 Z" />
+
+    <!-- 7. Left Eye Sparkle (Pure White Dot) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M47.2,52.2m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0" />
+
+    <!-- 8. Right Eye (Dark Brown Oval) -->
+    <path
+        android:fillColor="#6B240C"
+        android:pathData="M61.5,50.8 C62.5,50.8 63.3,52.2 63.3,54 C63.3,55.8 62.5,57.2 61.5,57.2 C60.5,57.2 59.7,55.8 59.7,54 C59.7,52.2 60.5,50.8 61.5,50.8 Z" />
+
+    <!-- 9. Right Eye Sparkle (Pure White Dot) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M62.2,52.2m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0" />
+
+    <!-- 10. Left Cheek (Circular Soft Peach) -->
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M40.5,60m-4.8,0a4.8,4.8 0,1 1,9.6 0a4.8,4.8 0,1 1,-9.6 0" />
+
+    <!-- 11. Right Cheek (Circular Soft Peach) -->
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M67.5,60m-4.8,0a4.8,4.8 0,1 1,9.6 0a4.8,4.8 0,1 1,-9.6 0" />
+
+    <!-- 12. Friendly Mascot Smile -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#6B240C"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M51.5,60.5 Q54,63.8 56.5,60.5" />
+
+    <!-- 13. Left Paw (Pure White with Subtle Peach Shadow) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFE5D0"
         android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+        android:pathData="M41,74m-4.2,0a4.2,4.2 0,1 1,8.4 0a4.2,4.2 0,1 1,-8.4 0" />
+
+    <!-- 14. Right Paw (Pure White with Subtle Peach Shadow) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFE5D0"
+        android:strokeWidth="1"
+        android:pathData="M67,74m-4.2,0a4.2,4.2 0,1 1,8.4 0a4.2,4.2 0,1 1,-8.4 0" />
+
 </vector>

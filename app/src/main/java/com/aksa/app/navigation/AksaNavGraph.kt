@@ -14,6 +14,7 @@ import com.aksa.app.ui.screens.AlphabetSelectionScreen
 import com.aksa.app.ui.screens.ChildAgeScreen
 import com.aksa.app.ui.screens.ChildNameScreen
 import com.aksa.app.ui.screens.HomeScreen
+import com.aksa.app.ui.screens.HurufMiripScreen
 import com.aksa.app.ui.screens.LevelMapScreen
 import com.aksa.app.ui.screens.LoginScreen
 import com.aksa.app.ui.screens.ParentWelcomeScreen
@@ -77,8 +78,10 @@ fun AksaNavGraph(
         // SCREEN 2 — LOGIN
         composable(Screen.Login.route) {
             LoginScreen(
-                onNavigateToParentWelcome = {
-                    navController.navigate(Screen.ParentWelcome.route)
+                onLoginSuccess = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
                 },
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
@@ -101,8 +104,10 @@ fun AksaNavGraph(
         // SCREEN 4 — PARENT WELCOME
         composable(Screen.ParentWelcome.route) {
             ParentWelcomeScreen(
-                onNavigateToChildName = {
-                    navController.navigate(Screen.ChildName.route)
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
                 }
             )
         }
@@ -168,6 +173,9 @@ fun AksaNavGraph(
                 },
                 onNavigateToPronunciation = { _ ->
                     navController.navigate(Screen.PronunciationPractice.route)
+                },
+                onNavigateToHurufMirip = {
+                    navController.navigate(Screen.HurufMirip.route)
                 }
             )
         }
@@ -189,6 +197,23 @@ fun AksaNavGraph(
         composable(Screen.WritingPractice.route) {
             WritingPracticeScreen(
                 letter = "A",
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToLevelMap = {
+                    if (!navController.popBackStack(Screen.LevelMap.route, inclusive = false)) {
+                        navController.navigate(Screen.LevelMap.route)
+                    }
+                },
+                onNavigateToHurufMirip = {
+                    navController.navigate(Screen.HurufMirip.route)
+                }
+            )
+        }
+
+        // SUB-ACTIVITY: HURUF MIRIP (PULAU ALFABET)
+        composable(Screen.HurufMirip.route) {
+            HurufMiripScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 },

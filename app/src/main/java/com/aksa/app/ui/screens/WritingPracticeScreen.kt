@@ -65,7 +65,8 @@ import com.aksa.app.ui.theme.Poppins
 fun WritingPracticeScreen(
     letter: String = "A",
     onNavigateBack: () -> Unit,
-    onNavigateToLevelMap: () -> Unit
+    onNavigateToLevelMap: () -> Unit,
+    onNavigateToHurufMirip: () -> Unit = {}
 ) {
     // List of stroke paths (each stroke is a list of Offset points)
     val strokes = remember { mutableStateListOf<List<Offset>>() }
@@ -366,9 +367,18 @@ fun WritingPracticeScreen(
                             modifier = Modifier.padding(top = 6.dp, bottom = 24.dp)
                         )
 
-                        // Primary Button: Selesai
+                        // Primary Button: Lanjut ke Huruf Mirip
                         AksaButton(
-                            text = "Selesai",
+                            text = "Lanjut ke Huruf Mirip",
+                            style = AksaButtonStyle.PRIMARY_ORANGE,
+                            onClick = onNavigateToHurufMirip
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Secondary Button: Selesai ke Peta
+                        AksaButton(
+                            text = "Selesai ke Peta",
                             style = AksaButtonStyle.SECONDARY_LIME,
                             onClick = onNavigateToLevelMap
                         )

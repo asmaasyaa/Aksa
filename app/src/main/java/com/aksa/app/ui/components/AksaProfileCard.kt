@@ -40,9 +40,10 @@ import com.aksa.app.ui.theme.Poppins
 @Composable
 fun AksaProfileCard(
     name: String = "MARVIN",
-    age: String = "12 tahun",
+    age: String = "8 tahun",
     level: String = "LV 3 Master",
     streakCount: Int = 9,
+    avatarId: String = "mascot_classic",
     modifier: Modifier = Modifier
 ) {
     val cardShape = RoundedCornerShape(26.dp)
@@ -58,7 +59,7 @@ fun AksaProfileCard(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar circle with mini Aksa mascot
+            // Avatar circle with selected Aksa avatar
             Box(
                 modifier = Modifier
                     .size(62.dp)
@@ -67,9 +68,9 @@ fun AksaProfileCard(
                     .border(2.5.dp, AksaSoftPeach, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                MascotStanding(
-                    modifier = Modifier.size(54.dp),
-                    animated = false
+                AksaAvatar(
+                    avatarId = avatarId,
+                    size = 52.dp
                 )
             }
 

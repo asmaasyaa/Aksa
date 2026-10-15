@@ -194,11 +194,11 @@ fun LevelMapScreen(
             }
         }
 
-        // Mascot peeking from upper-right corner
+        // Decorative Mascot positioned safely at lower-right corner (never overlaps title, back button, or level nodes)
         Box(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 10.dp, y = 70.dp)
+                .align(Alignment.BottomEnd)
+                .offset(x = 10.dp, y = 5.dp)
         ) {
             MascotPeeking(
                 width = 130.dp,

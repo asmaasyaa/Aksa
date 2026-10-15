@@ -44,7 +44,8 @@ import com.aksa.app.ui.theme.Poppins
 
 @Composable
 fun ParentWelcomeScreen(
-    onNavigateToChildName: () -> Unit
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToChildName: () -> Unit = onNavigateToHome
 ) {
     Box(
         modifier = Modifier
@@ -141,11 +142,11 @@ fun ParentWelcomeScreen(
 
                     Spacer(modifier = Modifier.height(26.dp))
 
-                    // Primary Button: Lanjut ke Profil Anak
+                    // Primary Button: Mulai Petualangan
                     AksaButton(
-                        text = "Lanjut ke Profil Anak",
+                        text = "Mulai Petualangan",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
-                        onClick = onNavigateToChildName
+                        onClick = onNavigateToHome
                     )
                 }
             }
