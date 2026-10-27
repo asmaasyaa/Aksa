@@ -51,11 +51,25 @@ import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
 
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.aksa.app.audio.AndroidTextToSpeechHelper
+
 @Composable
 fun SyllableExampleScreen(
     onNavigateBack: () -> Unit,
     onNavigateToQuiz: () -> Unit
 ) {
+    val context = LocalContext.current
+    val tts = remember { AndroidTextToSpeechHelper(context) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            tts.stop()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -224,7 +238,9 @@ fun SyllableExampleScreen(
                                     .size(44.dp)
                                     .clip(CircleShape)
                                     .background(AksaWhite)
-                                    .clickable { /* Audio hint */ },
+                                    .clickable {
+                                        tts.speak("Suku kata M A, ma. Suku kata T A, ta. MA ditambah TA menjadi MATA.")
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(

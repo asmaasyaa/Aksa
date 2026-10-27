@@ -27,6 +27,9 @@ import com.aksa.app.ui.screens.SplashScreen
 import com.aksa.app.ui.screens.SyllableExampleScreen
 import com.aksa.app.ui.screens.SyllableIntroScreen
 import com.aksa.app.ui.screens.SyllableQuizScreen
+import com.aksa.app.ui.screens.LetterLearningScreen
+import com.aksa.app.ui.screens.TangkapHurufScreen
+import com.aksa.app.ui.preview.DeveloperPreviewScreen
 import com.aksa.app.ui.screens.WordFormationScreen
 import com.aksa.app.ui.screens.WritingPracticeScreen
 
@@ -161,6 +164,12 @@ fun AksaNavGraph(
                 },
                 onNavigateToLevel4 = {
                     navController.navigate(Screen.ReadingPractice.route)
+                },
+                onNavigateToTangkapHuruf = {
+                    navController.navigate(Screen.TangkapHuruf.route)
+                },
+                onNavigateToDeveloperPreview = {
+                    navController.navigate(Screen.DeveloperPreview.route)
                 }
             )
         }
@@ -174,8 +183,29 @@ fun AksaNavGraph(
                 onNavigateToPronunciation = { _ ->
                     navController.navigate(Screen.PronunciationPractice.route)
                 },
+                onNavigateToLetterLearning = { _ ->
+                    navController.navigate(Screen.LetterLearning.route)
+                },
                 onNavigateToHurufMirip = {
                     navController.navigate(Screen.HurufMirip.route)
+                }
+            )
+        }
+
+        // MODULE 1 — INTERACTIVE LETTER LEARNING & QUIZ
+        composable(Screen.LetterLearning.route) {
+            LetterLearningScreen(
+                startLetter = "A",
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToLevelMap = {
+                    if (!navController.popBackStack(Screen.LevelMap.route, inclusive = false)) {
+                        navController.navigate(Screen.LevelMap.route)
+                    }
+                },
+                onNavigateToWriting = {
+                    navController.navigate(Screen.WritingPractice.route)
                 }
             )
         }
@@ -304,6 +334,9 @@ fun AksaNavGraph(
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onNavigateToDeveloperPreview = {
+                    navController.navigate(Screen.DeveloperPreview.route)
                 }
             )
         }
@@ -313,6 +346,68 @@ fun AksaNavGraph(
             ProgressAchievementsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        // MINI-GAME: TANGKAP HURUF
+        composable(Screen.TangkapHuruf.route) {
+            TangkapHurufScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToLevelMap = {
+                    if (!navController.popBackStack(Screen.LevelMap.route, inclusive = false)) {
+                        navController.navigate(Screen.LevelMap.route)
+                    }
+                }
+            )
+        }
+
+        // DEVELOPER PREVIEW MODE (DEBUG ONLY)
+        composable(Screen.DeveloperPreview.route) {
+            DeveloperPreviewScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route)
+                },
+                onNavigateToLevelMap = {
+                    navController.navigate(Screen.LevelMap.route)
+                },
+                onNavigateToAlphabetSelection = {
+                    navController.navigate(Screen.AlphabetSelection.route)
+                },
+                onNavigateToLetterLearning = {
+                    navController.navigate(Screen.LetterLearning.route)
+                },
+                onNavigateToHurufMirip = {
+                    navController.navigate(Screen.HurufMirip.route)
+                },
+                onNavigateToSyllableIntro = {
+                    navController.navigate(Screen.SyllableIntro.route)
+                },
+                onNavigateToSyllableExample = {
+                    navController.navigate(Screen.SyllableExample.route)
+                },
+                onNavigateToSyllableQuiz = {
+                    navController.navigate(Screen.SyllableQuiz.route)
+                },
+                onNavigateToWordFormation = {
+                    navController.navigate(Screen.WordFormation.route)
+                },
+                onNavigateToReadingPractice = {
+                    navController.navigate(Screen.ReadingPractice.route)
+                },
+                onNavigateToTangkapHuruf = {
+                    navController.navigate(Screen.TangkapHuruf.route)
+                },
+                onNavigateToProfile = {
+                    navController.navigate(Screen.Profile.route)
+                },
+                onNavigateToProgressAchievements = {
+                    navController.navigate(Screen.ProgressAchievements.route)
                 }
             )
         }

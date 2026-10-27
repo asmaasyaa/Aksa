@@ -23,6 +23,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,8 +54,12 @@ import com.aksa.app.ui.theme.Poppins
 fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onNavigateToProgress: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    onNavigateToDeveloperPreview: () -> Unit = {},
+    authViewModel: com.aksa.app.ui.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
+    val authState by authViewModel.uiState.collectAsState()
+    val guardianEmail = authState.currentGuardian?.email ?: "demo.orangtua@aksa.id"
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -158,7 +164,24 @@ fun ProfileScreen(
                         modifier = Modifier.padding(top = 2.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    // Guardian account & mode indicator
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(PillShape)
+                            .background(AksaPeachLight)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Wali: $guardianEmail (${if (authState.isDemoMode) "Demo" else "Firebase"})",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
+                            color = AksaDarkBrown.copy(alpha = 0.8f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     // Badges Row: Level & Streak
                     Row(
@@ -263,6 +286,18 @@ fun ProfileScreen(
                         onClick = { /* UI Mockup action */ }
                     )
 
+                    if (com.aksa.app.BuildConfig.DEBUG) {
+                        HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
+                        ProfileMenuRow(
+                            icon = AksaIcons.Star,
+                            iconBg = AksaYellow.copy(alpha = 0.3f),
+                            title = "Developer Preview Mode",
+                            badge = "Debug",
+                            textColor = AksaDarkBrown,
+                            onClick = onNavigateToDeveloperPreview
+                        )
+                    }
+
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
                     // Row 4: Keluar
@@ -271,7 +306,9 @@ fun ProfileScreen(
                         iconBg = Color(0xFFFFECE6),
                         title = "Keluar",
                         textColor = AksaOrange,
-                        onClick = onNavigateToLogin
+                        onClick = {
+                            authViewModel.signOut(onNavigateToLogin)
+                        }
                     )
                 }
             }

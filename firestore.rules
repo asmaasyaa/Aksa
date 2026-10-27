@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(guardianUid) {
+      return isAuthenticated() && request.auth.uid == guardianUid;
+    }
+
+    // Guardian accounts and all subcollections (children, sessions, answers, achievements)
+    match /guardians/{guardianUid} {
+      allow read, write: if isOwner(guardianUid);
+
+      match /children/{childId} {
+        allow read, write: if isOwner(guardianUid);
+
+        match /sessions/{sessionId} {
+          allow read, write: if isOwner(guardianUid);
+
+          match /answers/{answerId} {
+            allow read, write: if isOwner(guardianUid);
+          }
+        }
+
+        match /achievements/{achievementId} {
+          allow read, write: if isOwner(guardianUid);
+        }
+      }
+    }
+
+    // Deny all other access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,6 +1,7 @@
 package com.aksa.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,44 +12,62 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaTextField
 import com.aksa.app.ui.components.MascotStanding
-import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
+import com.aksa.app.ui.theme.AksaLime
+import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
+import com.aksa.app.ui.theme.AksaPeachLight
+import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
+import com.aksa.app.ui.theme.AksaYellow
+import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    viewModel: AuthViewModel = viewModel()
 ) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val uiState by viewModel.uiState.collectAsState()
+
+    var email by remember { mutableStateOf(if (uiState.isDemoMode) "demo.orangtua@aksa.id" else "") }
+    var password by remember { mutableStateOf(if (uiState.isDemoMode) "123456" else "") }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    val errorMessage = localError ?: uiState.errorMessage
 
     Box(
         modifier = Modifier
@@ -78,6 +97,23 @@ fun LoginScreen(
                     letterSpacing = 2.sp,
                     color = AksaWhite
                 )
+
+                // Environment Mode Pill
+                Box(
+                    modifier = Modifier
+                        .padding(top = 6.dp)
+                        .clip(PillShape)
+                        .background(if (uiState.isDemoMode) AksaYellow else AksaLime)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (uiState.isDemoMode) "Mode Demo (Lokal)" else "Mode Firebase (Tersinkron)",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = AksaDarkBrown
+                    )
+                }
             }
 
             // White Rounded Login Card
@@ -102,7 +138,7 @@ fun LoginScreen(
                     )
 
                     Text(
-                        text = "Masuk untuk mulai petualangan belajar!",
+                        text = "Masuk akun orang tua untuk mendampingi belajar anak",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Normal,
                         fontSize = 13.sp,
@@ -110,17 +146,17 @@ fun LoginScreen(
                         modifier = Modifier.padding(top = 4.dp, bottom = 22.dp)
                     )
 
-                    // Input 1: Nama Pengguna
+                    // Input 1: Email Orang Tua / Wali
                     AksaTextField(
-                        value = username,
+                        value = email,
                         onValueChange = {
-                            username = it
-                            errorMessage = null
+                            email = it
+                            localError = null
                         },
-                        label = "Nama Pengguna",
-                        placeholder = "Masukkan nama pengguna",
-                        leadingIcon = AksaIcons.Person,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                        label = "Email Orang Tua / Wali",
+                        placeholder = "Masukkan email akun orang tua",
+                        leadingIcon = AksaIcons.Email,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -130,7 +166,7 @@ fun LoginScreen(
                         value = password,
                         onValueChange = {
                             password = it
-                            errorMessage = null
+                            localError = null
                         },
                         label = "Password",
                         placeholder = "Masukkan password",
@@ -141,7 +177,7 @@ fun LoginScreen(
 
                     if (errorMessage != null) {
                         Text(
-                            text = errorMessage ?: "",
+                            text = errorMessage,
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Medium,
                             fontSize = 12.sp,
@@ -153,19 +189,28 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // Primary Button: Masuk
-                    AksaButton(
-                        text = "Masuk",
-                        style = AksaButtonStyle.PRIMARY_ORANGE,
-                        onClick = {
-                            if (username.isBlank() || password.isBlank()) {
-                                errorMessage = "Silakan masukkan nama pengguna dan password"
-                            } else {
-                                AksaUserState.username = username.trim()
-                                AksaUserState.password = password
-                                onLoginSuccess()
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(
+                            color = AksaOrange,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    } else {
+                        AksaButton(
+                            text = "Masuk",
+                            style = AksaButtonStyle.PRIMARY_ORANGE,
+                            onClick = {
+                                if (email.isBlank() || password.isBlank()) {
+                                    localError = "Silakan masukkan email dan password"
+                                } else {
+                                    viewModel.login(
+                                        email = email,
+                                        pass = password,
+                                        onSuccess = onLoginSuccess
+                                    )
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(22.dp))
 
