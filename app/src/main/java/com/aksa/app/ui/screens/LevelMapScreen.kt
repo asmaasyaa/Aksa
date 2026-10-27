@@ -51,14 +51,42 @@ import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.aksa.app.ui.preview.DeveloperPreviewManager
+import com.aksa.app.ui.preview.LevelMapPreviewState
+
+private data class MapStatuses(
+    val s1: LevelNodeStatus,
+    val s2: LevelNodeStatus,
+    val s3: LevelNodeStatus,
+    val s4: LevelNodeStatus
+)
+
 @Composable
 fun LevelMapScreen(
     onNavigateBack: () -> Unit,
     onNavigateToLevel1: () -> Unit,
     onNavigateToLevel2: () -> Unit,
     onNavigateToLevel3: () -> Unit,
-    onNavigateToLevel4: () -> Unit
+    onNavigateToLevel4: () -> Unit,
+    onNavigateToTangkapHuruf: () -> Unit = {},
+    onNavigateToDeveloperPreview: () -> Unit = {}
 ) {
+    val levelMapState by DeveloperPreviewManager.levelMapState.collectAsState()
+    val isPreviewActive by DeveloperPreviewManager.isPreviewActive.collectAsState()
+
+    val (status1, status2, status3, status4) = when (levelMapState) {
+        LevelMapPreviewState.ALL_UNLOCKED ->
+            MapStatuses(LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE)
+        LevelMapPreviewState.ALL_COMPLETED ->
+            MapStatuses(LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED)
+        LevelMapPreviewState.ALL_LOCKED_EXCEPT_LEVEL_1 ->
+            MapStatuses(LevelNodeStatus.ACTIVE, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED)
+        LevelMapPreviewState.DEFAULT_PROGRESSION ->
+            MapStatuses(LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED)
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -72,7 +100,59 @@ fun LevelMapScreen(
                 .padding(bottom = 60.dp)
         ) {
             // Top Bar Area
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(110.dp))
+
+            // Mini-Game & Dev Quick Access Banner
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Mini-Game Tangkap Huruf Pill
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .shadow(4.dp, RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(AksaYellow)
+                        .clickable(onClick = onNavigateToTangkapHuruf)
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "🎮 Tangkap Huruf",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = AksaDarkBrown
+                        )
+                    }
+                }
+
+                if (com.aksa.app.BuildConfig.DEBUG) {
+                    Box(
+                        modifier = Modifier
+                            .shadow(4.dp, RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(AksaWhite)
+                            .clickable(onClick = onNavigateToDeveloperPreview)
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = "🛠️ Dev Preview",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = AksaDarkBrown
+                        )
+                    }
+                }
+            }
 
             // Map Area containing winding path, nodes, and decorations
             Box(
@@ -92,7 +172,7 @@ fun LevelMapScreen(
                     AksaLevelNode(
                         levelNumber = 4,
                         title = "Sungai Cerita",
-                        status = LevelNodeStatus.LOCKED,
+                        status = status4,
                         onClick = onNavigateToLevel4
                     )
                 }
@@ -106,7 +186,7 @@ fun LevelMapScreen(
                     AksaLevelNode(
                         levelNumber = 3,
                         title = "Gunung Kata",
-                        status = LevelNodeStatus.LOCKED,
+                        status = status3,
                         onClick = onNavigateToLevel3
                     )
                 }
@@ -120,12 +200,12 @@ fun LevelMapScreen(
                     AksaLevelNode(
                         levelNumber = 2,
                         title = "Dunia Suku Kata",
-                        status = LevelNodeStatus.COMPLETED,
+                        status = status2,
                         onClick = onNavigateToLevel2
                     )
                 }
 
-                // LEVEL 1 (Bottom: Pulau Alfabet - ACTIVE)
+                // LEVEL 1 (Bottom: Pulau Alfabet)
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -134,7 +214,7 @@ fun LevelMapScreen(
                     AksaLevelNode(
                         levelNumber = 1,
                         title = "Pulau Alfabet",
-                        status = LevelNodeStatus.ACTIVE,
+                        status = status1,
                         onClick = onNavigateToLevel1
                     )
                 }

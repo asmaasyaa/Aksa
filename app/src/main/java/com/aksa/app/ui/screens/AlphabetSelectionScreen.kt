@@ -50,7 +50,8 @@ private data class AlphabetData(
 @Composable
 fun AlphabetSelectionScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToPronunciation: (String) -> Unit,
+    onNavigateToPronunciation: (String) -> Unit = {},
+    onNavigateToLetterLearning: (String) -> Unit = {},
     onNavigateToHurufMirip: () -> Unit = {}
 ) {
     val alphabetList = listOf(
@@ -242,7 +243,7 @@ fun AlphabetSelectionScreen(
                         wordHint = item.wordHint,
                         status = item.status,
                         onClick = {
-                            onNavigateToPronunciation(item.letter)
+                            onNavigateToLetterLearning(item.letter)
                         }
                     )
                 }

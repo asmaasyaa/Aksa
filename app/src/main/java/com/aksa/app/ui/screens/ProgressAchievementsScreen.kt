@@ -62,6 +62,15 @@ fun ProgressAchievementsScreen(
     viewModel: ProgressAchievementsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isDevPreview by com.aksa.app.ui.preview.DeveloperPreviewManager.isPreviewActive.collectAsState()
+    val previewDays by com.aksa.app.ui.preview.DeveloperPreviewManager.previewWeeklyDays.collectAsState()
+
+    val effectiveStreak = if (isDevPreview) previewDays else uiState.currentStreak
+    val effectiveBadges = if (isDevPreview) {
+        com.aksa.app.ui.preview.DeveloperPreviewFixtures.createMilestoneBadges(previewDays)
+    } else {
+        uiState.milestoneBadges
+    }
 
     Box(
         modifier = Modifier
@@ -154,7 +163,7 @@ fun ProgressAchievementsScreen(
                     Spacer(modifier = Modifier.width(16.dp))
 
                     Column {
-                        val streak = uiState.currentStreak
+                        val streak = effectiveStreak
                         Text(
                             text = if (streak > 0) "$streak Hari Berturut-turut!" else "Mulai Streak Belajar!",
                             fontFamily = Poppins,
@@ -271,7 +280,7 @@ fun ProgressAchievementsScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Display the 3 independent weekly milestone badges
-                    for (badge in uiState.milestoneBadges) {
+                    for (badge in effectiveBadges) {
                         WeeklyBadgeItemRow(badge = badge)
                         Spacer(modifier = Modifier.height(12.dp))
                     }

@@ -55,6 +55,7 @@ fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onNavigateToProgress: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToDeveloperPreview: () -> Unit = {},
     authViewModel: com.aksa.app.ui.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val authState by authViewModel.uiState.collectAsState()
@@ -284,6 +285,18 @@ fun ProfileScreen(
                         title = "Pengaturan",
                         onClick = { /* UI Mockup action */ }
                     )
+
+                    if (com.aksa.app.BuildConfig.DEBUG) {
+                        HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
+                        ProfileMenuRow(
+                            icon = AksaIcons.Star,
+                            iconBg = AksaYellow.copy(alpha = 0.3f),
+                            title = "Developer Preview Mode",
+                            badge = "Debug",
+                            textColor = AksaDarkBrown,
+                            onClick = onNavigateToDeveloperPreview
+                        )
+                    }
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 

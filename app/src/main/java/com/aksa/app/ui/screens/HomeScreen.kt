@@ -88,7 +88,15 @@ fun HomeScreen(
     val displayName = profile?.displayName ?: AksaUserState.username
     val displayAge = "${profile?.age ?: AksaUserState.age} tahun"
     val avatarId = profile?.avatarId ?: AksaUserState.avatarId
-    val currentStreak = uiState.weeklyProgress?.currentStreak ?: AksaUserState.streakCount
+    val isDevPreview by com.aksa.app.ui.preview.DeveloperPreviewManager.isPreviewActive.collectAsState()
+    val previewDays by com.aksa.app.ui.preview.DeveloperPreviewManager.previewWeeklyDays.collectAsState()
+
+    val effectiveWeeklyProgress = if (isDevPreview) {
+        com.aksa.app.ui.preview.DeveloperPreviewFixtures.createWeeklyProgress(previewDays)
+    } else {
+        uiState.weeklyProgress
+    }
+    val currentStreak = effectiveWeeklyProgress?.currentStreak ?: AksaUserState.streakCount
 
     Box(
         modifier = Modifier
@@ -116,7 +124,7 @@ fun HomeScreen(
 
             // WEEKLY LEARNING ACTIVITY CALENDAR CARD (Positioned between Profile and Learning Card)
             com.aksa.app.ui.components.WeeklyActivityCard(
-                weeklyProgress = uiState.weeklyProgress
+                weeklyProgress = effectiveWeeklyProgress
             )
 
             Spacer(modifier = Modifier.height(16.dp))
