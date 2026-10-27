@@ -31,6 +31,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -75,11 +76,19 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     onNavigateToLevelMap: () -> Unit = {},
-    onNavigateToProfile: () -> Unit = {}
+    onNavigateToProfile: () -> Unit = {},
+    viewModel: com.aksa.app.ui.viewmodel.HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var selectedBottomTab by remember { mutableIntStateOf(0) } // 0: Home/Map, 1: Profile
+    val uiState by viewModel.uiState.collectAsState()
+
+    val profile = uiState.childProfile
+    val displayName = profile?.displayName ?: AksaUserState.username
+    val displayAge = "${profile?.age ?: AksaUserState.age} tahun"
+    val avatarId = profile?.avatarId ?: AksaUserState.avatarId
+    val currentStreak = uiState.weeklyProgress?.currentStreak ?: AksaUserState.streakCount
 
     Box(
         modifier = Modifier
@@ -96,14 +105,21 @@ fun HomeScreen(
         ) {
             // TOP WHITE ROUNDED PROFILE CARD
             AksaProfileCard(
-                name = AksaUserState.username.uppercase(),
-                age = "${AksaUserState.age} tahun",
+                name = displayName.uppercase(),
+                age = displayAge,
                 level = AksaUserState.level,
-                streakCount = AksaUserState.streakCount,
-                avatarId = AksaUserState.avatarId
+                streakCount = currentStreak,
+                avatarId = avatarId
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // WEEKLY LEARNING ACTIVITY CALENDAR CARD (Positioned between Profile and Learning Card)
+            com.aksa.app.ui.components.WeeklyActivityCard(
+                weeklyProgress = uiState.weeklyProgress
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // LARGE WHITE LEARNING CARD
             val learningCardShape = RoundedCornerShape(32.dp)
@@ -238,7 +254,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // DAILY CHALLENGE / MOTIVATION CARD
-            DailyChallengeCard()
+            DailyChallengeCard(streakCount = currentStreak)
         }
 
         // MINIMAL BOTTOM NAVIGATION (2 Items: Map & Profile)
@@ -435,8 +451,14 @@ private fun BottomNavItem(
 }
 
 @Composable
-private fun DailyChallengeCard() {
+private fun DailyChallengeCard(streakCount: Int = 0) {
     val shape = RoundedCornerShape(24.dp)
+    val streakText = if (streakCount > 0) {
+        "Selesaikan latihan hari ini untuk menjaga $streakCount hari streak!"
+    } else {
+        "Selesaikan latihan pertama hari ini untuk memulai streak!"
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -474,7 +496,7 @@ private fun DailyChallengeCard() {
                     color = AksaDarkBrown
                 )
                 Text(
-                    text = "Selesaikan 1 modul untuk pertahankan 9 streak!",
+                    text = streakText,
                     fontFamily = Poppins,
                     fontWeight = FontWeight.Normal,
                     fontSize = 12.sp,

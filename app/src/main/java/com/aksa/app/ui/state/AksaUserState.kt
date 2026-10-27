@@ -4,25 +4,29 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.aksa.app.domain.model.ChildProfile
 
 data class AksaAvatarItem(
     val id: String,
     val name: String
 )
 
+/**
+ * Global UI helper retaining avatar assets and bridging legacy prototype screens
+ * to real repository-backed profile state. Plaintext passwords have been removed completely.
+ */
 object AksaUserState {
-    // Current child profile state
+    // Active child profile state (synced with repository/ViewModel)
     var username by mutableStateOf("Marvin")
-    var password by mutableStateOf("123456")
     var avatarId by mutableStateOf("mascot_classic")
     var age by mutableIntStateOf(8)
 
-    // Gamification state
-    var level by mutableStateOf("LV 3 Master")
-    var streakCount by mutableIntStateOf(9)
+    // Learning metrics driven by real session history
+    var level by mutableStateOf("Modul 1: Huruf")
+    var streakCount by mutableIntStateOf(0)
     var hurufMiripCompleted by mutableStateOf(false)
 
-    // Available child-friendly avatars matching AKSA flat aesthetic
+    // Child-friendly avatars matching AKSA flat aesthetic
     val availableAvatars = listOf(
         AksaAvatarItem("mascot_classic", "Aksa"),
         AksaAvatarItem("mascot_champion", "Juara"),
@@ -32,9 +36,15 @@ object AksaUserState {
         AksaAvatarItem("dino_lime", "Si Dino")
     )
 
-    fun updateProfile(newUsername: String, newPassword: String, newAvatarId: String, newAge: Int) {
+    fun syncFromProfile(profile: ChildProfile, streak: Int = 0) {
+        username = profile.displayName
+        avatarId = profile.avatarId
+        age = profile.age
+        streakCount = streak
+    }
+
+    fun updateProfile(newUsername: String, newAvatarId: String, newAge: Int) {
         username = newUsername
-        password = newPassword
         avatarId = newAvatarId
         age = newAge
     }

@@ -22,6 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,16 +33,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aksa.app.domain.model.MilestoneBadgeInfo
 import com.aksa.app.ui.components.AksaProgressBar
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.ProgressBarColor
-import com.aksa.app.ui.theme.AksaBlue
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaGrayDisabled
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
+import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaSoftPeach
@@ -49,11 +54,15 @@ import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.ProgressAchievementsViewModel
 
 @Composable
 fun ProgressAchievementsScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: ProgressAchievementsViewModel = viewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -114,7 +123,7 @@ fun ProgressAchievementsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Summary Streak Card
+            // Real Streak Card
             val streakCardShape = RoundedCornerShape(26.dp)
             Box(
                 modifier = Modifier
@@ -145,15 +154,20 @@ fun ProgressAchievementsScreen(
                     Spacer(modifier = Modifier.width(16.dp))
 
                     Column {
+                        val streak = uiState.currentStreak
                         Text(
-                            text = "9 Hari Berturut-turut!",
+                            text = if (streak > 0) "$streak Hari Berturut-turut!" else "Mulai Streak Belajar!",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = AksaDarkBrown
                         )
                         Text(
-                            text = "Hebat! Marvin sangat rajin berlatih setiap hari.",
+                            text = if (streak > 0) {
+                                "Hebat! ${AksaUserState.username} rajin berlatih setiap hari."
+                            } else {
+                                "Selesaikan sesi belajar untuk meraih streak pertamamu!"
+                            },
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Normal,
                             fontSize = 12.sp,
@@ -165,7 +179,7 @@ fun ProgressAchievementsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // SECTION 1: LEARNING PROGRESS
+            // SECTION 1: LEARNING STATS
             val progressCardShape = RoundedCornerShape(30.dp)
             Box(
                 modifier = Modifier
@@ -176,7 +190,7 @@ fun ProgressAchievementsScreen(
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Statistik Belajar",
+                        text = "Statistik Belajar Nyata",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
@@ -185,49 +199,44 @@ fun ProgressAchievementsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 1. Huruf (12 / 26)
-                    ProgressMetricRow(
-                        label = "Huruf",
-                        completed = 12,
-                        total = 26,
-                        color = ProgressBarColor.ORANGE
+                    // Sesi Belajar Selesai
+                    StatRow(
+                        label = "Sesi Selesai",
+                        value = "${uiState.completedSessionsCount} sesi",
+                        highlightColor = AksaOrange
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Total Soal Dijawab
+                    StatRow(
+                        label = "Total Soal Dijawab",
+                        value = "${uiState.totalQuestionsAnswered} soal",
+                        highlightColor = AksaDarkBrown
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Rata-rata Akurasi
+                    StatRow(
+                        label = "Rata-rata Akurasi",
+                        value = "${uiState.averageAccuracyPercent}%",
+                        highlightColor = AksaLimeDark
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // 2. Suku Kata (3 / 12)
-                    ProgressMetricRow(
-                        label = "Suku Kata",
-                        completed = 3,
-                        total = 12,
-                        color = ProgressBarColor.LIME
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // 3. Kata (2 / 10)
-                    ProgressMetricRow(
-                        label = "Kata",
-                        completed = 2,
-                        total = 10,
-                        color = ProgressBarColor.YELLOW
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // 4. Cerita (1 / 5)
-                    ProgressMetricRow(
-                        label = "Cerita",
-                        completed = 1,
-                        total = 5,
-                        color = ProgressBarColor.LIME
+                    AksaProgressBar(
+                        progress = (uiState.averageAccuracyPercent / 100f).coerceIn(0f, 1f),
+                        colorTheme = ProgressBarColor.LIME,
+                        height = 14.dp
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // SECTION 2: ACHIEVEMENTS (Pencapaian)
+            // SECTION 2: WEEKLY ACHIEVEMENTS (Badges)
             val achievementCardShape = RoundedCornerShape(30.dp)
             Box(
                 modifier = Modifier
@@ -237,59 +246,37 @@ fun ProgressAchievementsScreen(
                     .padding(22.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "Pencapaian (Badges)",
-                        fontFamily = Poppins,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = AksaDarkBrown
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Lencana Mingguan",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = AksaDarkBrown
+                        )
+
+                        Text(
+                            text = "Dapat Berulang",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = AksaOrange
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Badge 1: Huruf Pertamaku (Unlocked)
-                    BadgeItemRow(
-                        icon = AksaIcons.Star,
-                        iconBg = AksaYellow,
-                        title = "Huruf Pertamaku",
-                        desc = "Menyelesaikan latihan huruf A",
-                        isUnlocked = true
-                    )
+                    // Display the 3 independent weekly milestone badges
+                    for (badge in uiState.milestoneBadges) {
+                        WeeklyBadgeItemRow(badge = badge)
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    // Badge 2: Rajin Belajar (Unlocked)
-                    BadgeItemRow(
-                        icon = AksaIcons.Flame,
-                        iconBg = AksaOrange,
-                        title = "Rajin Belajar",
-                        desc = "Mencapai 3 hari streak belajar",
-                        isUnlocked = true
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Badge 3: Jago Suku Kata (Unlocked)
-                    BadgeItemRow(
-                        icon = AksaIcons.Check,
-                        iconBg = AksaLime,
-                        title = "Jago Suku Kata",
-                        desc = "Menyelesaikan Modul 2 Suku Kata",
-                        isUnlocked = true
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Badge 4: Pembaca Hebat (Locked)
-                    BadgeItemRow(
-                        icon = AksaIcons.Lock,
-                        iconBg = Color(0xFFE4E4E8),
-                        title = "Pembaca Hebat",
-                        desc = "Selesaikan seluruh modul membaca",
-                        isUnlocked = false
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
 
                     // Cheering Mascot at bottom of achievements
                     Box(
@@ -305,61 +292,60 @@ fun ProgressAchievementsScreen(
 }
 
 @Composable
-private fun ProgressMetricRow(
+private fun StatRow(
     label: String,
-    completed: Int,
-    total: Int,
-    color: ProgressBarColor
+    value: String,
+    highlightColor: Color
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                color = AksaDarkBrown
-            )
-            Text(
-                text = "$completed / $total",
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = AksaDarkBrown.copy(alpha = 0.7f)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        AksaProgressBar(
-            progress = completed.toFloat() / total.toFloat(),
-            colorTheme = color,
-            height = 14.dp
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontFamily = Poppins,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp,
+            color = AksaDarkBrown
+        )
+        Text(
+            text = value,
+            fontFamily = Poppins,
+            fontWeight = FontWeight.Bold,
+            fontSize = 15.sp,
+            color = highlightColor
         )
     }
 }
 
 @Composable
-private fun BadgeItemRow(
-    icon: ImageVector,
-    iconBg: Color,
-    title: String,
-    desc: String,
-    isUnlocked: Boolean
-) {
+private fun WeeklyBadgeItemRow(badge: MilestoneBadgeInfo) {
+    val isEarned = badge.cumulativeEarnedCount > 0 || badge.isEarnedThisWeek
     val shape = RoundedCornerShape(18.dp)
+
+    val icon = when (badge.milestoneDays) {
+        2 -> AksaIcons.Star
+        3 -> AksaIcons.Flame
+        7 -> AksaIcons.EmojiEvents
+        else -> AksaIcons.Star
+    }
+
+    val iconBg = when {
+        !isEarned -> Color(0xFFE4E4E8)
+        badge.milestoneDays == 7 -> AksaYellow
+        badge.milestoneDays == 3 -> AksaOrange
+        else -> AksaLime
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(if (isUnlocked) AksaPeachLight else Color(0xFFF7F7FA))
+            .background(if (isEarned) AksaPeachLight else Color(0xFFF7F7FA))
             .border(
                 width = 1.5.dp,
-                color = if (isUnlocked) AksaSoftPeach else Color(0xFFE8E8EE),
+                color = if (isEarned) AksaSoftPeach else Color(0xFFE8E8EE),
                 shape = shape
             )
             .padding(14.dp),
@@ -373,9 +359,9 @@ private fun BadgeItemRow(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = icon,
+                imageVector = if (isEarned) icon else AksaIcons.Lock,
                 contentDescription = null,
-                tint = if (isUnlocked) AksaDarkBrown else AksaGrayText,
+                tint = if (isEarned) AksaDarkBrown else AksaGrayText,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -384,35 +370,48 @@ private fun BadgeItemRow(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = title,
+                text = badge.title,
                 fontFamily = Poppins,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
-                color = if (isUnlocked) AksaDarkBrown else AksaGrayText
+                color = if (isEarned) AksaDarkBrown else AksaGrayText
             )
             Text(
-                text = desc,
+                text = badge.description,
                 fontFamily = Poppins,
                 fontWeight = FontWeight.Normal,
                 fontSize = 11.sp,
-                color = if (isUnlocked) AksaDarkBrown.copy(alpha = 0.7f) else AksaGrayText
+                lineHeight = 16.sp,
+                color = if (isEarned) AksaDarkBrown.copy(alpha = 0.7f) else AksaGrayText
             )
         }
 
-        if (isUnlocked) {
-            Box(
-                modifier = Modifier
-                    .clip(PillShape)
-                    .background(AksaLime)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "Dapat",
-                    fontFamily = Poppins,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    color = AksaDarkBrown
-                )
+        if (isEarned) {
+            Column(horizontalAlignment = Alignment.End) {
+                Box(
+                    modifier = Modifier
+                        .clip(PillShape)
+                        .background(if (badge.isEarnedThisWeek) AksaLime else AksaYellow)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (badge.isEarnedThisWeek) "Minggu Ini" else "Pernah Diraih",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        color = AksaDarkBrown
+                    )
+                }
+                if (badge.cumulativeEarnedCount > 0) {
+                    Text(
+                        text = "${badge.cumulativeEarnedCount}x diraih",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        color = AksaOrange,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
             }
         }
     }
