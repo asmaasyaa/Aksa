@@ -556,3 +556,4 @@ class LevelReadinessEvaluationTest {
         assertTrue(progress.level2.isUnlocked)
     }
 }
+

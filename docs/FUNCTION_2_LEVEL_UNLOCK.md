@@ -228,3 +228,4 @@ Seluruh 24 kasus uji yang disyaratkan telah diimplementasikan dalam `app/src/tes
 ## 12. Keterbatasan Demo Mode
 
 Pada implementasi Demo Mode saat ini (`DemoLevelProgressRepository` & `DemoSessionRepository`), penyimpanan menggunakan `MutableStateFlow` in-memory. Jika aplikasi ditutup paksa (*kill process*), data sesi dan progres level pada memori volatil akan kembali ke kondisi awal (Level 1 aktif, Level 2-4 terkunci). Untuk persistensi permanen lintas sesi proses, modul dapat dengan mudah dialihkan ke Firestore (`FirestorePaths`) sesuai arsitektur `AksaRepositoryProvider`.
+
