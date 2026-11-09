@@ -17,12 +17,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,10 +36,15 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aksa.app.ui.components.AksaButton
+import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaLevelNode
 import com.aksa.app.ui.components.LevelNodeStatus
+import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.components.MascotPeeking
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
@@ -46,25 +52,17 @@ import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
+import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
-
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.LevelMapPreviewState
-
-private data class MapStatuses(
-    val s1: LevelNodeStatus,
-    val s2: LevelNodeStatus,
-    val s3: LevelNodeStatus,
-    val s4: LevelNodeStatus
-)
+import com.aksa.app.ui.viewmodel.LevelMapViewModel
+import com.aksa.app.ui.viewmodel.LockedLevelDetails
 
 @Composable
 fun LevelMapScreen(
+    viewModel: LevelMapViewModel = viewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToLevel1: () -> Unit,
     onNavigateToLevel2: () -> Unit,
@@ -73,19 +71,12 @@ fun LevelMapScreen(
     onNavigateToTangkapHuruf: () -> Unit = {},
     onNavigateToDeveloperPreview: () -> Unit = {}
 ) {
-    val levelMapState by DeveloperPreviewManager.levelMapState.collectAsState()
-    val isPreviewActive by DeveloperPreviewManager.isPreviewActive.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    val (status1, status2, status3, status4) = when (levelMapState) {
-        LevelMapPreviewState.ALL_UNLOCKED ->
-            MapStatuses(LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE)
-        LevelMapPreviewState.ALL_COMPLETED ->
-            MapStatuses(LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED)
-        LevelMapPreviewState.ALL_LOCKED_EXCEPT_LEVEL_1 ->
-            MapStatuses(LevelNodeStatus.ACTIVE, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED)
-        LevelMapPreviewState.DEFAULT_PROGRESSION ->
-            MapStatuses(LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED)
-    }
+    val status1 = uiState.effectiveStatus1
+    val status2 = uiState.effectiveStatus2
+    val status3 = uiState.effectiveStatus3
+    val status4 = uiState.effectiveStatus4
 
     Box(
         modifier = Modifier
@@ -173,7 +164,9 @@ fun LevelMapScreen(
                         levelNumber = 4,
                         title = "Sungai Cerita",
                         status = status4,
-                        onClick = onNavigateToLevel4
+                        onClick = {
+                            viewModel.onLevelClick(4, onNavigateToLevel4)
+                        }
                     )
                 }
 
@@ -187,7 +180,9 @@ fun LevelMapScreen(
                         levelNumber = 3,
                         title = "Gunung Kata",
                         status = status3,
-                        onClick = onNavigateToLevel3
+                        onClick = {
+                            viewModel.onLevelClick(3, onNavigateToLevel3)
+                        }
                     )
                 }
 
@@ -201,7 +196,9 @@ fun LevelMapScreen(
                         levelNumber = 2,
                         title = "Dunia Suku Kata",
                         status = status2,
-                        onClick = onNavigateToLevel2
+                        onClick = {
+                            viewModel.onLevelClick(2, onNavigateToLevel2)
+                        }
                     )
                 }
 
@@ -215,7 +212,9 @@ fun LevelMapScreen(
                         levelNumber = 1,
                         title = "Pulau Alfabet",
                         status = status1,
-                        onClick = onNavigateToLevel1
+                        onClick = {
+                            viewModel.onLevelClick(1, onNavigateToLevel1)
+                        }
                     )
                 }
             }
@@ -274,7 +273,7 @@ fun LevelMapScreen(
             }
         }
 
-        // Decorative Mascot positioned safely at lower-right corner (never overlaps title, back button, or level nodes)
+        // Decorative Mascot positioned safely at lower-right corner
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -284,6 +283,160 @@ fun LevelMapScreen(
                 width = 130.dp,
                 height = 85.dp
             )
+        }
+
+        // Friendly Modal Dialog when a locked level is tapped
+        uiState.selectedLockedLevel?.let { locked ->
+            LockedLevelModal(
+                locked = locked,
+                onDismiss = { viewModel.dismissLockedDialog() },
+                onPracticePrerequisite = {
+                    viewModel.dismissLockedDialog()
+                    when (locked.recommendedLevelNumber) {
+                        1 -> onNavigateToLevel1()
+                        2 -> onNavigateToLevel2()
+                        3 -> onNavigateToLevel3()
+                        else -> onNavigateToLevel1()
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun LockedLevelModal(
+    locked: LockedLevelDetails,
+    onDismiss: () -> Unit,
+    onPracticePrerequisite: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x88000000))
+            .clickable(onClick = onDismiss)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        val dialogShape = RoundedCornerShape(32.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(16.dp, dialogShape)
+                .background(AksaWhite, dialogShape)
+                .clickable(enabled = false) { /* Block clicks */ }
+                .padding(24.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                MascotLearning(size = 90.dp, animated = false)
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "${locked.title} Terkunci 🔒",
+                    fontFamily = Poppins,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = AksaDarkBrown,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = locked.explanation,
+                    fontFamily = Poppins,
+                    fontSize = 13.sp,
+                    color = AksaDarkBrown.copy(alpha = 0.85f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Requirements checklist card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(AksaPeachLight.copy(alpha = 0.5f))
+                        .padding(14.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Syarat Membuka Level:",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = AksaDarkBrown
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = AksaIcons.Check,
+                                contentDescription = null,
+                                tint = AksaLimeDark,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Minimal 3 sesi selesai di ${locked.prerequisiteTitle}",
+                                fontFamily = Poppins,
+                                fontSize = 11.sp,
+                                color = AksaDarkBrown
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = AksaIcons.Check,
+                                contentDescription = null,
+                                tint = AksaLimeDark,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = locked.targetAccuracies,
+                                fontFamily = Poppins,
+                                fontSize = 11.sp,
+                                color = AksaDarkBrown
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = AksaIcons.Check,
+                                contentDescription = null,
+                                tint = AksaLimeDark,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = locked.targetErrorLimit,
+                                fontFamily = Poppins,
+                                fontSize = 11.sp,
+                                color = AksaDarkBrown
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                AksaButton(
+                    text = "Ayo Latihan di ${locked.prerequisiteTitle}",
+                    style = AksaButtonStyle.PRIMARY_ORANGE,
+                    onClick = onPracticePrerequisite
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                AksaButton(
+                    text = "Tutup",
+                    style = AksaButtonStyle.SECONDARY_LIME,
+                    onClick = onDismiss
+                )
+            }
         }
     }
 }

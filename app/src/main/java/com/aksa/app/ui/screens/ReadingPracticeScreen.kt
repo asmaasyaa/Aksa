@@ -30,6 +30,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,8 +47,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
@@ -112,6 +115,11 @@ fun ReadingPracticeScreen(
             ComprehensionQuestion("cq_3", "Kepada siapa Kancil membagikan buah apel?", "Burung dan kelinci", listOf("Burung dan kelinci", "Harimau", "Buaya"))
         )
     }
+
+    var sessionId by remember { mutableStateOf("session_reading_${UUID.randomUUID()}") }
+    var sessionStartedAt by remember { mutableStateOf(System.currentTimeMillis()) }
+    val recordedAnswers = remember { mutableStateListOf<AnswerLog>() }
+    val activeChildResolver = remember { GetActiveChildIdUseCase() }
 
     var stage by remember { mutableStateOf(ReadingStage.READING_STORY) }
     var currentPanelIndex by remember { mutableIntStateOf(0) }
@@ -463,6 +471,21 @@ fun ReadingPracticeScreen(
                                                 isAnswered = true
                                                 val correct = choice == currentQ.targetAnswer
                                                 isCorrect = correct
+                                                val childId = activeChildResolver.getSync()
+                                                val log = AnswerLog(
+                                                    answerId = "ans_${sessionId}_reading_${currentQ.id}",
+                                                    sessionId = sessionId,
+                                                    childId = childId,
+                                                    moduleId = "sungai_cerita",
+                                                    activityId = "reading_comprehension",
+                                                    questionId = currentQ.id,
+                                                    targetChar = currentQ.targetAnswer,
+                                                    chosenChar = choice,
+                                                    isCorrect = correct,
+                                                    responseTimeMs = 2000L,
+                                                    timestamp = System.currentTimeMillis()
+                                                )
+                                                recordedAnswers.add(log)
                                                 if (correct) {
                                                     correctCount++
                                                     tts.speak("Benar! Pintar sekali!")
@@ -566,12 +589,16 @@ fun ReadingPracticeScreen(
                                         if (!sessionCommitted) {
                                             sessionCommitted = true
                                             coroutineScope.launch {
+                                                val actualChildId = activeChildResolver()
+                                                for (ans in recordedAnswers) {
+                                                    AksaRepositoryProvider.sessionRepository.recordAnswer(ans.copy(childId = actualChildId))
+                                                }
                                                 val sessionResult = SessionResult(
-                                                    sessionId = "session_reading_${UUID.randomUUID()}",
-                                                    childId = "child_marvin_demo",
+                                                    sessionId = sessionId,
+                                                    childId = actualChildId,
                                                     moduleId = "sungai_cerita",
                                                     activityId = "reading_comprehension",
-                                                    startedAt = System.currentTimeMillis() - 150_000,
+                                                    startedAt = sessionStartedAt,
                                                     completedAt = System.currentTimeMillis(),
                                                     totalQuestions = questions.size,
                                                     correctAnswers = correctCount,
@@ -697,6 +724,9 @@ fun ReadingPracticeScreen(
                                     selectedChoice = null
                                     correctCount = 0
                                     sessionCommitted = false
+                                    sessionId = "session_reading_${UUID.randomUUID()}"
+                                    sessionStartedAt = System.currentTimeMillis()
+                                    recordedAnswers.clear()
                                 }
                             )
 

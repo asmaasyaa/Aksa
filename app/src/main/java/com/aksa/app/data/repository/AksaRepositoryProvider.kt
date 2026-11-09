@@ -3,10 +3,12 @@ package com.aksa.app.data.repository
 import android.content.Context
 import com.aksa.app.data.repository.demo.DemoAchievementRepository
 import com.aksa.app.data.repository.demo.DemoAuthRepository
+import com.aksa.app.data.repository.demo.DemoLevelProgressRepository
 import com.aksa.app.data.repository.demo.DemoProfileRepository
 import com.aksa.app.data.repository.demo.DemoSessionRepository
 import com.aksa.app.domain.repository.AchievementRepository
 import com.aksa.app.domain.repository.AuthRepository
+import com.aksa.app.domain.repository.LevelProgressRepository
 import com.aksa.app.domain.repository.ProfileRepository
 import com.aksa.app.domain.repository.SessionRepository
 import com.google.firebase.FirebaseApp
@@ -33,6 +35,7 @@ object AksaRepositoryProvider {
     val demoProfileRepository: DemoProfileRepository by lazy { DemoProfileRepository() }
     val demoSessionRepository: DemoSessionRepository by lazy { DemoSessionRepository() }
     val demoAchievementRepository: DemoAchievementRepository by lazy { DemoAchievementRepository() }
+    val demoLevelProgressRepository: DemoLevelProgressRepository by lazy { DemoLevelProgressRepository() }
 
     // Real Firebase singletons (lazily instantiated only if Firebase is present)
     private val firebaseAuthRepository: FirebaseAuthRepository by lazy { FirebaseAuthRepository() }
@@ -92,4 +95,7 @@ object AksaRepositoryProvider {
         } else {
             demoAchievementRepository
         }
+
+    val levelProgressRepository: LevelProgressRepository
+        get() = demoLevelProgressRepository
 }

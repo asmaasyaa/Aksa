@@ -53,8 +53,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
@@ -103,6 +105,11 @@ fun WordFormationScreen(
             WordQuestion("wq_5", "SAPI", "🐮", "S-A-P-I -> Sapi menghasilkan susu", listOf("S", "A", "P", "I"), listOf("P", "I", "S", "A"))
         )
     }
+
+    var sessionId by remember { mutableStateOf("session_word_${UUID.randomUUID()}") }
+    var sessionStartedAt by remember { mutableStateOf(System.currentTimeMillis()) }
+    val recordedAnswers = remember { mutableStateListOf<AnswerLog>() }
+    val activeChildResolver = remember { GetActiveChildIdUseCase() }
 
     var currentQuestionIndex by remember { mutableIntStateOf(0) }
     val currentQ = questions[currentQuestionIndex]
@@ -403,6 +410,22 @@ fun WordFormationScreen(
                         style = if (effectiveIsComplete) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
                         enabled = effectiveIsComplete,
                         onClick = {
+                            val childId = activeChildResolver.getSync()
+                            val log = AnswerLog(
+                                answerId = "ans_${sessionId}_word_${currentQ.id}",
+                                sessionId = sessionId,
+                                childId = childId,
+                                moduleId = "gunung_kata",
+                                activityId = "word_formation",
+                                questionId = currentQ.id,
+                                targetChar = currentQ.word,
+                                chosenChar = currentLetters.joinToString(""),
+                                isCorrect = isCorrect,
+                                responseTimeMs = 2000L,
+                                timestamp = System.currentTimeMillis()
+                            )
+                            recordedAnswers.add(log)
+
                             if (currentQuestionIndex < questions.size - 1) {
                                 currentQuestionIndex++
                                 selectedIndices.clear()
@@ -411,12 +434,16 @@ fun WordFormationScreen(
                                 if (!sessionCommitted) {
                                     sessionCommitted = true
                                     coroutineScope.launch {
+                                        val actualChildId = activeChildResolver()
+                                        for (ans in recordedAnswers) {
+                                            AksaRepositoryProvider.sessionRepository.recordAnswer(ans.copy(childId = actualChildId))
+                                        }
                                         val sessionResult = SessionResult(
-                                            sessionId = "session_word_${UUID.randomUUID()}",
-                                            childId = "child_marvin_demo",
+                                            sessionId = sessionId,
+                                            childId = actualChildId,
                                             moduleId = "gunung_kata",
                                             activityId = "word_formation",
-                                            startedAt = System.currentTimeMillis() - 120_000,
+                                            startedAt = sessionStartedAt,
                                             completedAt = System.currentTimeMillis(),
                                             totalQuestions = questions.size,
                                             correctAnswers = correctCount,
@@ -549,6 +576,9 @@ fun WordFormationScreen(
                                 selectedIndices.clear()
                                 correctCount = 0
                                 sessionCommitted = false
+                                sessionId = "session_word_${UUID.randomUUID()}"
+                                sessionStartedAt = System.currentTimeMillis()
+                                recordedAnswers.clear()
                             }
                         )
 
