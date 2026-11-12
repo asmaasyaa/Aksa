@@ -1,14 +1,17 @@
 package com.aksa.app.ui.screens
 
-import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -34,89 +37,173 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aksa.app.audio.AndroidTextToSpeechHelper
-import com.aksa.app.data.repository.AksaRepositoryProvider
-import com.aksa.app.domain.model.SessionResult
-import com.aksa.app.domain.model.SessionStatus
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
-import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.preview.DeveloperPreviewManager
 import com.aksa.app.ui.preview.PreviewVisualState
-import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
-import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
-import com.aksa.app.ui.theme.AksaYellowDark
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.MiniGameStage
+import com.aksa.app.ui.viewmodel.TangkapHurufViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.util.UUID
+import kotlinx.coroutines.isActive
+import kotlin.math.abs
 
-enum class MiniGameStage {
-    INSTRUCTIONS,
-    PLAYING,
-    RESULTS
+/**
+ * Aksa Mascot holding a woven wicker basket for catching letters.
+ */
+@Composable
+fun MascotWithBasket(
+    modifier: Modifier = Modifier,
+    size: Dp = 120.dp,
+    animated: Boolean = true
+) {
+    Box(
+        modifier = modifier.size(width = size, height = size * 1.15f),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        // Mascot body at bottom
+        MascotCheering(
+            size = size,
+            animated = animated
+        )
+
+        // Woven basket canvas positioned above paws
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth(0.92f)
+                .height(size * 0.45f)
+        ) {
+            val w = this.size.width
+            val h = this.size.height
+            val cx = w / 2f
+
+            // Basket shadow
+            drawOval(
+                color = Color(0x20000000),
+                topLeft = Offset(cx - w * 0.38f, h * 0.70f),
+                size = Size(w * 0.76f, h * 0.22f)
+            )
+
+            // Basket geometry
+            val rimTop = h * 0.05f
+            val rimHeight = h * 0.24f
+            val basketBodyTop = rimTop + rimHeight * 0.5f
+            val basketBodyBottom = h * 0.88f
+            val topWidth = w * 0.88f
+            val bottomWidth = w * 0.62f
+
+            // Basket body path (trapezoid with rounded base)
+            val basketPath = Path().apply {
+                moveTo(cx - topWidth / 2f, basketBodyTop)
+                lineTo(cx + topWidth / 2f, basketBodyTop)
+                quadraticTo(
+                    cx + topWidth * 0.48f, basketBodyBottom,
+                    cx + bottomWidth / 2f, basketBodyBottom
+                )
+                lineTo(cx - bottomWidth / 2f, basketBodyBottom)
+                quadraticTo(
+                    cx - topWidth * 0.48f, basketBodyBottom,
+                    cx - topWidth / 2f, basketBodyTop
+                )
+                close()
+            }
+
+            // Fill basket body with warm wicker brown
+            drawPath(path = basketPath, color = Color(0xFFD97706)) // Amber-600
+
+            // Woven horizontal texture lines
+            for (i in 1..3) {
+                val lineY = basketBodyTop + (basketBodyBottom - basketBodyTop) * (i / 4f)
+                val lineW = topWidth - (topWidth - bottomWidth) * (i / 4f)
+                drawLine(
+                    color = Color(0xFFB45309), // Amber-700
+                    start = Offset(cx - lineW / 2f + 4f, lineY),
+                    end = Offset(cx + lineW / 2f - 4f, lineY),
+                    strokeWidth = 3f,
+                    cap = StrokeCap.Round
+                )
+            }
+
+            // Outer basket rim ring
+            drawOval(
+                color = Color(0xFFF59E0B), // Amber-500
+                topLeft = Offset(cx - topWidth / 2f, rimTop),
+                size = Size(topWidth, rimHeight)
+            )
+            drawOval(
+                color = Color(0xFF92400E), // Amber-800
+                topLeft = Offset(cx - topWidth / 2f, rimTop),
+                size = Size(topWidth, rimHeight),
+                style = Stroke(width = 3.5f)
+            )
+
+            // Dark inner opening depth
+            drawOval(
+                color = Color(0xFF78350F), // Amber-900
+                topLeft = Offset(cx - topWidth * 0.42f, rimTop + rimHeight * 0.18f),
+                size = Size(topWidth * 0.84f, rimHeight * 0.62f)
+            )
+        }
+    }
 }
-
-data class FallingLetter(
-    val letter: String,
-    val isTarget: Boolean,
-    val laneIndex: Int // 0, 1, 2
-)
 
 @Composable
 fun TangkapHurufScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToLevelMap: () -> Unit
+    onNavigateToLevelMap: () -> Unit,
+    viewModel: TangkapHurufViewModel? = null
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
     val tts = remember { AndroidTextToSpeechHelper(context) }
 
-    val alphabetPool = listOf("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U")
+    val vm: TangkapHurufViewModel = viewModel ?: viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: java.lang.Class<T>): T {
+                return TangkapHurufViewModel(audioSpeaker = tts) as T
+            }
+        }
+    )
 
-    var stage by remember { mutableStateOf(MiniGameStage.INSTRUCTIONS) }
-    var currentRound by remember { mutableIntStateOf(1) }
-    val totalRounds = 15
-
-    var score by remember { mutableIntStateOf(0) }
-    var difficultyLevel by remember { mutableIntStateOf(1) } // 1, 2, 3
-    var consecutiveCorrect by remember { mutableIntStateOf(0) }
-    var consecutiveIncorrect by remember { mutableIntStateOf(0) }
-
-    var targetLetter by remember { mutableStateOf("B") }
-    var fallingItems by remember { mutableStateOf<List<FallingLetter>>(emptyList()) }
-    var roundResolved by remember { mutableStateOf(false) }
-    var roundFeedbackMsg by remember { mutableStateOf<String?>(null) }
-    var sessionCommitted by remember { mutableStateOf(false) }
-
-    // Fall animation progress (0f at top to 1f at bottom)
-    val fallProgress = remember { Animatable(0f) }
+    val uiState by vm.uiState.collectAsState()
 
     // Developer Preview overrides
     val visualState by DeveloperPreviewManager.visualState.collectAsState()
@@ -124,7 +211,7 @@ fun TangkapHurufScreen(
 
     val effectiveStage = when {
         isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED -> MiniGameStage.RESULTS
-        else -> stage
+        else -> uiState.stage
     }
 
     DisposableEffect(Unit) {
@@ -133,59 +220,15 @@ fun TangkapHurufScreen(
         }
     }
 
-    // Function to generate and start a new round
-    fun startRound(roundNum: Int) {
-        roundResolved = false
-        roundFeedbackMsg = null
-
-        val target = alphabetPool.random()
-        targetLetter = target
-
-        val distractors = alphabetPool.filter { it != target }.shuffled().take(2)
-        val lanes = listOf(0, 1, 2).shuffled()
-
-        val items = listOf(
-            FallingLetter(target, isTarget = true, laneIndex = lanes[0]),
-            FallingLetter(distractors[0], isTarget = false, laneIndex = lanes[1]),
-            FallingLetter(distractors[1], isTarget = false, laneIndex = lanes[2])
-        )
-        fallingItems = items
-
-        coroutineScope.launch {
-            tts.speak("Tangkap huruf $target!")
-            fallProgress.snapTo(0f)
-
-            // Duration inversely related to difficulty
-            val fallDuration = when (difficultyLevel) {
-                1 -> 5500
-                2 -> 4200
-                else -> 3200
-            }
-
-            fallProgress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = fallDuration, easing = LinearEasing)
-            )
-
-            // Reached grass without catch
-            if (!roundResolved) {
-                roundResolved = true
-                consecutiveCorrect = 0
-                consecutiveIncorrect++
-                if (consecutiveIncorrect >= 2 && difficultyLevel > 1) {
-                    difficultyLevel--
-                    consecutiveIncorrect = 0
-                }
-                delay(700)
-                if (currentRound < totalRounds) {
-                    currentRound++
-                    startRound(currentRound)
-                } else {
-                    stage = MiniGameStage.RESULTS
-                }
-            }
+    // Exit back handling: abandon session if exiting while playing
+    val handleExit = {
+        if (uiState.stage == MiniGameStage.PLAYING) {
+            vm.abandonSession()
         }
+        onNavigateBack()
     }
+
+    BackHandler(onBack = handleExit)
 
     Box(
         modifier = Modifier
@@ -211,7 +254,7 @@ fun TangkapHurufScreen(
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
+                        .clickable(onClick = handleExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -242,7 +285,7 @@ fun TangkapHurufScreen(
                     Text(
                         text = when (effectiveStage) {
                             MiniGameStage.INSTRUCTIONS -> "Tantangan Mini-Game"
-                            MiniGameStage.PLAYING -> "Ronde $currentRound / $totalRounds"
+                            MiniGameStage.PLAYING -> "Ronde ${uiState.currentRound} / ${uiState.totalRounds}"
                             MiniGameStage.RESULTS -> "Hasil Permainan"
                         },
                         fontFamily = Poppins,
@@ -264,7 +307,7 @@ fun TangkapHurufScreen(
                             .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         val cardShape = RoundedCornerShape(32.dp)
                         Box(
@@ -278,7 +321,7 @@ fun TangkapHurufScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                MascotCheering(size = 120.dp)
+                                MascotWithBasket(size = 130.dp)
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -290,8 +333,10 @@ fun TangkapHurufScreen(
                                     color = AksaDarkBrown
                                 )
 
+                                Spacer(modifier = Modifier.height(8.dp))
+
                                 Text(
-                                    text = "Dengarkan suara huruf target, lalu ketuk huruf yang jatuh sebelum menyentuh rumput!",
+                                    text = "Dengarkan suara huruf target, lalu geser keranjang Aksa untuk menangkap huruf yang tepat!",
                                     fontFamily = Poppins,
                                     fontSize = 13.sp,
                                     lineHeight = 20.sp,
@@ -324,7 +369,7 @@ fun TangkapHurufScreen(
                                                 color = AksaDarkBrown
                                             )
                                             Text(
-                                                text = "Santai & Menyenangkan",
+                                                text = "Santai & Fun",
                                                 fontFamily = Poppins,
                                                 fontSize = 10.sp,
                                                 color = AksaDarkBrown.copy(alpha = 0.7f)
@@ -342,14 +387,14 @@ fun TangkapHurufScreen(
                                     ) {
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                             Text(
-                                                text = "Adaptif 1–3",
+                                                text = "Level 1–3",
                                                 fontFamily = Poppins,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 14.sp,
                                                 color = AksaDarkBrown
                                             )
                                             Text(
-                                                text = "Tingkat Kesulitan",
+                                                text = "Otomatis Adaptif",
                                                 fontFamily = Poppins,
                                                 fontSize = 10.sp,
                                                 color = AksaDarkBrown.copy(alpha = 0.7f)
@@ -360,17 +405,13 @@ fun TangkapHurufScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(28.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         AksaButton(
                             text = "Mulai Bermain!",
                             style = AksaButtonStyle.PRIMARY_ORANGE,
                             onClick = {
-                                stage = MiniGameStage.PLAYING
-                                currentRound = 1
-                                score = 0
-                                difficultyLevel = 1
-                                startRound(1)
+                                vm.startGame()
                             }
                         )
                     }
@@ -393,11 +434,11 @@ fun TangkapHurufScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Target Banner with speaker
+                            // Target Banner with speaker icon
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.clickable {
-                                    tts.speak("Tangkap huruf $targetLetter!")
+                                    vm.playCurrentTargetAudio()
                                 }
                             ) {
                                 Icon(
@@ -415,10 +456,10 @@ fun TangkapHurufScreen(
                                     color = AksaDarkBrown
                                 )
                                 Text(
-                                    text = targetLetter,
+                                    text = uiState.targetLetter,
                                     fontFamily = Poppins,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 22.sp,
+                                    fontSize = 24.sp,
                                     color = AksaOrange
                                 )
                             }
@@ -431,7 +472,7 @@ fun TangkapHurufScreen(
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = "Level $difficultyLevel",
+                                    text = "Level ${uiState.difficultyLevel}",
                                     fontFamily = Poppins,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp,
@@ -441,7 +482,7 @@ fun TangkapHurufScreen(
 
                             // Score Badge
                             Text(
-                                text = "Skor: $score",
+                                text = "Skor: ${uiState.score}",
                                 fontFamily = Poppins,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
@@ -464,8 +505,113 @@ fun TangkapHurufScreen(
                                     )
                                 )
                         ) {
-                            val areaWidth = maxWidth
-                            val areaHeight = maxHeight
+                            val containerWidthPx = constraints.maxWidth.toFloat()
+                            val containerHeightPx = constraints.maxHeight.toFloat()
+
+                            // Mascot Basket dimensions
+                            val mascotWidthPx = with(density) { 130.dp.toPx() }
+                            val mascotHeightPx = with(density) { 145.dp.toPx() }
+
+                            val basketWidthPx = with(density) { 110.dp.toPx() }
+                            val basketTopOffsetPx = with(density) { 5.dp.toPx() }
+                            val basketBottomOffsetPx = with(density) { 45.dp.toPx() }
+                            val letterSizePx = with(density) { 64.dp.toPx() }
+                            val grassHeightPx = with(density) { 48.dp.toPx() }
+
+                            // Horizontal basket position (normalized 0.12f .. 0.88f)
+                            var basketNormX by remember { mutableFloatStateOf(0.50f) }
+                            val currentBasketNormX by rememberUpdatedState(basketNormX)
+
+                            // Reset mascot basket to center at start of each round
+                            LaunchedEffect(uiState.currentRound) {
+                                basketNormX = 0.50f
+                            }
+
+                            // Active letter progress map for this round: id -> normalized progress (0f..1f)
+                            var letterProgressMap by remember(uiState.currentRound) { mutableStateOf<Map<String, Float>>(emptyMap()) }
+                            var caughtLetterId by remember(uiState.currentRound) { mutableStateOf<String?>(null) }
+                            val roundStartTimeMs = remember(uiState.currentRound) { System.currentTimeMillis() }
+
+                            // Frame-synchronized gameplay loop for active round
+                            LaunchedEffect(uiState.currentRound) {
+                                letterProgressMap = emptyMap()
+                                caughtLetterId = null
+                                var roundHandled = false
+                                val startFrameNanos = withFrameNanos { it }
+
+                                while (isActive && !roundHandled && !uiState.roundResolved) {
+                                    withFrameNanos { currentFrameNanos ->
+                                        val elapsedMs = (currentFrameNanos - startFrameNanos) / 1_000_000L
+                                        val basketCenterX = currentBasketNormX * containerWidthPx
+                                        val basketTopY = containerHeightPx - mascotHeightPx + basketTopOffsetPx
+                                        val basketBottomY = containerHeightPx - mascotHeightPx + basketBottomOffsetPx
+                                        val fallDistancePx = containerHeightPx - grassHeightPx - letterSizePx / 2f
+
+                                        val nextProgressMap = mutableMapOf<String, Float>()
+                                        var allLettersCompleted = true
+
+                                        for (item in uiState.fallingLetters) {
+                                            if (elapsedMs < item.spawnDelayMs) {
+                                                allLettersCompleted = false
+                                                continue
+                                            }
+
+                                            val itemElapsedMs = elapsedMs - item.spawnDelayMs
+                                            val progress = (itemElapsedMs.toFloat() / item.fallDurationMs).coerceAtLeast(0f)
+
+                                            if (progress < 1.0f) {
+                                                allLettersCompleted = false
+                                                nextProgressMap[item.id] = progress
+
+                                                // Collision check against basket rim opening
+                                                if (!roundHandled && !uiState.roundResolved && progress > 0.05f) {
+                                                    val itemCenterX = item.normX * containerWidthPx
+                                                    val letterTopY = fallDistancePx * progress
+                                                    val letterCenterY = letterTopY + letterSizePx / 2f
+
+                                                    val horizontalDist = abs(itemCenterX - basketCenterX)
+                                                    val isHorizontallyAligned = horizontalDist <= (basketWidthPx / 2f + with(density) { 18.dp.toPx() })
+                                                    val isVerticallyInBasket = letterCenterY >= (basketTopY - with(density) { 18.dp.toPx() }) &&
+                                                            letterCenterY <= (basketBottomY + with(density) { 14.dp.toPx() })
+
+                                                    if (isHorizontallyAligned && isVerticallyInBasket) {
+                                                        roundHandled = true
+                                                        caughtLetterId = item.id
+                                                        val responseTime = (elapsedMs - item.spawnDelayMs).coerceAtLeast(0L)
+                                                        vm.onLetterCaught(item, responseTime)
+                                                        return@withFrameNanos
+                                                    }
+                                                }
+                                            } else {
+                                                // Letter hit the bottom grass
+                                                if (item.isTarget && !roundHandled && !uiState.roundResolved) {
+                                                    roundHandled = true
+                                                    val responseTime = (elapsedMs - item.spawnDelayMs).coerceAtLeast(0L)
+                                                    vm.onLetterMissed(responseTime)
+                                                    return@withFrameNanos
+                                                }
+                                            }
+                                        }
+
+                                        if (!roundHandled && allLettersCompleted && !uiState.roundResolved) {
+                                            roundHandled = true
+                                            val responseTime = (System.currentTimeMillis() - roundStartTimeMs).coerceAtLeast(0L)
+                                            vm.onLetterMissed(responseTime)
+                                            return@withFrameNanos
+                                        }
+
+                                        letterProgressMap = nextProgressMap
+                                    }
+                                }
+                            }
+
+                            // Handle transition to next round after feedback delay
+                            LaunchedEffect(uiState.roundResolved) {
+                                if (uiState.roundResolved) {
+                                    delay(1400)
+                                    vm.nextRoundOrFinish()
+                                }
+                            }
 
                             // Green grass at bottom
                             Box(
@@ -477,84 +623,127 @@ fun TangkapHurufScreen(
                             )
 
                             // Render falling letters
-                            val lanePositions = listOf(0.18f, 0.50f, 0.82f)
-                            val currentY = (areaHeight.value - 90f) * fallProgress.value
+                            val basketCenterX = currentBasketNormX * containerWidthPx
+                            val basketTopY = containerHeightPx - mascotHeightPx + basketTopOffsetPx
+                            val fallDistancePx = containerHeightPx - grassHeightPx - letterSizePx / 2f
 
-                            for (item in fallingItems) {
-                                val laneX = lanePositions[item.laneIndex.coerceIn(0, 2)]
-                                val letterXOffset = (areaWidth.value * laneX - 32f).dp
+                            for (item in uiState.fallingLetters) {
+                                val progress = letterProgressMap[item.id]
+                                val isThisCaught = (item.id == caughtLetterId)
 
+                                if (progress != null || (isThisCaught && uiState.roundResolved)) {
+                                    val itemCenterX = item.normX * containerWidthPx
+                                    val letterXOffsetPx = if (isThisCaught) {
+                                        (basketCenterX - letterSizePx / 2f).coerceIn(4f, containerWidthPx - letterSizePx - 4f)
+                                    } else {
+                                        (itemCenterX - letterSizePx / 2f).coerceIn(4f, containerWidthPx - letterSizePx - 4f)
+                                    }
+
+                                    val letterYPx = if (isThisCaught) {
+                                        basketTopY + with(density) { 6.dp.toPx() }
+                                    } else {
+                                        fallDistancePx * (progress ?: 0f)
+                                    }
+
+                                    val letterXOffsetDp = with(density) { letterXOffsetPx.toDp() }
+                                    val currentYDp = with(density) { letterYPx.toDp() }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(
+                                                x = letterXOffsetDp,
+                                                y = currentYDp
+                                            )
+                                            .size(64.dp)
+                                            .shadow(6.dp, CircleShape)
+                                            .clip(CircleShape)
+                                            .background(if (item.isTarget) AksaYellow else AksaWhite)
+                                            .border(3.dp, if (item.isTarget) AksaOrange else Color(0xFFCBD5E1), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = item.letter,
+                                            fontFamily = Poppins,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 28.sp,
+                                            color = AksaDarkBrown
+                                        )
+                                    }
+                                }
+                            }
+
+                            // DRAGGABLE MASCOT WITH BASKET
+                            val mascotXOffsetPx = (basketCenterX - mascotWidthPx / 2f)
+                                .coerceIn(0f, containerWidthPx - mascotWidthPx)
+                            val mascotXOffsetDp = with(density) { mascotXOffsetPx.toDp() }
+
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .offset(
+                                        x = mascotXOffsetDp,
+                                        y = (-10).dp
+                                    )
+                                    .pointerInput(Unit) {
+                                        detectDragGestures { change, dragAmount ->
+                                            change.consume()
+                                            val newNormX = basketNormX + (dragAmount.x / containerWidthPx)
+                                            basketNormX = newNormX.coerceIn(0.12f, 0.88f)
+                                        }
+                                    }
+                            ) {
+                                MascotWithBasket(size = 120.dp)
+                            }
+
+                            // Interactive Drag Hint overlay at start of round 1
+                            val isEarlyRound1 = uiState.currentRound == 1 && !uiState.roundResolved &&
+                                    (letterProgressMap.values.any { it < 0.35f } || letterProgressMap.isEmpty())
+                            if (isEarlyRound1) {
                                 Box(
                                     modifier = Modifier
-                                        .offset(x = letterXOffset, y = currentY.dp)
-                                        .size(64.dp)
-                                        .shadow(6.dp, CircleShape)
-                                        .clip(CircleShape)
-                                        .background(if (item.isTarget) AksaYellow else AksaWhite)
-                                        .border(3.dp, if (item.isTarget) AksaOrange else Color(0xFFCBD5E1), CircleShape)
-                                        .clickable(enabled = !roundResolved) {
-                                            roundResolved = true
-                                            if (item.isTarget) {
-                                                score++
-                                                consecutiveCorrect++
-                                                consecutiveIncorrect = 0
-                                                tts.speak("Bagus! Huruf $targetLetter tertangkap!")
-                                                roundFeedbackMsg = "Bagus! +1 Skor"
-
-                                                if (consecutiveCorrect >= 3 && difficultyLevel < 3) {
-                                                    difficultyLevel++
-                                                    consecutiveCorrect = 0
-                                                }
-                                            } else {
-                                                consecutiveCorrect = 0
-                                                consecutiveIncorrect++
-                                                tts.speak("Itu huruf ${item.letter}. Cari huruf $targetLetter ya!")
-                                                roundFeedbackMsg = "Itu huruf ${item.letter}!"
-
-                                                if (consecutiveIncorrect >= 2 && difficultyLevel > 1) {
-                                                    difficultyLevel--
-                                                    consecutiveIncorrect = 0
-                                                }
-                                            }
-
-                                            coroutineScope.launch {
-                                                delay(900)
-                                                if (currentRound < totalRounds) {
-                                                    currentRound++
-                                                    startRound(currentRound)
-                                                } else {
-                                                    stage = MiniGameStage.RESULTS
-                                                }
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 135.dp)
+                                        .clip(PillShape)
+                                        .background(AksaDarkBrown.copy(alpha = 0.75f))
+                                        .padding(horizontal = 14.dp, vertical = 6.dp)
                                 ) {
                                     Text(
-                                        text = item.letter,
+                                        text = "👈 Geser Aksa untuk menangkap 👉",
                                         fontFamily = Poppins,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 28.sp,
-                                        color = AksaDarkBrown
+                                        fontSize = 12.sp,
+                                        color = AksaWhite
                                     )
                                 }
                             }
 
-                            // Dynamic Round Feedback Text
-                            roundFeedbackMsg?.let { msg ->
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .clip(PillShape)
-                                        .background(AksaDarkBrown.copy(alpha = 0.85f))
-                                        .padding(horizontal = 20.dp, vertical = 10.dp)
+                            // Dynamic Round Feedback Banner
+                            Column(
+                                modifier = Modifier.align(Alignment.Center),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                AnimatedVisibility(
+                                    visible = uiState.roundFeedbackMsg != null,
+                                    enter = fadeIn() + scaleIn()
                                 ) {
-                                    Text(
-                                        text = msg,
-                                        fontFamily = Poppins,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = AksaWhite
-                                    )
+                                    uiState.roundFeedbackMsg?.let { msg ->
+                                        val isCorrect = uiState.lastIsCorrect == true
+                                        Box(
+                                            modifier = Modifier
+                                                .shadow(10.dp, PillShape)
+                                                .clip(PillShape)
+                                                .background(if (isCorrect) AksaLime else AksaOrange)
+                                                .padding(horizontal = 22.dp, vertical = 12.dp)
+                                        ) {
+                                            Text(
+                                                text = msg,
+                                                fontFamily = Poppins,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 17.sp,
+                                                color = if (isCorrect) AksaDarkBrown else AksaWhite
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -569,7 +758,7 @@ fun TangkapHurufScreen(
                             .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         val cardShape = RoundedCornerShape(32.dp)
                         Box(
@@ -583,7 +772,7 @@ fun TangkapHurufScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                MascotCheering(size = 120.dp)
+                                MascotCheering(size = 130.dp)
 
                                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -604,14 +793,31 @@ fun TangkapHurufScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp)
                                 )
 
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Stars Rating
+                                val starsCount = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) 3 else uiState.starRating
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    repeat(3) { index ->
+                                        Text(
+                                            text = if (index < starsCount) "⭐" else "☆",
+                                            fontSize = 32.sp
+                                        )
+                                    }
+                                }
+
                                 Spacer(modifier = Modifier.height(18.dp))
 
-                                val finalScoreDisplay = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "14 / 15" else "$score / $totalRounds"
-                                val finalAccuracyPct = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "93%" else "${((score.toFloat() / totalRounds) * 100).toInt()}%"
+                                val finalScoreDisplay = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "14 / 15" else "${uiState.correctAnswersCount} / ${uiState.totalRounds}"
+                                val finalAccuracyPct = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "93%" else "${(uiState.accuracy * 100).toInt()}%"
+                                val finalScorePoints = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "210 Point" else "${uiState.score} Point"
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier
@@ -626,7 +832,7 @@ fun TangkapHurufScreen(
                                                 text = finalScoreDisplay,
                                                 fontFamily = Poppins,
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 22.sp,
+                                                fontSize = 20.sp,
                                                 color = AksaDarkBrown
                                             )
                                             Text(
@@ -651,7 +857,7 @@ fun TangkapHurufScreen(
                                                 text = finalAccuracyPct,
                                                 fontFamily = Poppins,
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 22.sp,
+                                                fontSize = 20.sp,
                                                 color = AksaDarkBrown
                                             )
                                             Text(
@@ -662,26 +868,30 @@ fun TangkapHurufScreen(
                                             )
                                         }
                                     }
-                                }
 
-                                // Commit session to repository
-                                LaunchedEffect(Unit) {
-                                    if (!sessionCommitted && !isDevPreview) {
-                                        sessionCommitted = true
-                                        val sessionResult = SessionResult(
-                                            sessionId = "session_minigame_${UUID.randomUUID()}",
-                                            childId = "child_marvin_demo",
-                                            moduleId = "pulau_alfabet",
-                                            activityId = "tangkap_huruf",
-                                            startedAt = System.currentTimeMillis() - 100_000,
-                                            completedAt = System.currentTimeMillis(),
-                                            totalQuestions = totalRounds,
-                                            correctAnswers = score,
-                                            incorrectAnswers = totalRounds - score,
-                                            accuracy = score.toFloat() / totalRounds.toFloat(),
-                                            status = SessionStatus.COMPLETED
-                                        )
-                                        AksaRepositoryProvider.sessionRepository.saveSessionResult(sessionResult)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(18.dp))
+                                            .background(AksaOrange.copy(alpha = 0.2f))
+                                            .padding(14.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                text = finalScorePoints,
+                                                fontFamily = Poppins,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 18.sp,
+                                                color = AksaDarkBrown
+                                            )
+                                            Text(
+                                                text = "Total Skor",
+                                                fontFamily = Poppins,
+                                                fontSize = 11.sp,
+                                                color = AksaDarkBrown.copy(alpha = 0.7f)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -693,12 +903,7 @@ fun TangkapHurufScreen(
                             text = "Main Lagi",
                             style = AksaButtonStyle.SECONDARY_LIME,
                             onClick = {
-                                stage = MiniGameStage.PLAYING
-                                currentRound = 1
-                                score = 0
-                                difficultyLevel = 1
-                                sessionCommitted = false
-                                startRound(1)
+                                vm.startGame()
                             }
                         )
 
