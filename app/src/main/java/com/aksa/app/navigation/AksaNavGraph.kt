@@ -67,7 +67,7 @@ fun AksaNavGraph(
             ) + fadeOut(animationSpec = tween(350))
         }
     ) {
-        // SCREEN 1 — SPLASH
+        // Spalsh Screen
         composable(Screen.Splash.route) {
             SplashScreen(
                 onNavigateToLogin = {
@@ -78,7 +78,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 2 — LOGIN
+        // Login
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
@@ -92,11 +92,11 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 3 — REGISTER
+        // Register
         composable(Screen.Register.route) {
             RegisterScreen(
-                onNavigateToParentWelcome = {
-                    navController.navigate(Screen.ParentWelcome.route)
+                onNavigateBack = {
+                    navController.popBackStack()
                 },
                 onNavigateToLogin = {
                     navController.popBackStack()
@@ -104,7 +104,6 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 4 — PARENT WELCOME
         composable(Screen.ParentWelcome.route) {
             ParentWelcomeScreen(
                 onNavigateToHome = {
@@ -115,7 +114,6 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 5 — CHILD NAME
         composable(Screen.ChildName.route) {
             ChildNameScreen(
                 onNavigateToChildAge = {
@@ -124,7 +122,6 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 6 — CHILD AGE
         composable(Screen.ChildAge.route) {
             ChildAgeScreen(
                 onNavigateToHome = {
@@ -135,7 +132,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 7 — HOME
+        // Home
         composable(Screen.Home.route) {
             HomeScreen(
                 onNavigateToLevelMap = {
@@ -147,7 +144,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 8 — LEVEL MAP
+        // Level map
         composable(Screen.LevelMap.route) {
             LevelMapScreen(
                 onNavigateBack = {
@@ -174,7 +171,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 9 — MODULE 1: ALPHABET SELECTION
+        // Alphabet Selection
         composable(Screen.AlphabetSelection.route) {
             AlphabetSelectionScreen(
                 onNavigateBack = {
@@ -192,7 +189,7 @@ fun AksaNavGraph(
             )
         }
 
-        // MODULE 1 — INTERACTIVE LETTER LEARNING & QUIZ
+        // INTERACTIVE LETTER LEARNING & QUIZ
         composable(Screen.LetterLearning.route) {
             LetterLearningScreen(
                 startLetter = "A",
@@ -210,7 +207,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 10 — PRONUNCIATION PRACTICE
+        // PronunciationPractice
         composable(Screen.PronunciationPractice.route) {
             PronunciationScreen(
                 letter = "A",
@@ -241,7 +238,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SUB-ACTIVITY: HURUF MIRIP (PULAU ALFABET)
+        // HurufMirip
         composable(Screen.HurufMirip.route) {
             HurufMiripScreen(
                 onNavigateBack = {
@@ -255,7 +252,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 12 — MODULE 2: SYLLABLE INTRO
+        // SyllableIntro
         composable(Screen.SyllableIntro.route) {
             SyllableIntroScreen(
                 onNavigateBack = {
@@ -267,7 +264,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 13 — SYLLABLE EXAMPLE
+        // SyllableExample
         composable(Screen.SyllableExample.route) {
             SyllableExampleScreen(
                 onNavigateBack = {
@@ -279,7 +276,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 14 — SYLLABLE QUIZ
+        // SyllableQuiz
         composable(Screen.SyllableQuiz.route) {
             SyllableQuizScreen(
                 onNavigateBack = {
@@ -293,7 +290,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 15 — MODULE 3: WORD FORMATION
+        // WordFormation
         composable(Screen.WordFormation.route) {
             WordFormationScreen(
                 onNavigateBack = {
@@ -307,7 +304,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 16 — MODULE 4: READING PRACTICE
+        // ReadingPractice
         composable(Screen.ReadingPractice.route) {
             ReadingPracticeScreen(
                 onNavigateBack = {
@@ -321,7 +318,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 17 — PROFILE
+        // Profile
         composable(Screen.Profile.route) {
             ProfileScreen(
                 onNavigateBack = {
@@ -341,7 +338,7 @@ fun AksaNavGraph(
             )
         }
 
-        // SCREEN 18 — PROGRESS & ACHIEVEMENTS
+        // ProgressAchievements
         composable(Screen.ProgressAchievements.route) {
             ProgressAchievementsScreen(
                 onNavigateBack = {
@@ -350,7 +347,7 @@ fun AksaNavGraph(
             )
         }
 
-        // MINI-GAME: TANGKAP HURUF
+        // Mini Games
         composable(Screen.TangkapHuruf.route) {
             TangkapHurufScreen(
                 onNavigateBack = {

@@ -1,7 +1,11 @@
 package com.aksa.app.ui.screens
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.IconButton
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,12 +29,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.aksa.app.ui.components.MascotCheering
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,23 +55,29 @@ import com.aksa.app.ui.components.AksaTextField
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
-import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
-import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
 import com.aksa.app.ui.viewmodel.AuthViewModel
 
 @Composable
 fun RegisterScreen(
-    onNavigateToParentWelcome: () -> Unit,
+    onNavigateBack: () -> Unit,
     onNavigateToLogin: () -> Unit,
     viewModel: AuthViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showSuccessDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.registerSuccess) {
+        if (uiState.registerSuccess) {
+            showSuccessDialog = true
+            viewModel.clearRegisterSuccess()
+        }
+    }
 
     var guardianEmail by remember { mutableStateOf("") }
     var guardianPassword by remember { mutableStateOf("") }
@@ -94,7 +106,6 @@ fun RegisterScreen(
                 .padding(horizontal = 24.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Title Branding
             Text(
                 text = "AKSA",
                 fontFamily = Poppins,
@@ -104,24 +115,8 @@ fun RegisterScreen(
                 color = AksaWhite
             )
 
-            // Environment Mode Pill
-            Box(
-                modifier = Modifier
-                    .padding(top = 4.dp, bottom = 14.dp)
-                    .clip(PillShape)
-                    .background(if (uiState.isDemoMode) AksaYellow else AksaLime)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = if (uiState.isDemoMode) "Mode Demo (Lokal)" else "Mode Firebase (Tersinkron)",
-                    fontFamily = Poppins,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    color = AksaDarkBrown
-                )
-            }
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Large White Rounded Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -148,10 +143,13 @@ fun RegisterScreen(
                         fontWeight = FontWeight.Normal,
                         fontSize = 12.sp,
                         color = AksaGrayText,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 18.dp)
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 22.dp)
                     )
 
-                    // 1. Email Orang Tua
+                    // Email Ortu
                     AksaTextField(
                         value = guardianEmail,
                         onValueChange = {
@@ -166,14 +164,13 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // 2. Password Orang Tua
                     AksaTextField(
                         value = guardianPassword,
                         onValueChange = {
                             guardianPassword = it
                             localError = null
                         },
-                        label = "Password Akun",
+                        label = "Kata Sandi Akun",
                         placeholder = "Minimal 6 karakter",
                         leadingIcon = AksaIcons.Lock,
                         isPassword = true,
@@ -182,7 +179,6 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Section Divider
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -201,7 +197,7 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // 3. Nama Panggilan Anak
+                    // Nama Anak
                     AksaTextField(
                         value = childName,
                         onValueChange = {
@@ -216,7 +212,6 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 4. Avatar Selection directly in Register
                     AksaAvatarSelector(
                         selectedAvatarId = selectedAvatarId,
                         onAvatarSelected = {
@@ -227,7 +222,6 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 5. Age Selection (6-12)
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = "Usia Anak (6–12 Tahun)",
@@ -238,7 +232,6 @@ fun RegisterScreen(
                             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
                         )
 
-                        // 2 rows of age buttons: 6, 7, 8, 9 and 10, 11, 12
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -275,7 +268,6 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Target Age Information Card
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -315,7 +307,6 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Primary Button: Daftar
                     if (uiState.isLoading) {
                         CircularProgressIndicator(
                             color = AksaOrange,
@@ -327,15 +318,14 @@ fun RegisterScreen(
                             style = if (isFormValid) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
                             onClick = {
                                 if (!isFormValid) {
-                                    localError = "Lengkapi email, password, nama anak, avatar, dan usia"
+                                    localError = "Lengkapi email, kata sandi, nama anak, avatar, dan usia"
                                 } else {
                                     viewModel.register(
                                         email = guardianEmail,
                                         pass = guardianPassword,
                                         childName = childName,
                                         childAge = selectedAge,
-                                        childAvatarId = selectedAvatarId,
-                                        onSuccess = onNavigateToParentWelcome
+                                        childAvatarId = selectedAvatarId
                                     )
                                 }
                             }
@@ -344,7 +334,6 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Bottom Link: Sudah punya akun? Masuk
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
@@ -363,6 +352,71 @@ fun RegisterScreen(
                             fontSize = 13.sp,
                             color = AksaOrange,
                             modifier = Modifier.clickable(onClick = onNavigateToLogin)
+                        )
+                    }
+                }
+            }
+        }
+        IconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier
+                .align(Alignment.TopStart) // Memosisikan di pojok kiri atas
+                .padding(top = 16.dp, start = 8.dp) // Sesuaikan jaraknya
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Gunakan AksaIcons.Back jika Anda punya custom icon sendiri
+                contentDescription = "Kembali",
+                tint = AksaWhite // Karena background layarnya AksaOrange, gunakan warna putih
+            )
+        }
+
+        // Success Dialog Overlay
+        if (showSuccessDialog) {
+            val dialogShape = RoundedCornerShape(32.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x88000000))
+                    .clickable { /* block touches */ },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp)
+                        .shadow(16.dp, dialogShape)
+                        .background(AksaWhite, dialogShape)
+                        .padding(28.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        MascotCheering(size = 120.dp)
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "Akun Berhasil Dibuat! 🎉",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp,
+                            color = AksaDarkBrown,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Silakan masuk dengan akun yang baru kamu buat.",
+                            fontFamily = Poppins,
+                            fontSize = 13.sp,
+                            color = AksaDarkBrown.copy(alpha = 0.75f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+                        )
+                        AksaButton(
+                            text = "Masuk Sekarang",
+                            style = AksaButtonStyle.PRIMARY_ORANGE,
+                            onClick = {
+                                showSuccessDialog = false
+                                onNavigateToLogin()
+                            }
                         )
                     }
                 }
