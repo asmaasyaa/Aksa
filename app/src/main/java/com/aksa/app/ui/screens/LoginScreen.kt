@@ -1,6 +1,7 @@
 package com.aksa.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -63,8 +64,8 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    var email by remember { mutableStateOf(if (uiState.isDemoMode) "demo.orangtua@aksa.id" else "") }
-    var password by remember { mutableStateOf(if (uiState.isDemoMode) "123456" else "") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
     val errorMessage = localError ?: uiState.errorMessage
@@ -82,7 +83,6 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Mascot Branding Header
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -97,26 +97,8 @@ fun LoginScreen(
                     letterSpacing = 2.sp,
                     color = AksaWhite
                 )
-
-                // Environment Mode Pill
-                Box(
-                    modifier = Modifier
-                        .padding(top = 6.dp)
-                        .clip(PillShape)
-                        .background(if (uiState.isDemoMode) AksaYellow else AksaLime)
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = if (uiState.isDemoMode) "Mode Demo (Lokal)" else "Mode Firebase (Tersinkron)",
-                        fontFamily = Poppins,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        color = AksaDarkBrown
-                    )
-                }
             }
 
-            // White Rounded Login Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -143,10 +125,12 @@ fun LoginScreen(
                         fontWeight = FontWeight.Normal,
                         fontSize = 13.sp,
                         color = AksaGrayText,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 22.dp)
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 22.dp)
                     )
 
-                    // Input 1: Email Orang Tua / Wali
                     AksaTextField(
                         value = email,
                         onValueChange = {
@@ -161,15 +145,14 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Input 2: Password with show/hide icon
                     AksaTextField(
                         value = password,
                         onValueChange = {
                             password = it
                             localError = null
                         },
-                        label = "Password",
-                        placeholder = "Masukkan password",
+                        label = "Kata Sandi",
+                        placeholder = "Masukkan kata sandi",
                         leadingIcon = AksaIcons.Lock,
                         isPassword = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)

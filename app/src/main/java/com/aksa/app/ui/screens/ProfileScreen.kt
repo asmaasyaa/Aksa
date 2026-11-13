@@ -164,7 +164,7 @@ fun ProfileScreen(
                         modifier = Modifier.padding(top = 2.dp)
                     )
 
-                    // Guardian account & mode indicator
+                    // Guardian account indicator
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
@@ -173,7 +173,7 @@ fun ProfileScreen(
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "Wali: $guardianEmail (${if (authState.isDemoMode) "Demo" else "Firebase"})",
+                            text = "Wali: $guardianEmail",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Medium,
                             fontSize = 11.sp,
