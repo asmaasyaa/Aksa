@@ -25,7 +25,6 @@ data class ProgressAchievementsUiState(
     val totalQuestionsAnswered: Int = 0,
     val averageAccuracyPercent: Int = 0,
     val milestoneBadges: List<MilestoneBadgeInfo> = emptyList(),
-    val isDemoMode: Boolean = true,
     val isLoading: Boolean = false
 )
 
@@ -37,7 +36,7 @@ class ProgressAchievementsViewModel(
     private val calculateWeeklyProgressUseCase: CalculateWeeklyProgressUseCase = CalculateWeeklyProgressUseCase()
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ProgressAchievementsUiState(isDemoMode = authRepository.isDemoMode))
+    private val _uiState = MutableStateFlow(ProgressAchievementsUiState())
     val uiState: StateFlow<ProgressAchievementsUiState> = _uiState.asStateFlow()
 
     init {
@@ -103,7 +102,6 @@ class ProgressAchievementsViewModel(
                     totalQuestionsAnswered = totalQuestions,
                     averageAccuracyPercent = avgAccuracy,
                     milestoneBadges = badges,
-                    isDemoMode = authRepository.isDemoMode,
                     isLoading = false
                 )
             }.collect { state ->

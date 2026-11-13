@@ -21,7 +21,6 @@ import java.time.LocalDate
 data class HomeUiState(
     val childProfile: ChildProfile? = null,
     val weeklyProgress: WeeklyProgress? = null,
-    val isDemoMode: Boolean = true,
     val isLoading: Boolean = false
 )
 
@@ -33,7 +32,7 @@ class HomeViewModel(
     private val calculateWeeklyProgressUseCase: CalculateWeeklyProgressUseCase = CalculateWeeklyProgressUseCase()
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeUiState(isDemoMode = authRepository.isDemoMode))
+    private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
@@ -74,7 +73,6 @@ class HomeViewModel(
                 HomeUiState(
                     childProfile = profile,
                     weeklyProgress = progress,
-                    isDemoMode = authRepository.isDemoMode,
                     isLoading = false
                 )
             }.collect { state ->

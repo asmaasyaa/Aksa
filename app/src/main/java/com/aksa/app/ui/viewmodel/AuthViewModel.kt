@@ -19,7 +19,7 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val currentGuardian: GuardianUser? = null,
-    val isDemoMode: Boolean = true
+    val registerSuccess: Boolean = false
 )
 
 class AuthViewModel(
@@ -29,8 +29,7 @@ class AuthViewModel(
 
     private val _uiState = MutableStateFlow(
         AuthUiState(
-            currentGuardian = authRepository.currentGuardian.value,
-            isDemoMode = authRepository.isDemoMode
+            currentGuardian = authRepository.currentGuardian.value
         )
     )
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -39,8 +38,7 @@ class AuthViewModel(
         viewModelScope.launch {
             authRepository.currentGuardian.collect { guardian ->
                 _uiState.value = _uiState.value.copy(
-                    currentGuardian = guardian,
-                    isDemoMode = authRepository.isDemoMode
+                    currentGuardian = guardian
                 )
             }
         }
@@ -84,8 +82,7 @@ class AuthViewModel(
         pass: String,
         childName: String,
         childAge: Int,
-        childAvatarId: String,
-        onSuccess: () -> Unit
+        childAvatarId: String
     ) {
         if (email.isBlank() || pass.isBlank() || childName.isBlank()) {
             _uiState.value = _uiState.value.copy(errorMessage = "Semua bidang wajib diisi")
@@ -104,10 +101,16 @@ class AuthViewModel(
                         age = childAge,
                         avatarId = childAvatarId
                     )
-                    profileRepository.saveChildProfile(newProfile)
-                    AksaUserState.syncFromProfile(newProfile)
-                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = null)
-                    onSuccess()
+                    val saveResult = profileRepository.saveChildProfile(newProfile)
+                    if (saveResult.isFailure) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "Profil tersimpan sebagian. Silakan coba lagi."
+                        )
+                    } else {
+                        AksaUserState.syncFromProfile(newProfile)
+                        _uiState.value = _uiState.value.copy(isLoading = false, registerSuccess = true)
+                    }
                 },
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
@@ -117,6 +120,10 @@ class AuthViewModel(
                 }
             )
         }
+    }
+
+    fun clearRegisterSuccess() {
+        _uiState.value = _uiState.value.copy(registerSuccess = false)
     }
 
     fun signOut(onComplete: () -> Unit) {

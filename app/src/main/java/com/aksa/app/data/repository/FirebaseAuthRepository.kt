@@ -24,7 +24,6 @@ class FirebaseAuthRepository(
         }
     )
     override val currentGuardian: StateFlow<GuardianUser?> = _currentGuardian.asStateFlow()
-    override val isDemoMode: Boolean = false
 
     init {
         auth.addAuthStateListener { firebaseAuth ->
