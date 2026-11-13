@@ -118,7 +118,6 @@ class RepositoryDataIsolationTest {
     @Test
     fun demoModeDoesNotClaimCrossDeviceSync() = runTest {
         val authRepo = DemoAuthRepository()
-        assertTrue("Demo mode must be explicitly flagged", authRepo.isDemoMode)
         val loginResult = authRepo.signIn("demo.orangtua@aksa.id", "123456")
         assertTrue(loginResult.isSuccess)
         assertTrue(loginResult.getOrThrow().isDemo)

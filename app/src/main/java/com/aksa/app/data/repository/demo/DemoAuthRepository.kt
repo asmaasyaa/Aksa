@@ -21,7 +21,6 @@ class DemoAuthRepository : AuthRepository {
         )
     )
     override val currentGuardian: StateFlow<GuardianUser?> = _currentGuardian.asStateFlow()
-    override val isDemoMode: Boolean = true
 
     override suspend fun signIn(email: String, password: String): Result<GuardianUser> {
         if (email.isBlank() || password.isBlank()) {

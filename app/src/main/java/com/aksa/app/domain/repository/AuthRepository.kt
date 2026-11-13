@@ -11,7 +11,6 @@ data class GuardianUser(
 
 interface AuthRepository {
     val currentGuardian: StateFlow<GuardianUser?>
-    val isDemoMode: Boolean
 
     suspend fun signIn(email: String, password: String): Result<GuardianUser>
     suspend fun register(email: String, password: String): Result<GuardianUser>
