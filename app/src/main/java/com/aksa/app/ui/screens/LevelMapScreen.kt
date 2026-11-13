@@ -125,7 +125,7 @@ fun LevelMapScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "🎮 Tangkap Huruf",
+                            text = "Tangkap Huruf",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
@@ -144,7 +144,7 @@ fun LevelMapScreen(
                             .padding(horizontal = 14.dp, vertical = 10.dp)
                     ) {
                         Text(
-                            text = "🛠️ Dev Preview",
+                            text = "Dev Preview",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
