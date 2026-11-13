@@ -50,6 +50,19 @@ class DemoAuthRepository : AuthRepository {
         return Result.success(user)
     }
 
+    override suspend fun signInWithGoogle(idToken: String): Result<GuardianUser> {
+        if (idToken.isBlank()) {
+            return Result.failure(IllegalArgumentException("Token Google tidak valid"))
+        }
+        val user = GuardianUser(
+            uid = "demo_google_guardian_${idToken.hashCode()}",
+            email = "google.orangtua@aksa.id",
+            isDemo = true
+        )
+        _currentGuardian.value = user
+        return Result.success(user)
+    }
+
     override suspend fun signOut() {
         _currentGuardian.value = null
     }

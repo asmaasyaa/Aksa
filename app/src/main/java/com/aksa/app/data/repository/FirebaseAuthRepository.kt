@@ -10,10 +10,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-
-/**
- * Real Firebase Authentication repository using Firebase Auth email/password.
- */
 class FirebaseAuthRepository(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 ) : AuthRepository {
@@ -51,6 +47,19 @@ class FirebaseAuthRepository(
             val authResult = auth.createUserWithEmailAndPassword(email.trim(), password).await()
             val user = authResult.user ?: throw IllegalStateException("Firebase user was null after registration")
             val guardian = GuardianUser(uid = user.uid, email = user.email ?: email, isDemo = false)
+            _currentGuardian.value = guardian
+            Result.success(guardian)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun signInWithGoogle(idToken: String): Result<GuardianUser> {
+        return try {
+            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
+            val authResult = auth.signInWithCredential(credential).await()
+            val user = authResult.user ?: throw IllegalStateException("Firebase user was null after Google sign in")
+            val guardian = GuardianUser(uid = user.uid, email = user.email ?: "", isDemo = false)
             _currentGuardian.value = guardian
             Result.success(guardian)
         } catch (e: Exception) {

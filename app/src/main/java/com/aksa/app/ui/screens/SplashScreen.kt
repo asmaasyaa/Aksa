@@ -16,39 +16,50 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aksa.app.navigation.Screen
 import com.aksa.app.ui.components.MascotPeeking
-import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
-    onNavigateToLogin: () -> Unit
+    onNavigateNext: (destinationRoute: String) -> Unit,
+    viewModel: AuthViewModel = viewModel()
 ) {
-    // Automatically navigate to Login after 2 seconds
+    var nextDestination by remember { mutableStateOf<String?>(null) }
+
+    // Check session on app startup and transition after splash delay
     LaunchedEffect(Unit) {
+        viewModel.checkSession { isLoggedIn, hasProfile ->
+            nextDestination = when {
+                !isLoggedIn -> Screen.Login.route
+                hasProfile -> Screen.SelectProfile.route
+                else -> Screen.CreateProfile.route
+            }
+        }
         delay(2000)
-        onNavigateToLogin()
+        onNavigateNext(nextDestination ?: Screen.Login.route)
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "SplashAnimation")
@@ -69,7 +80,9 @@ fun SplashScreen(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onNavigateToLogin
+                onClick = {
+                    onNavigateNext(nextDestination ?: Screen.Login.route)
+                }
             )
     ) {
         // Subtle floating alphabet pattern in background

@@ -23,4 +23,8 @@ sealed class Screen(val route: String) {
     data object LetterLearning : Screen("letter_learning")
     data object TangkapHuruf : Screen("tangkap_huruf")
     data object DeveloperPreview : Screen("developer_preview")
+
+    // Navigation contracts for profile creation and selection (feat/profile-anak)
+    data object CreateProfile : Screen("create_profile")
+    data object SelectProfile : Screen("select_profile")
 }
