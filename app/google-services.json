@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "669934971348",
+    "project_id": "aksa-be8e4",
+    "storage_bucket": "aksa-be8e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:669934971348:android:41dfe842d00981873bce41",
+        "android_client_info": {
+          "package_name": "com.aksa.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAk7iGPMoboVGQSyx0uTYAu0ukLVsghjp4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
