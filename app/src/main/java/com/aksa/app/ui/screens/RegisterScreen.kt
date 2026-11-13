@@ -1,13 +1,9 @@
 package com.aksa.app.ui.screens
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.IconButton
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.ui.text.style.TextAlign
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,58 +15,70 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.aksa.app.ui.components.MascotCheering
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.aksa.app.ui.components.AksaAvatarSelector
+import com.aksa.app.R
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaTextField
+import com.aksa.app.ui.components.MascotCheering
+import com.aksa.app.ui.components.MascotStanding
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
-import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.Poppins
 import com.aksa.app.ui.viewmodel.AuthViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 
 @Composable
 fun RegisterScreen(
     onNavigateBack: () -> Unit,
+    onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onGoogleSignUpSuccess: (hasProfile: Boolean) -> Unit = {},
     viewModel: AuthViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var showSuccessDialog by remember { mutableStateOf(false) }
+
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    val errorMessage = localError ?: uiState.errorMessage
 
     LaunchedEffect(uiState.registerSuccess) {
         if (uiState.registerSuccess) {
@@ -79,20 +87,74 @@ fun RegisterScreen(
         }
     }
 
-    var guardianEmail by remember { mutableStateOf("") }
-    var guardianPassword by remember { mutableStateOf("") }
-    var childName by remember { mutableStateOf("") }
-    var selectedAvatarId by remember { mutableStateOf("mascot_classic") }
-    var selectedAge by remember { mutableIntStateOf(8) }
-    var localError by remember { mutableStateOf<String?>(null) }
+    // Clear error when user edits credentials
+    LaunchedEffect(email, password) {
+        if (uiState.errorMessage != null) {
+            viewModel.clearError()
+        }
+    }
 
-    val errorMessage = localError ?: uiState.errorMessage
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                val idToken = account?.idToken
+                if (!idToken.isNullOrBlank()) {
+                    viewModel.signInWithGoogle(idToken) { hasProfile ->
+                        onGoogleSignUpSuccess(hasProfile)
+                    }
+                } else {
+                    viewModel.setError("Gagal mendapatkan token autentikasi Google.")
+                }
+            } catch (e: ApiException) {
+                if (e.statusCode == CommonStatusCodes.CANCELED || e.statusCode == 12501) {
+                    // User cancelled account selection
+                    viewModel.clearLoading()
+                } else if (e.statusCode == CommonStatusCodes.NETWORK_ERROR || e.statusCode == 7) {
+                    viewModel.setError("Koneksi internet bermasalah. Periksa jaringan Anda.")
+                } else {
+                    viewModel.setError("Google Sign-In gagal: ${e.localizedMessage ?: "Kode ${e.statusCode}"}")
+                }
+            }
+        } else {
+            viewModel.clearLoading()
+        }
+    }
 
-    val isFormValid = guardianEmail.isNotBlank() &&
-            guardianPassword.isNotBlank() &&
-            childName.isNotBlank() &&
-            selectedAvatarId.isNotBlank() &&
-            selectedAge in 6..12
+    fun handleGoogleSignUp() {
+        if (uiState.isLoading) return
+        localError = null
+
+        val webClientId = try {
+            context.getString(R.string.default_web_client_id)
+        } catch (e: Exception) {
+            ""
+        }
+
+        if (webClientId.isBlank() || webClientId == "PLACEHOLDER_WEB_CLIENT_ID") {
+            viewModel.setError(
+                "Google Sign-In belum dikonfigurasi. Web Client ID belum disetel di Firebase Console."
+            )
+            return
+        }
+
+        viewModel.setLoading(true)
+        try {
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(webClientId)
+                .requestEmail()
+                .build()
+            val client = GoogleSignIn.getClient(context, gso)
+            client.signOut().addOnCompleteListener {
+                googleSignInLauncher.launch(client.signInIntent)
+            }
+        } catch (e: Exception) {
+            viewModel.setError("Gagal memulai Google Sign-In: ${e.localizedMessage}")
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -106,6 +168,8 @@ fun RegisterScreen(
                 .padding(horizontal = 24.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            MascotStanding(size = 80.dp, animated = false)
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "AKSA",
                 fontFamily = Poppins,
@@ -123,25 +187,24 @@ fun RegisterScreen(
                     .fillMaxWidth()
                     .shadow(elevation = 12.dp, shape = cardShape, spotColor = Color(0x33441100))
                     .background(AksaWhite, cardShape)
-                    .padding(24.dp)
+                    .padding(26.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Daftar Akun Belajar",
+                        text = "Buat Akun Orang Tua",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
                         color = AksaDarkBrown
                     )
-
                     Text(
-                        text = "Akun orang tua untuk mendampingi profil belajar anak",
+                        text = "Daftar untuk mendampingi anak belajar bersama Aksa",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Normal,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         color = AksaGrayText,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -149,150 +212,58 @@ fun RegisterScreen(
                             .padding(top = 4.dp, bottom = 22.dp)
                     )
 
-                    // Email Ortu
+                    // Google Sign-Up button
+                    AksaButton(
+                        text = "Daftar dengan Google",
+                        style = AksaButtonStyle.SOCIAL,
+                        icon = AksaIcons.Google,
+                        enabled = !uiState.isLoading,
+                        onClick = { handleGoogleSignUp() }
+                    )
+
+                    // Divider "atau"
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 18.dp)
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
+                        Text(
+                            text = "  atau  ",
+                            fontFamily = Poppins,
+                            fontSize = 12.sp,
+                            color = AksaGrayText
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
+                    }
+
                     AksaTextField(
-                        value = guardianEmail,
+                        value = email,
                         onValueChange = {
-                            guardianEmail = it
+                            email = it
                             localError = null
                         },
                         label = "Email Orang Tua / Wali",
-                        placeholder = "Masukkan email orang tua",
+                        placeholder = "Masukkan email akun orang tua",
                         leadingIcon = AksaIcons.Email,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     AksaTextField(
-                        value = guardianPassword,
+                        value = password,
                         onValueChange = {
-                            guardianPassword = it
+                            password = it
                             localError = null
                         },
-                        label = "Kata Sandi Akun",
+                        label = "Kata Sandi",
                         placeholder = "Minimal 6 karakter",
                         leadingIcon = AksaIcons.Lock,
                         isPassword = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(AksaPeachLight)
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Profil Pembelajar Cilik",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = AksaDarkBrown
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Nama Anak
-                    AksaTextField(
-                        value = childName,
-                        onValueChange = {
-                            childName = it
-                            localError = null
-                        },
-                        label = "Nama Panggilan Anak",
-                        placeholder = "Masukkan nama anak",
-                        leadingIcon = AksaIcons.Face,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    AksaAvatarSelector(
-                        selectedAvatarId = selectedAvatarId,
-                        onAvatarSelected = {
-                            selectedAvatarId = it
-                            localError = null
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "Usia Anak (6–12 Tahun)",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            color = AksaDarkBrown,
-                            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-                        )
-
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                for (age in listOf(6, 7, 8, 9)) {
-                                    RegisterAgeChip(
-                                        age = age,
-                                        isSelected = age == selectedAge,
-                                        onClick = { selectedAge = age },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                for (age in listOf(10, 11, 12)) {
-                                    RegisterAgeChip(
-                                        age = age,
-                                        isSelected = age == selectedAge,
-                                        onClick = { selectedAge = age },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(AksaSoftPeach)
-                            .padding(12.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = AksaIcons.Info,
-                                contentDescription = null,
-                                tint = AksaDarkBrown,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Aplikasi ini diperuntukkan untuk anak usia 6–12 tahun dengan pendekatan ramah & terstruktur.",
-                                fontFamily = Poppins,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 11.sp,
-                                lineHeight = 16.sp,
-                                color = AksaDarkBrown
-                            )
-                        }
-                    }
 
                     if (errorMessage != null) {
                         Text(
@@ -301,11 +272,14 @@ fun RegisterScreen(
                             fontWeight = FontWeight.Medium,
                             fontSize = 12.sp,
                             color = AksaOrange,
-                            modifier = Modifier.padding(top = 10.dp)
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     if (uiState.isLoading) {
                         CircularProgressIndicator(
@@ -315,19 +289,10 @@ fun RegisterScreen(
                     } else {
                         AksaButton(
                             text = "Daftar",
-                            style = if (isFormValid) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
+                            style = AksaButtonStyle.PRIMARY_ORANGE,
                             onClick = {
-                                if (!isFormValid) {
-                                    localError = "Lengkapi email, kata sandi, nama anak, avatar, dan usia"
-                                } else {
-                                    viewModel.register(
-                                        email = guardianEmail,
-                                        pass = guardianPassword,
-                                        childName = childName,
-                                        childAge = selectedAge,
-                                        childAvatarId = selectedAvatarId
-                                    )
-                                }
+                                localError = null
+                                viewModel.register(email = email, pass = password)
                             }
                         )
                     }
@@ -357,16 +322,17 @@ fun RegisterScreen(
                 }
             }
         }
+
         IconButton(
             onClick = onNavigateBack,
             modifier = Modifier
-                .align(Alignment.TopStart) // Memosisikan di pojok kiri atas
-                .padding(top = 16.dp, start = 8.dp) // Sesuaikan jaraknya
+                .align(Alignment.TopStart)
+                .padding(top = 16.dp, start = 8.dp)
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Gunakan AksaIcons.Back jika Anda punya custom icon sendiri
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Kembali",
-                tint = AksaWhite // Karena background layarnya AksaOrange, gunakan warna putih
+                tint = AksaWhite
             )
         }
 
@@ -403,7 +369,7 @@ fun RegisterScreen(
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "Silakan masuk dengan akun yang baru kamu buat.",
+                            text = "Lanjutkan untuk membuat profil anak pertama Anda.",
                             fontFamily = Poppins,
                             fontSize = 13.sp,
                             color = AksaDarkBrown.copy(alpha = 0.75f),
@@ -411,86 +377,27 @@ fun RegisterScreen(
                             modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
                         )
                         AksaButton(
-                            text = "Masuk Sekarang",
+                            text = "Buat Profil Anak",
                             style = AksaButtonStyle.PRIMARY_ORANGE,
                             onClick = {
+                                showSuccessDialog = false
+                                onRegisterSuccess()
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "Masuk ke Akun",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = AksaOrange,
+                            modifier = Modifier.clickable {
                                 showSuccessDialog = false
                                 onNavigateToLogin()
                             }
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RegisterAgeChip(
-    age: Int,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val chipShape = RoundedCornerShape(16.dp)
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.05f else 1f,
-        label = "AgeChipScale"
-    )
-
-    val bgColor by animateColorAsState(
-        targetValue = if (isSelected) AksaYellow else AksaPeachLight,
-        label = "AgeChipBg"
-    )
-
-    val borderColor = if (isSelected) AksaOrange else Color.Transparent
-
-    Box(
-        modifier = modifier
-            .height(52.dp)
-            .scale(scale)
-            .clip(chipShape)
-            .background(bgColor)
-            .border(if (isSelected) 2.5.dp else 1.dp, borderColor, chipShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "$age",
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.sp,
-                color = AksaDarkBrown
-            )
-            Text(
-                text = "Tahun",
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Medium,
-                fontSize = 10.sp,
-                color = AksaDarkBrown.copy(alpha = 0.75f)
-            )
-        }
-
-        if (isSelected) {
-            Box(
-                modifier = Modifier
-                    .size(16.dp)
-                    .clip(CircleShape)
-                    .background(AksaOrange)
-                    .align(Alignment.TopEnd)
-                    .padding(2.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = AksaIcons.Check,
-                    contentDescription = null,
-                    tint = AksaWhite,
-                    modifier = Modifier.size(10.dp)
-                )
             }
         }
     }
