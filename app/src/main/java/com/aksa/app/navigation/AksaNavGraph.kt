@@ -67,11 +67,11 @@ fun AksaNavGraph(
             ) + fadeOut(animationSpec = tween(350))
         }
     ) {
-        // Spalsh Screen
+        // Splash Screen
         composable(Screen.Splash.route) {
             SplashScreen(
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
+                onNavigateNext = { route ->
+                    navController.navigate(route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
@@ -81,8 +81,9 @@ fun AksaNavGraph(
         // Login
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate(Screen.Home.route) {
+                onLoginSuccess = { hasProfile ->
+                    val destination = if (hasProfile) Screen.SelectProfile.route else Screen.CreateProfile.route
+                    navController.navigate(destination) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
@@ -98,8 +99,39 @@ fun AksaNavGraph(
                 onNavigateBack = {
                     navController.popBackStack()
                 },
+                onRegisterSuccess = {
+                    navController.navigate(Screen.CreateProfile.route) {
+                        popUpTo(Screen.Register.route) { inclusive = true }
+                    }
+                },
                 onNavigateToLogin = {
                     navController.popBackStack()
+                },
+                onGoogleSignUpSuccess = { hasProfile ->
+                    val destination = if (hasProfile) Screen.SelectProfile.route else Screen.CreateProfile.route
+                    navController.navigate(destination) {
+                        popUpTo(Screen.Register.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // Navigation contracts for profile creation and selection (feat/profile-anak)
+        composable(Screen.CreateProfile.route) {
+            ChildNameScreen(
+                onNavigateToChildAge = {
+                    navController.navigate(Screen.ChildAge.route)
+                }
+            )
+        }
+
+        composable(Screen.SelectProfile.route) {
+            HomeScreen(
+                onNavigateToLevelMap = {
+                    navController.navigate(Screen.LevelMap.route)
+                },
+                onNavigateToProfile = {
+                    navController.navigate(Screen.Profile.route)
                 }
             )
         }
