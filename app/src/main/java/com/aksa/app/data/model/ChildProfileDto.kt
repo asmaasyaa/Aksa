@@ -1,32 +1,36 @@
 package com.aksa.app.data.model
 
-import com.aksa.app.domain.model.ChildProfile
+import com.aksa.app.domain.model.Profile
 
-data class ChildProfileDto(
-    val childId: String = "",
-    val guardianUid: String = "",
-    val displayName: String = "",
-    val age: Int = 8,
+/**
+ * Firestore DTO for Profile.
+ * Stores only profileId, userId, name, avatarId, and createdAt.
+ * Explicitly excludes age and other unneeded fields as specified in mini-PRD.
+ */
+data class ProfileDto(
+    val profileId: String = "",
+    val userId: String = "",
+    val name: String = "",
     val avatarId: String = "mascot_classic",
     val createdAt: Long = 0L
 ) {
-    fun toDomain() = ChildProfile(
-        childId = childId,
-        guardianUid = guardianUid,
-        displayName = displayName,
-        age = age,
+    fun toDomain() = Profile(
+        profileId = profileId,
+        userId = userId,
+        name = name,
         avatarId = avatarId,
         createdAt = createdAt
     )
 
     companion object {
-        fun fromDomain(domain: ChildProfile) = ChildProfileDto(
-            childId = domain.childId,
-            guardianUid = domain.guardianUid,
-            displayName = domain.displayName,
-            age = domain.age,
+        fun fromDomain(domain: Profile) = ProfileDto(
+            profileId = domain.profileId,
+            userId = domain.userId,
+            name = domain.name,
             avatarId = domain.avatarId,
             createdAt = domain.createdAt
         )
     }
 }
+
+typealias ChildProfileDto = ProfileDto

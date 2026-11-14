@@ -1,19 +1,42 @@
 package com.aksa.app.domain.model
 
 /**
- * Learning profile for a child, associated with a guardian account.
- * Age must be between 6 and 12 years.
+ * Global configuration for profile management.
+ * As per mini-PRD: The maximum number of profiles per parent account is not permanently decided yet.
+ * Configurable dynamically without hardcoding policies.
  */
-data class ChildProfile(
-    val childId: String,
-    val guardianUid: String,
-    val displayName: String,
-    val age: Int,
+object ProfileConfig {
+    /**
+     * Max allowed profiles per parent account.
+     * null indicates unlimited until a permanent business decision is made.
+     */
+    var maxProfilesPerAccount: Int? = null
+}
+
+/**
+ * Child learning profile associated with a parent/guardian account.
+ * As per mini-PRD: Contains only nickname and avatar information (no age).
+ */
+data class Profile(
+    val profileId: String,
+    val userId: String,
+    val name: String,
     val avatarId: String,
     val createdAt: Long = System.currentTimeMillis()
 ) {
+    // Backwards-compatible aliases for existing callers
+    val childId: String get() = profileId
+    val guardianUid: String get() = userId
+    val displayName: String get() = name
+    val age: Int get() = 0 // Deprecated / unused as per mini-PRD
+
     init {
-        require(displayName.isNotBlank()) { "Child display name cannot be blank" }
-        require(age in 6..12) { "Child age must be between 6 and 12 years (got $age)" }
+        require(name.isNotBlank()) { "Profile name cannot be blank" }
+        require(avatarId.isNotBlank()) { "Profile avatarId cannot be blank" }
     }
 }
+
+/**
+ * Typealias for backward compatibility with existing codebase references.
+ */
+typealias ChildProfile = Profile

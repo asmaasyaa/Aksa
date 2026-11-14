@@ -1,18 +1,38 @@
 package com.aksa.app.data.remote
 
+/**
+ * Standard Firestore paths for Aksa multi-profile architecture.
+ *
+ * Hierarchy:
+ * users/{parentUid}/profiles/{profileId}
+ * users/{parentUid}/profiles/{profileId}/answerLogs/{logId}
+ * users/{parentUid}/profiles/{profileId}/sessionResults/{sessionId}
+ * users/{parentUid}/profiles/{profileId}/badges/{badgeId}
+ */
 object FirestorePaths {
-    const val GUARDIANS = "guardians"
-    const val CHILDREN = "children"
-    const val SESSIONS = "sessions"
-    const val ANSWERS = "answers"
-    const val ACHIEVEMENTS = "achievements"
+    const val USERS = "users"
+    const val PROFILES = "profiles"
+    const val ANSWER_LOGS = "answerLogs"
+    const val SESSION_RESULTS = "sessionResults"
+    const val BADGES = "badges"
 
-    fun guardianDoc(guardianUid: String) = "$GUARDIANS/$guardianUid"
-    fun childrenCollection(guardianUid: String) = "${guardianDoc(guardianUid)}/$CHILDREN"
-    fun childDoc(guardianUid: String, childId: String) = "${childrenCollection(guardianUid)}/$childId"
-    fun sessionsCollection(guardianUid: String, childId: String) = "${childDoc(guardianUid, childId)}/$SESSIONS"
-    fun sessionDoc(guardianUid: String, childId: String, sessionId: String) = "${sessionsCollection(guardianUid, childId)}/$sessionId"
-    fun answersCollection(guardianUid: String, childId: String, sessionId: String) = "${sessionDoc(guardianUid, childId, sessionId)}/$ANSWERS"
-    fun achievementsCollection(guardianUid: String, childId: String) = "${childDoc(guardianUid, childId)}/$ACHIEVEMENTS"
-    fun achievementDoc(guardianUid: String, childId: String, achievementId: String) = "${achievementsCollection(guardianUid, childId)}/$achievementId"
+    fun userDoc(parentUid: String) = "$USERS/$parentUid"
+
+    fun profilesCollection(parentUid: String) = "${userDoc(parentUid)}/$PROFILES"
+    fun profileDoc(parentUid: String, profileId: String) = "${profilesCollection(parentUid)}/$profileId"
+
+    fun answerLogsCollection(parentUid: String, profileId: String) =
+        "${profileDoc(parentUid, profileId)}/$ANSWER_LOGS"
+    fun answerLogDoc(parentUid: String, profileId: String, logId: String) =
+        "${answerLogsCollection(parentUid, profileId)}/$logId"
+
+    fun sessionResultsCollection(parentUid: String, profileId: String) =
+        "${profileDoc(parentUid, profileId)}/$SESSION_RESULTS"
+    fun sessionResultDoc(parentUid: String, profileId: String, sessionId: String) =
+        "${sessionResultsCollection(parentUid, profileId)}/$sessionId"
+
+    fun badgesCollection(parentUid: String, profileId: String) =
+        "${profileDoc(parentUid, profileId)}/$BADGES"
+    fun badgeDoc(parentUid: String, profileId: String, badgeId: String) =
+        "${badgesCollection(parentUid, profileId)}/$badgeId"
 }
