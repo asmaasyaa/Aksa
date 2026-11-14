@@ -72,7 +72,6 @@ fun LoginScreen(
 
     val errorMessage = localError ?: uiState.errorMessage
 
-    // Clear error when user edits credentials
     LaunchedEffect(email, password) {
         if (uiState.errorMessage != null) {
             viewModel.clearError()
@@ -96,7 +95,6 @@ fun LoginScreen(
                 }
             } catch (e: ApiException) {
                 if (e.statusCode == CommonStatusCodes.CANCELED || e.statusCode == 12501) {
-                    // User cancelled account selection
                     viewModel.clearLoading()
                 } else if (e.statusCode == CommonStatusCodes.NETWORK_ERROR || e.statusCode == 7) {
                     viewModel.setError("Koneksi internet bermasalah. Periksa jaringan Anda.")
@@ -105,7 +103,6 @@ fun LoginScreen(
                 }
             }
         } else {
-            // Dismissed without sign in
             viewModel.clearLoading()
         }
     }
@@ -203,32 +200,6 @@ fun LoginScreen(
                             .padding(top = 4.dp, bottom = 22.dp)
                     )
 
-                    // Google Sign-In button
-                    AksaButton(
-                        text = "Masuk dengan Google",
-                        style = AksaButtonStyle.SOCIAL,
-                        icon = AksaIcons.Google,
-                        enabled = !uiState.isLoading,
-                        onClick = { handleGoogleSignIn() }
-                    )
-
-                    // Divider "atau"
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 18.dp)
-                    ) {
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
-                        Text(
-                            text = "  atau  ",
-                            fontFamily = Poppins,
-                            fontSize = 12.sp,
-                            color = AksaGrayText
-                        )
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
-                    }
-
                     AksaTextField(
                         value = email,
                         onValueChange = {
@@ -269,10 +240,32 @@ fun LoginScreen(
                                 .padding(top = 10.dp)
                         )
                     }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 18.dp)
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
+                        Text(
+                            text = "  atau  ",
+                            fontFamily = Poppins,
+                            fontSize = 12.sp,
+                            color = AksaGrayText
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
+                    }
+
+                    AksaButton(
+                        text = "Masuk dengan Google",
+                        style = AksaButtonStyle.SOCIAL,
+                        icon = AksaIcons.Google,
+                        enabled = !uiState.isLoading,
+                        onClick = { handleGoogleSignIn() }
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Primary Button: Masuk
                     if (uiState.isLoading) {
                         CircularProgressIndicator(
                             color = AksaOrange,
