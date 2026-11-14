@@ -1,12 +1,10 @@
 package com.aksa.app.domain.repository
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 data class GuardianUser(
     val uid: String,
-    val email: String,
-    val isDemo: Boolean = false
+    val email: String
 )
 
 interface AuthRepository {

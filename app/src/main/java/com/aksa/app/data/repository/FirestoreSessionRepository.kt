@@ -15,25 +15,27 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 /**
- * Real Firestore implementation of SessionRepository.
- * Stores sessions and answer logs under guardian/child subcollections.
+ * Cloud Firestore implementation of SessionRepository.
+ * Stores sessions and answer logs under:
+ * users/{parentUid}/profiles/{profileId}/sessionResults/{sessionId}
+ * users/{parentUid}/profiles/{profileId}/answerLogs/{logId}
  */
 class FirestoreSessionRepository(
     private val authRepository: AuthRepository,
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) : SessionRepository {
 
-    private fun getGuardianUid(): String {
+    private fun getParentUid(): String {
         return authRepository.currentGuardian.value?.uid
             ?: throw IllegalStateException("Guardian must be authenticated to persist sessions")
     }
 
     override suspend fun recordAnswer(answer: AnswerLog): Result<Unit> {
         return try {
-            val guardianUid = getGuardianUid()
-            val dto = AnswerLogDto.fromDomain(answer)
+            val parentUid = getParentUid()
+            val dto = AnswerLogDto.fromDomain(answer, parentUid)
             firestore.document(
-                "${FirestorePaths.answersCollection(guardianUid, answer.childId, answer.sessionId)}/${answer.answerId}"
+                FirestorePaths.answerLogDoc(parentUid, answer.childId, answer.answerId)
             ).set(dto).await()
             Result.success(Unit)
         } catch (e: Exception) {
@@ -43,8 +45,7 @@ class FirestoreSessionRepository(
 
     override suspend fun getAnswersForSession(sessionId: String): List<AnswerLog> {
         return try {
-            // Query across answers collection group or directly if child is known
-            val snapshot = firestore.collectionGroup(FirestorePaths.ANSWERS)
+            val snapshot = firestore.collectionGroup(FirestorePaths.ANSWER_LOGS)
                 .whereEqualTo("sessionId", sessionId)
                 .get()
                 .await()
@@ -57,10 +58,10 @@ class FirestoreSessionRepository(
 
     override suspend fun saveSessionResult(result: SessionResult): Result<Unit> {
         return try {
-            val guardianUid = getGuardianUid()
-            val dto = SessionResultDto.fromDomain(result)
+            val parentUid = getParentUid()
+            val dto = SessionResultDto.fromDomain(result, parentUid)
             firestore.document(
-                FirestorePaths.sessionDoc(guardianUid, result.childId, result.sessionId)
+                FirestorePaths.sessionResultDoc(parentUid, result.childId, result.sessionId)
             ).set(dto).await()
             Result.success(Unit)
         } catch (e: Exception) {
@@ -70,8 +71,8 @@ class FirestoreSessionRepository(
 
     override suspend fun getCompletedSessions(childId: String): List<SessionResult> {
         return try {
-            val guardianUid = getGuardianUid()
-            val snapshot = firestore.collection(FirestorePaths.sessionsCollection(guardianUid, childId))
+            val parentUid = getParentUid()
+            val snapshot = firestore.collection(FirestorePaths.sessionResultsCollection(parentUid, childId))
                 .whereEqualTo("status", SessionStatus.COMPLETED.name)
                 .get()
                 .await()
@@ -83,14 +84,14 @@ class FirestoreSessionRepository(
     }
 
     override fun observeCompletedSessions(childId: String): Flow<List<SessionResult>> = callbackFlow {
-        val guardianUid = try { getGuardianUid() } catch (e: Exception) { null }
-        if (guardianUid == null) {
+        val parentUid = try { getParentUid() } catch (e: Exception) { null }
+        if (parentUid == null) {
             trySend(emptyList())
             close()
             return@callbackFlow
         }
 
-        val registration = firestore.collection(FirestorePaths.sessionsCollection(guardianUid, childId))
+        val registration = firestore.collection(FirestorePaths.sessionResultsCollection(parentUid, childId))
             .whereEqualTo("status", SessionStatus.COMPLETED.name)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {

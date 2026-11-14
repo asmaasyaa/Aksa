@@ -8,16 +8,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
 /**
- * In-memory demo authentication repository.
- * Used for local testing when Firebase configuration (google-services.json) is not yet initialized.
- * Never claims cross-device synchronization.
+ * In-memory authentication repository used as test double in unit tests.
  */
 class DemoAuthRepository : AuthRepository {
     private val _currentGuardian = MutableStateFlow<GuardianUser?>(
         GuardianUser(
             uid = "demo_guardian_default",
-            email = "demo.orangtua@aksa.id",
-            isDemo = true
+            email = "demo.orangtua@aksa.id"
         )
     )
     override val currentGuardian: StateFlow<GuardianUser?> = _currentGuardian.asStateFlow()
@@ -30,8 +27,7 @@ class DemoAuthRepository : AuthRepository {
         val uid = if (isDefaultDemo) "demo_guardian_default" else "demo_user_${email.trim().hashCode()}"
         val user = GuardianUser(
             uid = uid,
-            email = email.trim(),
-            isDemo = true
+            email = email.trim()
         )
         _currentGuardian.value = user
         return Result.success(user)
@@ -43,8 +39,7 @@ class DemoAuthRepository : AuthRepository {
         }
         val user = GuardianUser(
             uid = "demo_user_${UUID.randomUUID()}",
-            email = email.trim(),
-            isDemo = true
+            email = email.trim()
         )
         _currentGuardian.value = user
         return Result.success(user)
@@ -56,8 +51,7 @@ class DemoAuthRepository : AuthRepository {
         }
         val user = GuardianUser(
             uid = "demo_google_guardian_${idToken.hashCode()}",
-            email = "google.orangtua@aksa.id",
-            isDemo = true
+            email = "google.orangtua@aksa.id"
         )
         _currentGuardian.value = user
         return Result.success(user)
