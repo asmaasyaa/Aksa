@@ -25,6 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,9 +35,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.components.AksaAvatar
+import com.aksa.app.ui.components.AksaButton
+import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotStanding
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
@@ -47,6 +53,7 @@ import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
+import com.aksa.app.ui.theme.DialogShape
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
 
@@ -60,6 +67,7 @@ fun ProfileScreen(
 ) {
     val authState by authViewModel.uiState.collectAsState()
     val guardianEmail = authState.currentGuardian?.email ?: "demo.orangtua@aksa.id"
+    var showLogoutConfirmation by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -74,13 +82,11 @@ fun ProfileScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -115,12 +121,11 @@ fun ProfileScreen(
                     color = AksaWhite
                 )
 
-                Spacer(modifier = Modifier.width(48.dp)) // Visual balance
+                Spacer(modifier = Modifier.width(48.dp))
             }
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Large White Rounded Profile Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -133,7 +138,6 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Avatar Circle with Selected Avatar
                     Box(
                         modifier = Modifier
                             .size(96.dp)
@@ -164,7 +168,6 @@ fun ProfileScreen(
                         modifier = Modifier.padding(top = 2.dp)
                     )
 
-                    // Guardian account indicator
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
@@ -247,7 +250,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // White Rounded Menu Rows Card
             val menuCardShape = RoundedCornerShape(26.dp)
             Box(
                 modifier = Modifier
@@ -257,7 +259,6 @@ fun ProfileScreen(
                     .padding(vertical = 8.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Row 1: Edit Profil
                     ProfileMenuRow(
                         icon = AksaIcons.Edit,
                         iconBg = AksaPeachLight,
@@ -267,7 +268,6 @@ fun ProfileScreen(
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
-                    // Row 2: Progress Belajar
                     ProfileMenuRow(
                         icon = AksaIcons.EmojiEvents,
                         iconBg = AksaYellow.copy(alpha = 0.35f),
@@ -278,7 +278,6 @@ fun ProfileScreen(
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
-                    // Row 3: Pengaturan
                     ProfileMenuRow(
                         icon = AksaIcons.Settings,
                         iconBg = Color(0xFFE8F2FA),
@@ -300,16 +299,82 @@ fun ProfileScreen(
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
-                    // Row 4: Keluar
                     ProfileMenuRow(
                         icon = AksaIcons.ExitToApp,
                         iconBg = Color(0xFFFFECE6),
                         title = "Keluar",
                         textColor = AksaOrange,
                         onClick = {
-                            authViewModel.signOut(onNavigateToLogin)
+                            showLogoutConfirmation = true
                         }
                     )
+                }
+            }
+        }
+
+        if (showLogoutConfirmation) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x88000000))
+                    .clickable { /* block touches */ },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp)
+                        .shadow(16.dp, DialogShape)
+                        .background(AksaWhite, DialogShape)
+                        .padding(28.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        MascotStanding(size = 120.dp)
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Keluar dari Akun?",
+                                fontFamily = Poppins,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp,
+                                color = AksaDarkBrown,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        Text(
+                            text = "Apakah Anda yakin ingin keluar? Progres belajar anak tetap tersimpan dengan aman.",
+                            fontFamily = Poppins,
+                            fontSize = 13.sp,
+                            color = AksaDarkBrown.copy(alpha = 0.75f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+                        )
+                        AksaButton(
+                            text = "Ya, Keluar",
+                            style = AksaButtonStyle.PRIMARY_ORANGE,
+                            onClick = {
+                                showLogoutConfirmation = false
+                                authViewModel.signOut(onNavigateToLogin)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "Batal",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = AksaOrange,
+                            modifier = Modifier.clickable {
+                                showLogoutConfirmation = false
+                            }
+                        )
+                    }
                 }
             }
         }
