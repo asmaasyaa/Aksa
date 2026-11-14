@@ -76,31 +76,33 @@ fun AksaAvatar(
             "cat_orange" -> drawAvatarCat(w, h)
             "bunny_blue" -> drawAvatarBunny(w, h)
             "dino_lime" -> drawAvatarDino(w, h)
+            "mascot_classic" -> drawAvatarClassic(w, h)
             else -> drawAvatarClassic(w, h)
         }
     }
 }
 
-/**
- * 4-6 Avatar Selection Component for Register Screen
- */
+
 @Composable
 fun AksaAvatarSelector(
     selectedAvatarId: String,
     onAvatarSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    title: String? = "Pilih Avatar"
 ) {
     val avatars = AksaUserState.availableAvatars
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "Pilih Avatar",
-            fontFamily = Poppins,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = AksaDarkBrown,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-        )
+        if (!title.isNullOrBlank()) {
+            Text(
+                text = title,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = AksaDarkBrown,
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+            )
+        }
 
         // 3x2 Grid of Avatars
         Column(
@@ -215,19 +217,12 @@ private fun AvatarOptionCard(
     }
 }
 
-// ==============================================================================
-// AVATAR VECTOR DRAWING FUNCTIONS
-// ==============================================================================
 
-/**
- * 1. Classic Aksa Mascot
- */
 private fun DrawScope.drawAvatarClassic(w: Float, h: Float) {
     val cx = w / 2f
     val cy = h * 0.54f
     val r = minOf(w, h) * 0.36f
 
-    // Ears
     val earR = r * 0.35f
     val earY = cy - r * 0.82f
     val earSpacing = r * 0.72f
@@ -237,26 +232,19 @@ private fun DrawScope.drawAvatarClassic(w: Float, h: Float) {
     drawCircle(AksaWhite, earR, Offset(cx + earSpacing, earY))
     drawCircle(AksaSoftPeach, earR * 0.55f, Offset(cx + earSpacing, earY))
 
-    // Head
     val headPath = Path().apply {
         val rect = Rect(cx - r, cy - r, cx + r, cy + r * 1.05f)
         addRoundRect(RoundRect(rect, CornerRadius(r * 0.95f, r * 0.95f)))
     }
     drawPath(headPath, AksaWhite)
 
-    // Face
     drawAvatarFace(cx, cy, r)
 }
 
-/**
- * 2. Champion Aksa Mascot (with Headband)
- */
 private fun DrawScope.drawAvatarChampion(w: Float, h: Float) {
     val cx = w / 2f
     val cy = h * 0.54f
     val r = minOf(w, h) * 0.36f
-
-    // Ears
     val earR = r * 0.35f
     val earY = cy - r * 0.82f
     val earSpacing = r * 0.72f
@@ -266,14 +254,12 @@ private fun DrawScope.drawAvatarChampion(w: Float, h: Float) {
     drawCircle(AksaWhite, earR, Offset(cx + earSpacing, earY))
     drawCircle(AksaSoftPeach, earR * 0.55f, Offset(cx + earSpacing, earY))
 
-    // Head
     val headPath = Path().apply {
         val rect = Rect(cx - r, cy - r, cx + r, cy + r * 1.05f)
         addRoundRect(RoundRect(rect, CornerRadius(r * 0.95f, r * 0.95f)))
     }
     drawPath(headPath, AksaWhite)
 
-    // Golden Yellow Headband
     val bandY = cy - r * 0.55f
     val bandH = r * 0.28f
     drawRoundRect(
@@ -282,23 +268,18 @@ private fun DrawScope.drawAvatarChampion(w: Float, h: Float) {
         size = Size(r * 1.9f, bandH),
         cornerRadius = CornerRadius(bandH * 0.3f, bandH * 0.3f)
     )
-    // Headband ribbon knot
     drawCircle(AksaYellowDark, r * 0.16f, Offset(cx + r * 0.85f, bandY + bandH * 0.5f))
     drawCircle(AksaYellow, r * 0.12f, Offset(cx + r * 0.95f, bandY + bandH * 0.2f))
 
-    // Face
     drawAvatarFace(cx, cy + r * 0.08f, r)
 }
 
-/**
- * 3. Happy Star Aksa Mascot
- */
+
 private fun DrawScope.drawAvatarHappy(w: Float, h: Float) {
     val cx = w / 2f
     val cy = h * 0.54f
     val r = minOf(w, h) * 0.36f
 
-    // Ears
     val earR = r * 0.35f
     val earY = cy - r * 0.82f
     val earSpacing = r * 0.72f
@@ -308,14 +289,12 @@ private fun DrawScope.drawAvatarHappy(w: Float, h: Float) {
     drawCircle(AksaWhite, earR, Offset(cx + earSpacing, earY))
     drawCircle(AksaSoftPeach, earR * 0.55f, Offset(cx + earSpacing, earY))
 
-    // Head
     val headPath = Path().apply {
         val rect = Rect(cx - r, cy - r, cx + r, cy + r * 1.05f)
         addRoundRect(RoundRect(rect, CornerRadius(r * 0.95f, r * 0.95f)))
     }
     drawPath(headPath, AksaWhite)
 
-    // Happy smiling eyes (arcs)
     val eyeSpacing = r * 0.36f
     val eyeY = cy - r * 0.1f
     val eyeW = r * 0.28f
@@ -340,11 +319,9 @@ private fun DrawScope.drawAvatarHappy(w: Float, h: Float) {
         style = Stroke(width = 3.5f, cap = StrokeCap.Round)
     )
 
-    // Cheeks
     drawCircle(AksaSoftPeach, r * 0.22f, Offset(cx - r * 0.54f, cy + r * 0.14f))
     drawCircle(AksaSoftPeach, r * 0.22f, Offset(cx + r * 0.54f, cy + r * 0.14f))
 
-    // Big happy smile
     val mouthPath = Path().apply {
         moveTo(cx - r * 0.18f, cy + r * 0.12f)
         quadraticTo(cx, cy + r * 0.36f, cx + r * 0.18f, cy + r * 0.12f)
@@ -352,19 +329,15 @@ private fun DrawScope.drawAvatarHappy(w: Float, h: Float) {
     }
     drawPath(mouthPath, AksaOrange)
 
-    // Tiny star badge near right cheek
     drawCircle(AksaYellow, r * 0.16f, Offset(cx + r * 0.72f, cy - r * 0.2f))
 }
 
-/**
- * 4. Orange Kitty (Si Oren)
- */
+
 private fun DrawScope.drawAvatarCat(w: Float, h: Float) {
     val cx = w / 2f
     val cy = h * 0.54f
     val r = minOf(w, h) * 0.36f
 
-    // Pointy cat ears
     val leftEar = Path().apply {
         moveTo(cx - r * 0.85f, cy - r * 0.3f)
         lineTo(cx - r * 0.75f, cy - r * 1.15f)
@@ -397,17 +370,14 @@ private fun DrawScope.drawAvatarCat(w: Float, h: Float) {
     }
     drawPath(rightInnerEar, AksaSoftPeach)
 
-    // Head
     drawCircle(AksaOrangeLight, r, Offset(cx, cy))
 
-    // White snout/muzzle
     drawOval(
         color = AksaWhite,
         topLeft = Offset(cx - r * 0.45f, cy),
         size = Size(r * 0.9f, r * 0.65f)
     )
 
-    // Eyes
     val eyeW = r * 0.14f
     val eyeH = r * 0.24f
     val eyeSpacing = r * 0.36f
@@ -418,11 +388,9 @@ private fun DrawScope.drawAvatarCat(w: Float, h: Float) {
     drawOval(AksaDarkBrown, Offset(cx + eyeSpacing - eyeW / 2f, eyeY - eyeH / 2f), Size(eyeW, eyeH))
     drawCircle(AksaWhite, eyeW * 0.28f, Offset(cx + eyeSpacing - eyeW * 0.1f, eyeY - eyeH * 0.22f))
 
-    // Cheeks
     drawCircle(AksaSoftPeach, r * 0.18f, Offset(cx - r * 0.58f, cy + r * 0.14f))
     drawCircle(AksaSoftPeach, r * 0.18f, Offset(cx + r * 0.58f, cy + r * 0.14f))
 
-    // Cute pink nose
     val nosePath = Path().apply {
         moveTo(cx - r * 0.1f, cy + r * 0.12f)
         lineTo(cx + r * 0.1f, cy + r * 0.12f)
@@ -431,28 +399,23 @@ private fun DrawScope.drawAvatarCat(w: Float, h: Float) {
     }
     drawPath(nosePath, AksaOrange)
 
-    // Whisker lines
     drawLine(AksaDarkBrown.copy(alpha = 0.5f), Offset(cx - r * 0.4f, cy + r * 0.2f), Offset(cx - r * 0.75f, cy + r * 0.16f), 2.5f, StrokeCap.Round)
     drawLine(AksaDarkBrown.copy(alpha = 0.5f), Offset(cx - r * 0.4f, cy + r * 0.28f), Offset(cx - r * 0.75f, cy + r * 0.32f), 2.5f, StrokeCap.Round)
     drawLine(AksaDarkBrown.copy(alpha = 0.5f), Offset(cx + r * 0.4f, cy + r * 0.2f), Offset(cx + r * 0.75f, cy + r * 0.16f), 2.5f, StrokeCap.Round)
     drawLine(AksaDarkBrown.copy(alpha = 0.5f), Offset(cx + r * 0.4f, cy + r * 0.28f), Offset(cx + r * 0.75f, cy + r * 0.32f), 2.5f, StrokeCap.Round)
 }
 
-/**
- * 5. Blue Bunny (Si Biru)
- */
+
 private fun DrawScope.drawAvatarBunny(w: Float, h: Float) {
     val cx = w / 2f
     val cy = h * 0.58f
     val r = minOf(w, h) * 0.34f
 
-    // Tall rounded bunny ears
     val earW = r * 0.34f
     val earH = r * 0.95f
     val earSpacing = r * 0.45f
     val earY = cy - r * 1.45f
 
-    // Left ear
     drawRoundRect(
         color = AksaBlueDark,
         topLeft = Offset(cx - earSpacing - earW / 2f, earY),
@@ -466,7 +429,6 @@ private fun DrawScope.drawAvatarBunny(w: Float, h: Float) {
         cornerRadius = CornerRadius(earW * 0.3f, earW * 0.3f)
     )
 
-    // Right ear
     drawRoundRect(
         color = AksaBlueDark,
         topLeft = Offset(cx + earSpacing - earW / 2f, earY),
@@ -480,14 +442,11 @@ private fun DrawScope.drawAvatarBunny(w: Float, h: Float) {
         cornerRadius = CornerRadius(earW * 0.3f, earW * 0.3f)
     )
 
-    // Head
     drawCircle(AksaBlueDark, r, Offset(cx, cy))
 
-    // Cheeks
     drawCircle(AksaSoftPeach, r * 0.24f, Offset(cx - r * 0.54f, cy + r * 0.14f))
     drawCircle(AksaSoftPeach, r * 0.24f, Offset(cx + r * 0.54f, cy + r * 0.14f))
 
-    // Eyes
     val eyeW = r * 0.14f
     val eyeH = r * 0.24f
     val eyeSpacing = r * 0.34f
@@ -498,7 +457,6 @@ private fun DrawScope.drawAvatarBunny(w: Float, h: Float) {
     drawOval(AksaDarkBrown, Offset(cx + eyeSpacing - eyeW / 2f, eyeY - eyeH / 2f), Size(eyeW, eyeH))
     drawCircle(AksaWhite, eyeW * 0.28f, Offset(cx + eyeSpacing - eyeW * 0.1f, eyeY - eyeH * 0.22f))
 
-    // Tiny nose & mouth
     drawCircle(AksaOrange, r * 0.08f, Offset(cx, cy + r * 0.14f))
     drawArc(
         color = AksaDarkBrown,
@@ -511,27 +469,19 @@ private fun DrawScope.drawAvatarBunny(w: Float, h: Float) {
     )
 }
 
-/**
- * 6. Lime Baby Dino (Si Dino)
- */
 private fun DrawScope.drawAvatarDino(w: Float, h: Float) {
     val cx = w / 2f
     val cy = h * 0.54f
     val r = minOf(w, h) * 0.36f
 
-    // Cute soft spikes on top head
     drawCircle(AksaYellow, r * 0.2f, Offset(cx - r * 0.45f, cy - r * 0.95f))
     drawCircle(AksaYellow, r * 0.22f, Offset(cx, cy - r * 1.05f))
     drawCircle(AksaYellow, r * 0.2f, Offset(cx + r * 0.45f, cy - r * 0.95f))
-
-    // Head
     drawCircle(AksaLime, r, Offset(cx, cy))
 
-    // Cheeks
     drawCircle(AksaPeachDark, r * 0.2f, Offset(cx - r * 0.54f, cy + r * 0.16f))
     drawCircle(AksaPeachDark, r * 0.2f, Offset(cx + r * 0.54f, cy + r * 0.16f))
 
-    // Eyes
     val eyeW = r * 0.14f
     val eyeH = r * 0.24f
     val eyeSpacing = r * 0.36f
@@ -542,14 +492,12 @@ private fun DrawScope.drawAvatarDino(w: Float, h: Float) {
     drawOval(AksaDarkBrown, Offset(cx + eyeSpacing - eyeW / 2f, eyeY - eyeH / 2f), Size(eyeW, eyeH))
     drawCircle(AksaWhite, eyeW * 0.28f, Offset(cx + eyeSpacing - eyeW * 0.1f, eyeY - eyeH * 0.22f))
 
-    // Dino friendly smile
     val mouthPath = Path().apply {
         moveTo(cx - r * 0.18f, cy + r * 0.18f)
         quadraticTo(cx, cy + r * 0.38f, cx + r * 0.18f, cy + r * 0.18f)
     }
     drawPath(mouthPath, AksaDarkBrown, style = Stroke(width = 3.5f, cap = StrokeCap.Round))
 
-    // Cute little tooth
     val toothPath = Path().apply {
         moveTo(cx - r * 0.08f, cy + r * 0.24f)
         lineTo(cx - r * 0.02f, cy + r * 0.32f)
@@ -559,26 +507,20 @@ private fun DrawScope.drawAvatarDino(w: Float, h: Float) {
     drawPath(toothPath, AksaWhite)
 }
 
-/**
- * Common face features helper
- */
 private fun DrawScope.drawAvatarFace(cx: Float, cy: Float, r: Float) {
     val eyeW = r * 0.14f
     val eyeH = r * 0.24f
     val eyeSpacing = r * 0.36f
     val eyeY = cy - r * 0.12f
 
-    // Eyes
     drawOval(AksaDarkBrown, Offset(cx - eyeSpacing - eyeW / 2f, eyeY - eyeH / 2f), Size(eyeW, eyeH))
     drawCircle(AksaWhite, eyeW * 0.28f, Offset(cx - eyeSpacing - eyeW * 0.1f, eyeY - eyeH * 0.22f))
     drawOval(AksaDarkBrown, Offset(cx + eyeSpacing - eyeW / 2f, eyeY - eyeH / 2f), Size(eyeW, eyeH))
     drawCircle(AksaWhite, eyeW * 0.28f, Offset(cx + eyeSpacing - eyeW * 0.1f, eyeY - eyeH * 0.22f))
 
-    // Cheeks
     drawCircle(AksaSoftPeach, r * 0.22f, Offset(cx - r * 0.54f, cy + r * 0.14f))
     drawCircle(AksaSoftPeach, r * 0.22f, Offset(cx + r * 0.54f, cy + r * 0.14f))
 
-    // Soft Smile
     val mouthPath = Path().apply {
         moveTo(cx - r * 0.14f, cy + r * 0.16f)
         quadraticTo(cx, cy + r * 0.28f, cx + r * 0.14f, cy + r * 0.16f)

@@ -6,6 +6,8 @@ import com.aksa.app.domain.model.SessionStatus
 data class SessionResultDto(
     val sessionId: String = "",
     val childId: String = "",
+    val profileId: String = childId,
+    val userId: String = "",
     val moduleId: String = "",
     val activityId: String = "",
     val startedAt: Long = 0L,
@@ -18,7 +20,7 @@ data class SessionResultDto(
 ) {
     fun toDomain() = SessionResult(
         sessionId = sessionId,
-        childId = childId,
+        childId = if (childId.isNotBlank()) childId else profileId,
         moduleId = moduleId,
         activityId = activityId,
         startedAt = startedAt,
@@ -27,13 +29,16 @@ data class SessionResultDto(
         correctAnswers = correctAnswers,
         incorrectAnswers = incorrectAnswers,
         accuracy = accuracy,
-        status = try { SessionStatus.valueOf(status) } catch (e: Exception) { SessionStatus.IN_PROGRESS }
+        status = try { SessionStatus.valueOf(status) } catch (e: Exception) { SessionStatus.IN_PROGRESS },
+        userId = userId
     )
 
     companion object {
-        fun fromDomain(domain: SessionResult) = SessionResultDto(
+        fun fromDomain(domain: SessionResult, parentUid: String = domain.userId) = SessionResultDto(
             sessionId = domain.sessionId,
             childId = domain.childId,
+            profileId = domain.profileId,
+            userId = if (parentUid.isNotBlank()) parentUid else domain.userId,
             moduleId = domain.moduleId,
             activityId = domain.activityId,
             startedAt = domain.startedAt,

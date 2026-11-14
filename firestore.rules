@@ -1,4 +1,5 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -7,34 +8,71 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(guardianUid) {
-      return isAuthenticated() && request.auth.uid == guardianUid;
+    function isOwner(parentUid) {
+      return isAuthenticated() && request.auth.uid == parentUid;
     }
 
-    // Guardian accounts and all subcollections (children, sessions, answers, achievements)
-    match /guardians/{guardianUid} {
-      allow read, write: if isOwner(guardianUid);
+    function isValidProfile(parentUid) {
+      let data = request.resource.data;
+      return ('name' in data) && data.name is string && data.name.size() > 0 && data.name.size() <= 50
+          && ('avatarId' in data) && data.avatarId is string && data.avatarId.size() > 0
+          && (!('userId' in data) || data.userId == parentUid);
+    }
 
-      match /children/{childId} {
-        allow read, write: if isOwner(guardianUid);
+    function isValidAnswerLog(parentUid) {
+      let data = request.resource.data;
+      return ('sessionId' in data) && data.sessionId is string && data.sessionId.size() > 0
+          && ('targetChar' in data) && data.targetChar is string
+          && ('chosenChar' in data) && data.chosenChar is string
+          && ('isCorrect' in data) && data.isCorrect is bool
+          && (!('userId' in data) || data.userId == parentUid);
+    }
 
-        match /sessions/{sessionId} {
-          allow read, write: if isOwner(guardianUid);
+    function isValidSessionResult(parentUid) {
+      let data = request.resource.data;
+      return ('sessionId' in data) && data.sessionId is string && data.sessionId.size() > 0
+          && ('totalQuestions' in data) && data.totalQuestions is int && data.totalQuestions >= 0
+          && ('correctAnswers' in data) && data.correctAnswers is int && data.correctAnswers >= 0
+          && ('accuracy' in data) && data.accuracy is number && data.accuracy >= 0.0 && data.accuracy <= 100.0
+          && ('status' in data) && data.status is string
+          && (!('userId' in data) || data.userId == parentUid);
+    }
 
-          match /answers/{answerId} {
-            allow read, write: if isOwner(guardianUid);
-          }
+    function isValidBadge(parentUid) {
+      let data = request.resource.data;
+      return ('weekStartDate' in data) && data.weekStartDate is string
+          && ('milestoneDays' in data) && data.milestoneDays is int && (data.milestoneDays == 2 || data.milestoneDays == 3 || data.milestoneDays == 7)
+          && (!('userId' in data) || data.userId == parentUid);
+    }
+
+    // Parent account document and subcollections
+    match /users/{parentUid} {
+      allow read, write: if isOwner(parentUid);
+
+      match /profiles/{profileId} {
+        allow read, delete: if isOwner(parentUid);
+        allow create, update: if isOwner(parentUid) && isValidProfile(parentUid);
+
+        match /answerLogs/{logId} {
+          allow read, delete: if isOwner(parentUid);
+          allow create, update: if isOwner(parentUid) && isValidAnswerLog(parentUid);
         }
 
-        match /achievements/{achievementId} {
-          allow read, write: if isOwner(guardianUid);
+        match /sessionResults/{sessionId} {
+          allow read, delete: if isOwner(parentUid);
+          allow create, update: if isOwner(parentUid) && isValidSessionResult(parentUid);
+        }
+
+        match /badges/{badgeId} {
+          allow read, delete: if isOwner(parentUid);
+          allow create, update: if isOwner(parentUid) && isValidBadge(parentUid);
         }
       }
     }
 
-    // Deny all other access by default
-    match /{document=**} {
-      allow read, write: if false;
+    // Support collection group queries (e.g., answerLogs queried across sessions by owner)
+    match /{path=**}/answerLogs/{logId} {
+      allow read: if isAuthenticated() && (!('userId' in resource.data) || resource.data.userId == request.auth.uid);
     }
   }
 }

@@ -8,8 +8,7 @@ enum class SessionStatus {
 
 /**
  * Summary result of an educational activity session.
- * COMPLETED = the child finished the exercise.
- * Mastered = separate evaluation of learning performance.
+ * Associated with a specific child profile (profileId / childId) and parent account (userId).
  */
 data class SessionResult(
     val sessionId: String,
@@ -22,7 +21,9 @@ data class SessionResult(
     val correctAnswers: Int,
     val incorrectAnswers: Int,
     val accuracy: Float,
-    val status: SessionStatus
+    val status: SessionStatus,
+    val userId: String = ""
 ) {
     val isCompleted: Boolean get() = status == SessionStatus.COMPLETED
+    val profileId: String get() = childId
 }

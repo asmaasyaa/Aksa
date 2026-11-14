@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotPeeking
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaGrayText
@@ -79,7 +80,7 @@ fun ChildAgeScreen(
                     .padding(horizontal = 20.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "LANGKAH 2 DARI 2",
+                    text = "LANGKAH 2 DARI 3",
                     fontFamily = Poppins,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
@@ -160,7 +161,10 @@ fun ChildAgeScreen(
                     AksaButton(
                         text = "Lanjut",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
-                        onClick = onNavigateToHome
+                        onClick = {
+                            AksaUserState.age = selectedAge
+                            onNavigateToHome()
+                        }
                     )
                 }
             }

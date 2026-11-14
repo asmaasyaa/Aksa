@@ -3,6 +3,7 @@ package com.aksa.app
 import com.aksa.app.data.repository.demo.DemoAuthRepository
 import com.aksa.app.data.repository.demo.DemoProfileRepository
 import com.aksa.app.domain.model.ChildProfile
+import com.aksa.app.domain.model.Profile
 import com.aksa.app.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -110,11 +111,10 @@ class AuthFlowValidationTest {
         // 2. Add profile for the guardian
         val guardianUid = viewModel.uiState.value.currentGuardian!!.uid
         profileRepository.saveChildProfile(
-            ChildProfile(
-                childId = "child_test_1",
-                guardianUid = guardianUid,
-                displayName = "Aksa",
-                age = 7,
+            Profile(
+                profileId = "child_test_1",
+                userId = guardianUid,
+                name = "Aksa",
                 avatarId = "mascot_classic"
             )
         )

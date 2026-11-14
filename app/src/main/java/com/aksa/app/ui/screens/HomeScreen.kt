@@ -85,7 +85,9 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     val profile = uiState.childProfile
-    val displayName = profile?.displayName ?: AksaUserState.username
+    val displayName = profile?.displayName?.takeIf { it.isNotBlank() }
+        ?: AksaUserState.username.takeIf { it.isNotBlank() }
+        ?: "Pengguna"
     val displayAge = "${profile?.age ?: AksaUserState.age} tahun"
     val avatarId = profile?.avatarId ?: AksaUserState.avatarId
     val isDevPreview by com.aksa.app.ui.preview.DeveloperPreviewManager.isPreviewActive.collectAsState()
