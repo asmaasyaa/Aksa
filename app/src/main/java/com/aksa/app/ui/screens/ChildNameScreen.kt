@@ -74,7 +74,7 @@ fun ChildNameScreen(
                     .padding(horizontal = 20.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "LANGKAH 1 DARI 2",
+                    text = "LANGKAH 1 DARI 3",
                     fontFamily = Poppins,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,

@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import com.aksa.app.ui.viewmodel.CreateProfileViewModel
 import com.aksa.app.ui.screens.AlphabetSelectionScreen
 import com.aksa.app.ui.screens.ChildAgeScreen
+import com.aksa.app.ui.screens.ChildAvatarScreen
 import com.aksa.app.ui.screens.ChildNameScreen
 import com.aksa.app.ui.screens.HomeScreen
 import com.aksa.app.ui.screens.HurufMiripScreen
@@ -166,14 +167,19 @@ fun AksaNavGraph(
 
         composable(Screen.ChildAge.route) {
             ChildAgeScreen(
+                onNavigateToHome = {
+                    navController.navigate(Screen.ChildAvatar.route)
+                }
+            )
+        }
+
+        composable(Screen.ChildAvatar.route) {
+            ChildAvatarScreen(
                 viewModel = createProfileViewModel,
                 onNavigateToHome = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
                 }
             )
         }
