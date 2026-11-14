@@ -41,7 +41,19 @@ object AksaUserState {
         currentProfileId = profile.profileId
         username = profile.name
         avatarId = profile.avatarId
+        if (profile.age > 0) {
+            age = profile.age
+        }
         streakCount = streak
+    }
+
+    fun clearSession() {
+        currentProfileId = ""
+        username = ""
+        avatarId = "mascot_classic"
+        age = 8
+        streakCount = 0
+        hurufMiripCompleted = false
     }
 
     fun updateProfile(newUsername: String, newAvatarId: String, newAge: Int = 8) {
