@@ -29,7 +29,8 @@ interface ProfileRepository {
     suspend fun createProfile(
         userId: String,
         name: String,
-        avatarId: String
+        avatarId: String,
+        age: Int = 0
     ): Result<Profile>
 
     /**
@@ -39,15 +40,17 @@ interface ProfileRepository {
         userId: String,
         profileId: String,
         name: String,
-        avatarId: String
+        avatarId: String,
+        age: Int = 0
     ): Result<Profile>
 
     // --- Backwards-compatible methods ---
 
     /**
      * Gets the first/active child profile for the given [guardianUid].
+     * If [activeProfileId] is supplied, attempts to load that specific profile first.
      */
-    suspend fun getActiveChildProfile(guardianUid: String): Profile?
+    suspend fun getActiveChildProfile(guardianUid: String, activeProfileId: String? = null): Profile?
 
     /**
      * Saves or overwrites a profile document.

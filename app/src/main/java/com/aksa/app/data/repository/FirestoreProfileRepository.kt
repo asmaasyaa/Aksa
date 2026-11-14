@@ -74,7 +74,8 @@ class FirestoreProfileRepository(
     override suspend fun createProfile(
         userId: String,
         name: String,
-        avatarId: String
+        avatarId: String,
+        age: Int
     ): Result<Profile> {
         val trimmedName = name.trim()
         val trimmedAvatar = avatarId.trim()
@@ -98,6 +99,7 @@ class FirestoreProfileRepository(
                 userId = userId,
                 name = trimmedName,
                 avatarId = trimmedAvatar,
+                age = age,
                 createdAt = System.currentTimeMillis()
             )
 
@@ -116,7 +118,8 @@ class FirestoreProfileRepository(
         userId: String,
         profileId: String,
         name: String,
-        avatarId: String
+        avatarId: String,
+        age: Int
     ): Result<Profile> {
         val trimmedName = name.trim()
         val trimmedAvatar = avatarId.trim()
@@ -144,7 +147,8 @@ class FirestoreProfileRepository(
 
             val updated = existing.copy(
                 name = trimmedName,
-                avatarId = trimmedAvatar
+                avatarId = trimmedAvatar,
+                age = if (age > 0) age else existing.age
             )
 
             docRef.set(ProfileDto.fromDomain(updated)).await()
@@ -154,8 +158,14 @@ class FirestoreProfileRepository(
         }
     }
 
-    override suspend fun getActiveChildProfile(guardianUid: String): Profile? {
-        return getProfiles(guardianUid).firstOrNull()
+    override suspend fun getActiveChildProfile(guardianUid: String, activeProfileId: String?): Profile? {
+        val allProfiles = getProfiles(guardianUid)
+        if (allProfiles.isEmpty()) return null
+        if (!activeProfileId.isNullOrBlank()) {
+            val matched = allProfiles.find { it.profileId == activeProfileId }
+            if (matched != null) return matched
+        }
+        return allProfiles.firstOrNull()
     }
 
     override suspend fun saveChildProfile(profile: Profile): Result<Unit> {

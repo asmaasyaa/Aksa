@@ -4,14 +4,15 @@ import com.aksa.app.domain.model.Profile
 
 /**
  * Firestore DTO for Profile.
- * Stores only profileId, userId, name, avatarId, and createdAt.
- * Explicitly excludes age and other unneeded fields as specified in mini-PRD.
+ * Stores profileId, userId, name, avatarId, age, and createdAt.
+ * Retains default age = 0 for backward compatibility with documents missing this field.
  */
 data class ProfileDto(
     val profileId: String = "",
     val userId: String = "",
     val name: String = "",
     val avatarId: String = "mascot_classic",
+    val age: Int = 0,
     val createdAt: Long = 0L
 ) {
     fun toDomain() = Profile(
@@ -19,6 +20,7 @@ data class ProfileDto(
         userId = userId,
         name = name,
         avatarId = avatarId,
+        age = age,
         createdAt = createdAt
     )
 
@@ -28,6 +30,7 @@ data class ProfileDto(
             userId = domain.userId,
             name = domain.name,
             avatarId = domain.avatarId,
+            age = domain.age,
             createdAt = domain.createdAt
         )
     }

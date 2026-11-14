@@ -19,7 +19,8 @@ class DemoProfileRepository : ProfileRepository {
                 profileId = "child_default",
                 userId = "demo_guardian_default",
                 name = "Marvin",
-                avatarId = "mascot_classic"
+                avatarId = "mascot_classic",
+                age = 8
             )
         )
     )
@@ -42,7 +43,8 @@ class DemoProfileRepository : ProfileRepository {
     override suspend fun createProfile(
         userId: String,
         name: String,
-        avatarId: String
+        avatarId: String,
+        age: Int
     ): Result<Profile> {
         val trimmedName = name.trim()
         val trimmedAvatar = avatarId.trim()
@@ -62,6 +64,7 @@ class DemoProfileRepository : ProfileRepository {
             userId = userId,
             name = trimmedName,
             avatarId = trimmedAvatar,
+            age = age,
             createdAt = System.currentTimeMillis()
         )
 
@@ -73,7 +76,8 @@ class DemoProfileRepository : ProfileRepository {
         userId: String,
         profileId: String,
         name: String,
-        avatarId: String
+        avatarId: String,
+        age: Int
     ): Result<Profile> {
         val trimmedName = name.trim()
         val trimmedAvatar = avatarId.trim()
@@ -90,13 +94,23 @@ class DemoProfileRepository : ProfileRepository {
             return Result.failure(SecurityException("Tidak memiliki izin untuk mengubah profil akun lain"))
         }
 
-        val updated = existing.copy(name = trimmedName, avatarId = trimmedAvatar)
+        val updated = existing.copy(
+            name = trimmedName,
+            avatarId = trimmedAvatar,
+            age = if (age > 0) age else existing.age
+        )
         profiles.value = profiles.value + (profileId to updated)
         return Result.success(updated)
     }
 
-    override suspend fun getActiveChildProfile(guardianUid: String): Profile? {
-        return getProfiles(guardianUid).firstOrNull()
+    override suspend fun getActiveChildProfile(guardianUid: String, activeProfileId: String?): Profile? {
+        val allProfiles = getProfiles(guardianUid)
+        if (allProfiles.isEmpty()) return null
+        if (!activeProfileId.isNullOrBlank()) {
+            val matched = allProfiles.find { it.profileId == activeProfileId }
+            if (matched != null) return matched
+        }
+        return allProfiles.firstOrNull()
     }
 
     override suspend fun saveChildProfile(profile: Profile): Result<Unit> {

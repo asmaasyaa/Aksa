@@ -15,20 +15,20 @@ object ProfileConfig {
 
 /**
  * Child learning profile associated with a parent/guardian account.
- * As per mini-PRD: Contains only nickname and avatar information (no age).
+ * Stores nickname, avatar, age, and metadata.
  */
 data class Profile(
     val profileId: String,
     val userId: String,
     val name: String,
     val avatarId: String,
+    val age: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 ) {
     // Backwards-compatible aliases for existing callers
     val childId: String get() = profileId
     val guardianUid: String get() = userId
     val displayName: String get() = name
-    val age: Int get() = 0 // Deprecated / unused as per mini-PRD
 
     init {
         require(name.isNotBlank()) { "Profile name cannot be blank" }
