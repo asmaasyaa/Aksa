@@ -52,12 +52,14 @@ import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.CreateProfileViewModel
 
 @Composable
 fun ChildAgeScreen(
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    viewModel: CreateProfileViewModel? = null
 ) {
-    var selectedAge by remember { mutableIntStateOf(8) }
+    var selectedAge by remember { mutableIntStateOf(viewModel?.uiState?.value?.age ?: 8) }
     val ages = listOf(6, 7, 8, 9, 10, 11, 12)
 
     Box(
@@ -72,7 +74,6 @@ fun ChildAgeScreen(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Step pill indicator
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(32.dp))
@@ -91,7 +92,6 @@ fun ChildAgeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // White Rounded Form Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -122,7 +122,6 @@ fun ChildAgeScreen(
                         modifier = Modifier.padding(top = 6.dp, bottom = 24.dp)
                     )
 
-                    // Grid of selectable age cards (6, 7, 8, 9, 10, 11, 12)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -157,12 +156,12 @@ fun ChildAgeScreen(
 
                     Spacer(modifier = Modifier.height(30.dp))
 
-                    // Button: Lanjut
                     AksaButton(
                         text = "Lanjut",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
                         onClick = {
                             AksaUserState.age = selectedAge
+                            viewModel?.setAge(selectedAge)
                             onNavigateToHome()
                         }
                     )
@@ -172,7 +171,6 @@ fun ChildAgeScreen(
             Spacer(modifier = Modifier.height(140.dp)) // Space for peeking mascot
         }
 
-        // Mascot peeking from bottom
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -237,7 +235,6 @@ private fun AgeSelectionCard(
             )
         }
 
-        // Small cute star badge if selected
         if (isSelected) {
             Box(
                 modifier = Modifier

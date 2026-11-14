@@ -28,4 +28,5 @@ sealed class Screen(val route: String) {
     // Navigation contracts for profile creation and selection (feat/profile-anak)
     data object CreateProfile : Screen("create_profile")
     data object SelectProfile : Screen("select_profile")
+    data object EditProfile : Screen("edit_profile")
 }

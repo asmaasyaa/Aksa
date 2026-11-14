@@ -16,6 +16,7 @@ import com.aksa.app.ui.screens.AlphabetSelectionScreen
 import com.aksa.app.ui.screens.ChildAgeScreen
 import com.aksa.app.ui.screens.ChildAvatarScreen
 import com.aksa.app.ui.screens.ChildNameScreen
+import com.aksa.app.ui.screens.EditProfileScreen
 import com.aksa.app.ui.screens.HomeScreen
 import com.aksa.app.ui.screens.HurufMiripScreen
 import com.aksa.app.ui.screens.LevelMapScreen
@@ -26,6 +27,7 @@ import com.aksa.app.ui.screens.ProgressAchievementsScreen
 import com.aksa.app.ui.screens.PronunciationScreen
 import com.aksa.app.ui.screens.ReadingPracticeScreen
 import com.aksa.app.ui.screens.RegisterScreen
+import com.aksa.app.ui.screens.SelectProfileScreen
 import com.aksa.app.ui.screens.SplashScreen
 import com.aksa.app.ui.screens.SyllableExampleScreen
 import com.aksa.app.ui.screens.SyllableIntroScreen
@@ -133,12 +135,15 @@ fun AksaNavGraph(
         }
 
         composable(Screen.SelectProfile.route) {
-            HomeScreen(
-                onNavigateToLevelMap = {
-                    navController.navigate(Screen.LevelMap.route)
+            SelectProfileScreen(
+                onProfileSelected = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.SelectProfile.route) { inclusive = true }
+                    }
                 },
-                onNavigateToProfile = {
-                    navController.navigate(Screen.Profile.route)
+                onNavigateToAddProfile = {
+                    createProfileViewModel.reset()
+                    navController.navigate(Screen.CreateProfile.route)
                 }
             )
         }
@@ -167,6 +172,7 @@ fun AksaNavGraph(
 
         composable(Screen.ChildAge.route) {
             ChildAgeScreen(
+                viewModel = createProfileViewModel,
                 onNavigateToHome = {
                     navController.navigate(Screen.ChildAvatar.route)
                 }
@@ -386,6 +392,22 @@ fun AksaNavGraph(
                 },
                 onNavigateToDeveloperPreview = {
                     navController.navigate(Screen.DeveloperPreview.route)
+                },
+                onNavigateToEditProfile = {
+                    navController.navigate(Screen.EditProfile.route)
+                },
+                onNavigateToCreateProfile = {
+                    createProfileViewModel.reset()
+                    navController.navigate(Screen.CreateProfile.route)
+                }
+            )
+        }
+
+        // Edit Profile
+        composable(Screen.EditProfile.route) {
+            EditProfileScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

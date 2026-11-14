@@ -19,9 +19,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -56,18 +59,25 @@ import com.aksa.app.ui.theme.AksaYellowDark
 import com.aksa.app.ui.theme.DialogShape
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.ProfileManagementViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onNavigateToProgress: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToDeveloperPreview: () -> Unit = {},
-    authViewModel: com.aksa.app.ui.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    onNavigateToEditProfile: () -> Unit = {},
+    onNavigateToCreateProfile: () -> Unit = {},
+    authViewModel: com.aksa.app.ui.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    profileManagementViewModel: ProfileManagementViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val authState by authViewModel.uiState.collectAsState()
+    val profileManagementState by profileManagementViewModel.uiState.collectAsState()
     val guardianEmail = authState.currentGuardian?.email ?: "demo.orangtua@aksa.id"
     var showLogoutConfirmation by remember { mutableStateOf(false) }
+    var showSwitchProfileSheet by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -263,7 +273,7 @@ fun ProfileScreen(
                         icon = AksaIcons.Edit,
                         iconBg = AksaPeachLight,
                         title = "Edit Profil",
-                        onClick = { /* UI Mockup action */ }
+                        onClick = onNavigateToEditProfile
                     )
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
@@ -274,15 +284,6 @@ fun ProfileScreen(
                         title = "Progress Belajar",
                         badge = "Lihat",
                         onClick = onNavigateToProgress
-                    )
-
-                    HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
-
-                    ProfileMenuRow(
-                        icon = AksaIcons.Settings,
-                        iconBg = Color(0xFFE8F2FA),
-                        title = "Pengaturan",
-                        onClick = { /* UI Mockup action */ }
                     )
 
                     if (com.aksa.app.BuildConfig.DEBUG) {
@@ -296,6 +297,17 @@ fun ProfileScreen(
                             onClick = onNavigateToDeveloperPreview
                         )
                     }
+
+                    HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
+
+                    ProfileMenuRow(
+                        icon = AksaIcons.Face,
+                        iconBg = Color(0xFFE8F2FA),
+                        title = "Pindah Profil Anak",
+                        onClick = {
+                            showSwitchProfileSheet = true
+                        }
+                    )
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
@@ -375,6 +387,70 @@ fun ProfileScreen(
                             }
                         )
                     }
+                }
+            }
+        }
+
+        // ModalBottomSheet for switching child profile
+        if (showSwitchProfileSheet) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { showSwitchProfileSheet = false },
+                sheetState = sheetState,
+                containerColor = AksaWhite,
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 36.dp)
+                ) {
+                    Text(
+                        text = "Pindah Profil Anak",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = AksaDarkBrown
+                    )
+                    Text(
+                        text = "Pilih profil yang ingin digunakan untuk belajar",
+                        fontFamily = Poppins,
+                        fontSize = 13.sp,
+                        color = AksaGrayText,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 18.dp)
+                    )
+
+                    // Profile items
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        profileManagementState.profiles.forEach { profile ->
+                            val isActive = profile.profileId == AksaUserState.currentProfileId
+                            ChildProfileSelectionCard(
+                                profile = profile,
+                                isActive = isActive,
+                                onClick = {
+                                    profileManagementViewModel.selectProfile(profile) {
+                                        showSwitchProfileSheet = false
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    AksaButton(
+                        text = "+ Tambah Profil Anak",
+                        style = AksaButtonStyle.PRIMARY_ORANGE,
+                        onClick = {
+                            showSwitchProfileSheet = false
+                            onNavigateToCreateProfile()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
