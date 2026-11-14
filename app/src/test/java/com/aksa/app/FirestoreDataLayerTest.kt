@@ -8,6 +8,7 @@ import com.aksa.app.domain.model.Profile
 import com.aksa.app.domain.model.ProfileConfig
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.ui.state.AksaUserState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -197,6 +198,27 @@ class FirestoreDataLayerTest {
         // Child 2 has 0 badges (isolated)
         val badgesChild2 = achievementRepository.getAchievements(profile2Id)
         assertTrue(badgesChild2.isEmpty())
+    }
+
+    @Test
+    fun allAvailableAvatarsAreConfiguredAndPersistCorrectly() = runTest {
+        val parentUid = "parent_avatar_test"
+        val avatars = AksaUserState.availableAvatars
+        assertEquals(6, avatars.size)
+
+        for (avatar in avatars) {
+            assertTrue("Avatar ID must not be blank", avatar.id.isNotBlank())
+            assertTrue("Avatar name must not be blank", avatar.name.isNotBlank())
+
+            val result = profileRepository.createProfile(
+                userId = parentUid,
+                name = "Anak ${avatar.name}",
+                avatarId = avatar.id
+            )
+            assertTrue(result.isSuccess)
+            val created = result.getOrThrow()
+            assertEquals(avatar.id, created.avatarId)
+        }
     }
 }
 
