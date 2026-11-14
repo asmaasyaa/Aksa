@@ -215,32 +215,6 @@ fun RegisterScreen(
                             .padding(top = 4.dp, bottom = 22.dp)
                     )
 
-                    // Google Sign-Up button
-                    AksaButton(
-                        text = "Daftar dengan Google",
-                        style = AksaButtonStyle.SOCIAL,
-                        icon = AksaIcons.Google,
-                        enabled = !uiState.isLoading,
-                        onClick = { handleGoogleSignUp() }
-                    )
-
-                    // Divider "atau"
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 18.dp)
-                    ) {
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
-                        Text(
-                            text = "  atau  ",
-                            fontFamily = Poppins,
-                            fontSize = 12.sp,
-                            color = AksaGrayText
-                        )
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
-                    }
-
                     AksaTextField(
                         value = email,
                         onValueChange = {
@@ -281,6 +255,29 @@ fun RegisterScreen(
                                 .padding(top = 10.dp)
                         )
                     }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 18.dp)
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
+                        Text(
+                            text = "  atau  ",
+                            fontFamily = Poppins,
+                            fontSize = 12.sp,
+                            color = AksaGrayText
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0x22000000))
+                    }
+
+                    AksaButton(
+                        text = "Daftar dengan Google",
+                        style = AksaButtonStyle.SOCIAL,
+                        icon = AksaIcons.Google,
+                        enabled = !uiState.isLoading,
+                        onClick = { handleGoogleSignUp() }
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
