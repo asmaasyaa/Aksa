@@ -16,6 +16,7 @@ service cloud.firestore {
       let data = request.resource.data;
       return ('name' in data) && data.name is string && data.name.size() > 0 && data.name.size() <= 50
           && ('avatarId' in data) && data.avatarId is string && data.avatarId.size() > 0
+          && (!('age' in data) || data.age is int)
           && (!('userId' in data) || data.userId == parentUid);
     }
 

@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 
 data class CreateProfileUiState(
     val name: String = "",
+    val age: Int = 8,
     val avatarId: String = "mascot_classic",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
@@ -31,12 +32,20 @@ class CreateProfileViewModel(
         _uiState.value = _uiState.value.copy(name = name, errorMessage = null)
     }
 
+    fun setAge(age: Int) {
+        _uiState.value = _uiState.value.copy(age = age)
+    }
+
     fun setAvatarId(avatarId: String) {
         _uiState.value = _uiState.value.copy(avatarId = avatarId)
     }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    fun reset() {
+        _uiState.value = CreateProfileUiState()
     }
 
     fun createProfile(onSuccess: () -> Unit) {
@@ -63,7 +72,8 @@ class CreateProfileViewModel(
             val result = profileRepository.createProfile(
                 userId = userId,
                 name = trimmedName,
-                avatarId = state.avatarId
+                avatarId = state.avatarId,
+                age = state.age
             )
             result.fold(
                 onSuccess = { profile ->
@@ -81,4 +91,3 @@ class CreateProfileViewModel(
         }
     }
 }
-

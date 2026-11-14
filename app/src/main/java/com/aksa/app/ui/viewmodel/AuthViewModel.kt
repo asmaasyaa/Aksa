@@ -213,6 +213,7 @@ class AuthViewModel(
 
     fun signOut(onComplete: () -> Unit) {
         viewModelScope.launch {
+            AksaUserState.clearSession()
             authRepository.signOut()
             onComplete()
         }

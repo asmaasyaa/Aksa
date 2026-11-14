@@ -43,7 +43,8 @@ class HomeViewModel(
         viewModelScope.launch {
             val guardian = authRepository.currentGuardian.value
             val guardianUid = guardian?.uid ?: return@launch
-            val profile = profileRepository.getActiveChildProfile(guardianUid)
+            val activeId = AksaUserState.currentProfileId.takeIf { it.isNotBlank() }
+            val profile = profileRepository.getActiveChildProfile(guardianUid, activeId)
                 ?: return@launch // No profile yet — wait for user to create one
             val childId = profile.childId
 

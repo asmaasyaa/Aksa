@@ -9,7 +9,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,8 +80,11 @@ fun HomeScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var selectedBottomTab by remember { mutableIntStateOf(0) } // 0: Home/Map, 1: Profile
     val uiState by viewModel.uiState.collectAsState()
+
+    androidx.compose.runtime.LaunchedEffect(AksaUserState.currentProfileId) {
+        viewModel.loadData()
+    }
 
     val profile = uiState.childProfile
     val displayName = profile?.displayName?.takeIf { it.isNotBlank() }
@@ -110,10 +112,9 @@ fun HomeScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(top = 24.dp, bottom = 100.dp), // Padding for floating bottom bar
+                .padding(top = 24.dp, bottom = 100.dp), 
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // TOP WHITE ROUNDED PROFILE CARD
             AksaProfileCard(
                 name = displayName.uppercase(),
                 age = displayAge,
@@ -124,14 +125,12 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // WEEKLY LEARNING ACTIVITY CALENDAR CARD (Positioned between Profile and Learning Card)
             com.aksa.app.ui.components.WeeklyActivityCard(
                 weeklyProgress = effectiveWeeklyProgress
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // LARGE WHITE LEARNING CARD
             val learningCardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -144,7 +143,6 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Landscape Sky Environment with Mascot Headband
                     val environmentShape = RoundedCornerShape(24.dp)
                     Box(
                         modifier = Modifier
@@ -153,10 +151,8 @@ fun HomeScreen(
                             .clip(environmentShape)
                             .background(AksaBlue)
                     ) {
-                        // Landscape Vector Illustration (Sky, Sun, Hills, Clouds)
                         LandscapeIllustration()
 
-                        // Mascot wearing Yellow Headband
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
@@ -165,7 +161,6 @@ fun HomeScreen(
                             MascotHeadband(size = 150.dp)
                         }
 
-                        // Badge on top left of landscape: Modul 1
                         Box(
                             modifier = Modifier
                                 .padding(12.dp)
@@ -195,7 +190,6 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Title & Description
                     Text(
                         text = "Petualangan Membaca",
                         fontFamily = Poppins,
@@ -213,7 +207,6 @@ fun HomeScreen(
                         modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
                     )
 
-                    // Progress row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -244,7 +237,6 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(22.dp))
 
-                    // MAIN YELLOW CTA BUTTON: Mulai Latihan
                     AksaButton(
                         text = "Mulai Latihan",
                         style = AksaButtonStyle.SECONDARY_YELLOW,
@@ -263,29 +255,9 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // DAILY CHALLENGE / MOTIVATION CARD
             DailyChallengeCard(streakCount = currentStreak)
         }
 
-        // MINIMAL BOTTOM NAVIGATION (2 Items: Map & Profile)
-        // Strictly avoids generic 4-item bottom bar
-        MinimalAksaBottomBar(
-            selectedTab = selectedBottomTab,
-            onTabSelected = { tab ->
-                selectedBottomTab = tab
-                if (tab == 0) {
-                    onNavigateToLevelMap()
-                } else {
-                    onNavigateToProfile()
-                }
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 16.dp)
-        )
-
-        // Floating Snackbar host
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
@@ -295,10 +267,6 @@ fun HomeScreen(
     }
 }
 
-/**
- * Landscape illustration inside learning card
- * Drawn purely with Compose Canvas for high crispness
- */
 @Composable
 private fun LandscapeIllustration() {
     val infiniteTransition = rememberInfiniteTransition(label = "CloudDrift")
@@ -316,7 +284,6 @@ private fun LandscapeIllustration() {
         val w = size.width
         val h = size.height
 
-        // Cheerful Yellow Sun top-right
         drawCircle(
             color = AksaYellow,
             radius = 32f,
@@ -328,11 +295,9 @@ private fun LandscapeIllustration() {
             center = Offset(w * 0.85f, h * 0.28f)
         )
 
-        // Fluffy Clouds
         drawCloud(Offset(w * 0.20f + cloudOffset, h * 0.22f), 28f)
         drawCloud(Offset(w * 0.65f - cloudOffset, h * 0.16f), 22f)
 
-        // Rolling Green Hills (Lime)
         val hillPath1 = Path().apply {
             moveTo(0f, h * 0.70f)
             quadraticTo(w * 0.35f, h * 0.52f, w * 0.75f, h * 0.72f)
@@ -349,10 +314,9 @@ private fun LandscapeIllustration() {
             lineTo(w, h)
             lineTo(0f, h)
             close()
-        }
+        }   
         drawPath(hillPath2, color = AksaLime)
 
-        // Cute mini trees on hills
         drawMiniTree(Offset(w * 0.12f, h * 0.68f), 18f)
         drawMiniTree(Offset(w * 0.88f, h * 0.66f), 22f)
     }
@@ -365,99 +329,17 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCloud(center: O
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMiniTree(base: Offset, size: Float) {
-    // Trunk
     drawLine(
         color = AksaDarkBrown,
         start = base,
         end = Offset(base.x, base.y + size * 0.8f),
         strokeWidth = size * 0.25f
     )
-    // Foliage
     drawCircle(
         color = Color(0xFF6FA800),
         radius = size * 0.6f,
         center = base
     )
-}
-
-/**
- * Minimal Bottom Navigation with 2 items: Map & Profile
- */
-@Composable
-private fun MinimalAksaBottomBar(
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val barShape = RoundedCornerShape(32.dp)
-
-    Box(
-        modifier = modifier
-            .shadow(elevation = 14.dp, shape = barShape, spotColor = Color(0x44441100))
-            .background(AksaWhite, barShape)
-            .border(2.dp, AksaSoftPeach, barShape)
-            .padding(horizontal = 14.dp, vertical = 8.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Tab 1: Peta Belajar
-            BottomNavItem(
-                icon = AksaIcons.Map,
-                label = "Peta Belajar",
-                isSelected = selectedTab == 0,
-                onClick = { onTabSelected(0) }
-            )
-
-            // Tab 2: Profil
-            BottomNavItem(
-                icon = AksaIcons.Person,
-                label = "Profil",
-                isSelected = selectedTab == 1,
-                onClick = { onTabSelected(1) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun BottomNavItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val shape = RoundedCornerShape(22.dp)
-    val bg = if (isSelected) AksaOrange else Color.Transparent
-    val contentColor = if (isSelected) AksaWhite else AksaDarkBrown.copy(alpha = 0.65f)
-
-    Row(
-        modifier = Modifier
-            .clip(shape)
-            .background(bg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = contentColor,
-            modifier = Modifier.size(22.dp)
-        )
-        if (isSelected) {
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = label,
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = contentColor
-            )
-        }
-    }
 }
 
 @Composable

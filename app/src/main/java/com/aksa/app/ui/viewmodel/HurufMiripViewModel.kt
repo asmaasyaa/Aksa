@@ -227,6 +227,9 @@ class HurufMiripViewModel(
     }
 
     private fun getActiveChildId(): String {
+        if (com.aksa.app.ui.state.AksaUserState.currentProfileId.isNotBlank()) {
+            return com.aksa.app.ui.state.AksaUserState.currentProfileId
+        }
         val guardian = authRepository.currentGuardian.value
         val guardianUid = guardian?.uid ?: "demo_guardian_default"
         return "child_$guardianUid"
