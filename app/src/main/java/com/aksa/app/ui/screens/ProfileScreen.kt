@@ -64,7 +64,7 @@ import com.aksa.app.ui.viewmodel.ProfileManagementViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onNavigateBack: () -> Unit,
+    onNavigateBack: () -> Unit = {},
     onNavigateToProgress: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToDeveloperPreview: () -> Unit = {},
@@ -89,40 +89,15 @@ fun ProfileScreen(
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
-                .padding(bottom = 36.dp),
+                .padding(bottom = 100.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .shadow(4.dp, PillShape)
-                        .clip(PillShape)
-                        .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = AksaIcons.ArrowBack,
-                            contentDescription = "Kembali",
-                            tint = AksaDarkBrown,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Kembali",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = AksaDarkBrown
-                        )
-                    }
-                }
-
                 Text(
                     text = "Profil",
                     fontFamily = Poppins,
@@ -130,8 +105,6 @@ fun ProfileScreen(
                     fontSize = 20.sp,
                     color = AksaWhite
                 )
-
-                Spacer(modifier = Modifier.width(48.dp))
             }
 
             Spacer(modifier = Modifier.height(18.dp))

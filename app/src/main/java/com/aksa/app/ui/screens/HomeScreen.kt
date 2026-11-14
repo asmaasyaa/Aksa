@@ -9,7 +9,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,7 +80,6 @@ fun HomeScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var selectedBottomTab by remember { mutableIntStateOf(0) } // 0: Home/Map, 1: Profile
     val uiState by viewModel.uiState.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(AksaUserState.currentProfileId) {
@@ -114,7 +112,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(top = 24.dp, bottom = 100.dp), // Padding for floating bottom bar
+                .padding(top = 24.dp, bottom = 100.dp), 
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AksaProfileCard(
@@ -260,23 +258,6 @@ fun HomeScreen(
             DailyChallengeCard(streakCount = currentStreak)
         }
 
-
-        MinimalAksaBottomBar(
-            selectedTab = selectedBottomTab,
-            onTabSelected = { tab ->
-                selectedBottomTab = tab
-                if (tab == 0) {
-                    onNavigateToLevelMap()
-                } else {
-                    onNavigateToProfile()
-                }
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 16.dp)
-        )
-
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
@@ -359,81 +340,6 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMiniTree(base: 
         radius = size * 0.6f,
         center = base
     )
-}
-
-@Composable
-private fun MinimalAksaBottomBar(
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val barShape = RoundedCornerShape(32.dp)
-
-    Box(
-        modifier = modifier
-            .shadow(elevation = 14.dp, shape = barShape, spotColor = Color(0x44441100))
-            .background(AksaWhite, barShape)
-            .border(2.dp, AksaSoftPeach, barShape)
-            .padding(horizontal = 14.dp, vertical = 8.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            BottomNavItem(
-                icon = AksaIcons.Map,
-                label = "Peta Belajar",
-                isSelected = selectedTab == 0,
-                onClick = { onTabSelected(0) }
-            )
-
-            BottomNavItem(
-                icon = AksaIcons.Person,
-                label = "Profil",
-                isSelected = selectedTab == 1,
-                onClick = { onTabSelected(1) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun BottomNavItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val shape = RoundedCornerShape(22.dp)
-    val bg = if (isSelected) AksaOrange else Color.Transparent
-    val contentColor = if (isSelected) AksaWhite else AksaDarkBrown.copy(alpha = 0.65f)
-
-    Row(
-        modifier = Modifier
-            .clip(shape)
-            .background(bg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = contentColor,
-            modifier = Modifier.size(22.dp)
-        )
-        if (isSelected) {
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = label,
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = contentColor
-            )
-        }
-    }
 }
 
 @Composable
