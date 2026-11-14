@@ -148,7 +148,7 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = AksaUserState.username,
+                        text = AksaUserState.username.takeIf { it.isNotBlank() } ?: "Pengguna",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,

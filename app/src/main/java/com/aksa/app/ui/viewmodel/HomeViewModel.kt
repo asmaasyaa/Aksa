@@ -42,13 +42,12 @@ class HomeViewModel(
     fun loadData() {
         viewModelScope.launch {
             val guardian = authRepository.currentGuardian.value
-            val guardianUid = guardian?.uid ?: "demo_guardian_default"
+            val guardianUid = guardian?.uid ?: return@launch
             val profile = profileRepository.getActiveChildProfile(guardianUid)
-            val childId = profile?.childId ?: "child_$guardianUid"
+                ?: return@launch // No profile yet — wait for user to create one
+            val childId = profile.childId
 
-            if (profile != null) {
-                AksaUserState.syncFromProfile(profile)
-            }
+            AksaUserState.syncFromProfile(profile)
 
             // Combine session history and achievements flow
             combine(
@@ -66,9 +65,7 @@ class HomeViewModel(
                     milestonesEarned = milestonesThisWeek
                 )
 
-                if (profile != null) {
-                    AksaUserState.syncFromProfile(profile, progress.currentStreak)
-                }
+                AksaUserState.syncFromProfile(profile, progress.currentStreak)
 
                 HomeUiState(
                     childProfile = profile,

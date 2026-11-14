@@ -4,7 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.aksa.app.domain.model.ChildProfile
+import com.aksa.app.domain.model.Profile
 
 data class AksaAvatarItem(
     val id: String,
@@ -17,7 +17,8 @@ data class AksaAvatarItem(
  */
 object AksaUserState {
     // Active child profile state (synced with repository/ViewModel)
-    var username by mutableStateOf("Marvin")
+    var currentProfileId by mutableStateOf("")
+    var username by mutableStateOf("")
     var avatarId by mutableStateOf("mascot_classic")
     var age by mutableIntStateOf(8)
 
@@ -36,14 +37,14 @@ object AksaUserState {
         AksaAvatarItem("dino_lime", "Si Dino")
     )
 
-    fun syncFromProfile(profile: ChildProfile, streak: Int = 0) {
-        username = profile.displayName
+    fun syncFromProfile(profile: Profile, streak: Int = 0) {
+        currentProfileId = profile.profileId
+        username = profile.name
         avatarId = profile.avatarId
-        age = profile.age
         streakCount = streak
     }
 
-    fun updateProfile(newUsername: String, newAvatarId: String, newAge: Int) {
+    fun updateProfile(newUsername: String, newAvatarId: String, newAge: Int = 8) {
         username = newUsername
         avatarId = newAvatarId
         age = newAge

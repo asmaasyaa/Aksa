@@ -1,7 +1,7 @@
 package com.aksa.app.ui.preview
 
-import com.aksa.app.domain.model.ChildProfile
 import com.aksa.app.domain.model.MilestoneBadgeInfo
+import com.aksa.app.domain.model.Profile
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
 import com.aksa.app.domain.model.WeeklyProgress
@@ -14,11 +14,10 @@ import java.time.temporal.TemporalAdjusters
  */
 object DeveloperPreviewFixtures {
 
-    val previewChildProfile = ChildProfile(
-        childId = "preview_child_marvin",
-        guardianUid = "preview_guardian",
-        displayName = "Marvin",
-        age = 8,
+    val previewChildProfile = Profile(
+        profileId = "preview_child_marvin",
+        userId = "preview_guardian",
+        name = "Marvin",
         avatarId = "mascot_classic"
     )
 

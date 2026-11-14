@@ -8,24 +8,29 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,25 +44,25 @@ import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotPeeking
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaOrangeDark
 import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
-import com.aksa.app.ui.theme.AksaYellowDark
 import com.aksa.app.ui.theme.Poppins
-
+import com.aksa.app.ui.viewmodel.CreateProfileViewModel
 @Composable
 fun ChildAgeScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: CreateProfileViewModel,
     onNavigateToHome: () -> Unit
 ) {
-    var selectedAge by remember { mutableIntStateOf(8) }
-    val ages = listOf(6, 7, 8, 9, 10, 11, 12)
+    val uiState by viewModel.uiState.collectAsState()
+    val avatars = AksaUserState.availableAvatars
 
     Box(
         modifier = Modifier
@@ -71,7 +76,6 @@ fun ChildAgeScreen(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Step pill indicator
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(32.dp))
@@ -90,7 +94,6 @@ fun ChildAgeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // White Rounded Form Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -104,7 +107,7 @@ fun ChildAgeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Umur Anak",
+                        text = "Pilih Avatar",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp,
@@ -112,7 +115,7 @@ fun ChildAgeScreen(
                     )
 
                     Text(
-                        text = "Pilih usia anak untuk menyesuaikan materi belajar",
+                        text = "Pilih teman belajar untuk ${uiState.name.ifBlank { "si kecil" }}",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Normal,
                         fontSize = 13.sp,
@@ -121,90 +124,99 @@ fun ChildAgeScreen(
                         modifier = Modifier.padding(top = 6.dp, bottom = 24.dp)
                     )
 
-                    // Grid of selectable age cards (6, 7, 8, 9, 10, 11, 12)
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        contentPadding = PaddingValues(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            for (age in listOf(6, 7, 8, 9)) {
-                                AgeSelectionCard(
-                                    age = age,
-                                    isSelected = age == selectedAge,
-                                    onClick = { selectedAge = age },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                        items(avatars) { avatar ->
+                            AvatarCard(
+                                name = avatar.name,
+                                isSelected = avatar.id == uiState.avatarId,
+                                onClick = { viewModel.setAvatarId(avatar.id) }
+                            )
                         }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            for (age in listOf(10, 11, 12)) {
-                                AgeSelectionCard(
-                                    age = age,
-                                    isSelected = age == selectedAge,
-                                    onClick = { selectedAge = age },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
+                    }
+
+                    if (uiState.errorMessage != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = uiState.errorMessage!!,
+                            fontFamily = Poppins,
+                            fontSize = 12.sp,
+                            color = Color(0xFFCC3300),
+                            textAlign = TextAlign.Center
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(30.dp))
 
-                    // Button: Lanjut
-                    AksaButton(
-                        text = "Lanjut",
-                        style = AksaButtonStyle.PRIMARY_ORANGE,
-                        onClick = onNavigateToHome
-                    )
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(
+                            color = AksaOrange,
+                            modifier = Modifier.size(44.dp)
+                        )
+                    } else {
+                        AksaButton(
+                            text = "Mulai Belajar!",
+                            style = AksaButtonStyle.PRIMARY_ORANGE,
+                            onClick = {
+                                viewModel.createProfile(onSuccess = onNavigateToHome)
+                            }
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(140.dp)) // Space for peeking mascot
+            Spacer(modifier = Modifier.height(140.dp))
         }
 
-        // Mascot peeking from bottom
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-        ) {
+        Box(modifier = Modifier.align(Alignment.BottomCenter)) {
             MascotPeeking(
                 width = 240.dp,
                 height = 140.dp
+            )
+        }
+         IconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 16.dp, start = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Kembali",
+                tint = AksaWhite
             )
         }
     }
 }
 
 @Composable
-private fun AgeSelectionCard(
-    age: Int,
+private fun AvatarCard(
+    name: String,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val cardShape = RoundedCornerShape(20.dp)
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.05f else 1f,
-        label = "AgeCardScale"
+        targetValue = if (isSelected) 1.06f else 1f,
+        label = "AvatarCardScale"
     )
-
     val bgColor by animateColorAsState(
         targetValue = if (isSelected) AksaYellow else AksaPeachLight,
-        label = "AgeCardBg"
+        label = "AvatarCardBg"
     )
-
     val borderColor = if (isSelected) AksaOrange else Color.Transparent
-    val textColor = if (isSelected) AksaDarkBrown else AksaDarkBrown.copy(alpha = 0.8f)
 
     Box(
         modifier = modifier
-            .height(84.dp)
+            .height(90.dp)
             .scale(scale)
             .clip(cardShape)
             .background(bgColor)
@@ -217,27 +229,36 @@ private fun AgeSelectionCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(if (isSelected) AksaOrange.copy(alpha = 0.15f) else AksaGrayBorder.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = AksaIcons.Face,
+                    contentDescription = name,
+                    tint = if (isSelected) AksaOrange else AksaGrayText,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = age.toString(),
+                text = name,
                 fontFamily = Poppins,
-                fontWeight = FontWeight.Bold,
-                fontSize = 26.sp,
-                color = textColor
-            )
-            Text(
-                text = "Tahun",
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Medium,
-                fontSize = 11.sp,
-                color = textColor.copy(alpha = 0.75f)
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 10.sp,
+                color = AksaDarkBrown,
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
         }
 
-        // Small cute star badge if selected
         if (isSelected) {
             Box(
                 modifier = Modifier
-                    .size(20.dp)
+                    .size(18.dp)
                     .clip(CircleShape)
                     .background(AksaOrange)
                     .align(Alignment.TopEnd),
@@ -247,7 +268,7 @@ private fun AgeSelectionCard(
                     imageVector = AksaIcons.Star,
                     contentDescription = null,
                     tint = AksaWhite,
-                    modifier = Modifier.size(12.dp)
+                    modifier = Modifier.size(10.dp)
                 )
             }
         }

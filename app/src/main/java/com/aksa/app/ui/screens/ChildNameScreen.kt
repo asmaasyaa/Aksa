@@ -1,7 +1,6 @@
 package com.aksa.app.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,8 +12,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,12 +43,16 @@ import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.CreateProfileViewModel
 
 @Composable
 fun ChildNameScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: CreateProfileViewModel,
     onNavigateToChildAge: () -> Unit
 ) {
-    var childName by remember { mutableStateOf("Marvin") }
+    val uiState by viewModel.uiState.collectAsState()
+    var localError by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -74,10 +82,21 @@ fun ChildNameScreen(
                     color = AksaYellow
                 )
             }
+            IconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier
+                .align(Alignment.Start)
+                .padding(top = 16.dp, start = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Kembali",
+                tint = AksaWhite
+            )
+        }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // White Rounded Input Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -108,10 +127,12 @@ fun ChildNameScreen(
                         modifier = Modifier.padding(top = 6.dp, bottom = 26.dp)
                     )
 
-                    // Large rounded white input
                     AksaTextField(
-                        value = childName,
-                        onValueChange = { childName = it },
+                        value = uiState.name,
+                        onValueChange = {
+                            viewModel.setName(it)
+                            localError = null
+                        },
                         label = "Nama Lengkap / Panggilan",
                         placeholder = "Masukkan Nama Di Sini",
                         leadingIcon = AksaIcons.Face,
@@ -119,21 +140,43 @@ fun ChildNameScreen(
                         cornerRadius = 22.dp
                     )
 
+                    if (localError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = localError!!,
+                            fontFamily = Poppins,
+                            fontSize = 12.sp,
+                            color = Color(0xFFCC3300),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(30.dp))
 
-                    // Button: Lanjut
                     AksaButton(
                         text = "Lanjut",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
-                        onClick = onNavigateToChildAge
+                        onClick = {
+                            val trimmed = uiState.name.trim()
+                            when {
+                                trimmed.isBlank() ->
+                                    localError = "Nama anak tidak boleh kosong"
+                                trimmed.length > 30 ->
+                                    localError = "Nama terlalu panjang (maksimal 30 karakter)"
+                                else -> {
+                                    viewModel.setName(trimmed)
+                                    localError = null
+                                    onNavigateToChildAge()
+                                }
+                            }
+                        }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(140.dp)) // Space for mascot
+            Spacer(modifier = Modifier.height(140.dp))
         }
 
-        // Mascot peeking from bottom-right as specified
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)

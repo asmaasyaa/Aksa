@@ -6,10 +6,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.aksa.app.ui.viewmodel.CreateProfileViewModel
 import com.aksa.app.ui.screens.AlphabetSelectionScreen
 import com.aksa.app.ui.screens.ChildAgeScreen
 import com.aksa.app.ui.screens.ChildNameScreen
@@ -38,6 +40,7 @@ fun AksaNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
+    val createProfileViewModel: CreateProfileViewModel = viewModel()
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route,
@@ -116,11 +119,14 @@ fun AksaNavGraph(
             )
         }
 
-        // Navigation contracts for profile creation and selection (feat/profile-anak)
         composable(Screen.CreateProfile.route) {
             ChildNameScreen(
+                viewModel = createProfileViewModel,
                 onNavigateToChildAge = {
                     navController.navigate(Screen.ChildAge.route)
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -148,18 +154,26 @@ fun AksaNavGraph(
 
         composable(Screen.ChildName.route) {
             ChildNameScreen(
+                viewModel = createProfileViewModel,
                 onNavigateToChildAge = {
                     navController.navigate(Screen.ChildAge.route)
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
 
         composable(Screen.ChildAge.route) {
             ChildAgeScreen(
+                viewModel = createProfileViewModel,
                 onNavigateToHome = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
