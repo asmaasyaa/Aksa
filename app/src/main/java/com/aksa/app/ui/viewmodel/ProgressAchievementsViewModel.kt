@@ -11,6 +11,7 @@ import com.aksa.app.domain.repository.AuthRepository
 import com.aksa.app.domain.repository.ProfileRepository
 import com.aksa.app.domain.repository.SessionRepository
 import com.aksa.app.domain.usecase.CalculateWeeklyProgressUseCase
+import com.aksa.app.domain.usecase.CalculateSessionStarsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +25,7 @@ data class ProgressAchievementsUiState(
     val completedSessionsCount: Int = 0,
     val totalQuestionsAnswered: Int = 0,
     val averageAccuracyPercent: Int = 0,
+    val totalStarsEarned: Int=0,
     val milestoneBadges: List<MilestoneBadgeInfo> = emptyList(),
     val isLoading: Boolean = false
 )
@@ -33,7 +35,8 @@ class ProgressAchievementsViewModel(
     private val profileRepository: ProfileRepository = AksaRepositoryProvider.profileRepository,
     private val sessionRepository: SessionRepository = AksaRepositoryProvider.sessionRepository,
     private val achievementRepository: AchievementRepository = AksaRepositoryProvider.achievementRepository,
-    private val calculateWeeklyProgressUseCase: CalculateWeeklyProgressUseCase = CalculateWeeklyProgressUseCase()
+    private val calculateWeeklyProgressUseCase: CalculateWeeklyProgressUseCase = CalculateWeeklyProgressUseCase(),
+    private val calculateSessionStarsUseCase: CalculateSessionStarsUseCase = CalculateSessionStarsUseCase()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProgressAchievementsUiState())
@@ -97,11 +100,15 @@ class ProgressAchievementsViewModel(
                     ((totalCorrect.toFloat() / totalQuestions.toFloat()) * 100).toInt()
                 } else 0
 
+                val totalStars = sessions.sumOf { session -> calculateSessionStarsUseCase(session.accuracy)
+                }
+
                 ProgressAchievementsUiState(
                     currentStreak = weeklyProgress.currentStreak,
                     completedSessionsCount = sessions.size,
                     totalQuestionsAnswered = totalQuestions,
                     averageAccuracyPercent = avgAccuracy,
+                    totalStarsEarned = totalStars,
                     milestoneBadges = badges,
                     isLoading = false
                 )
