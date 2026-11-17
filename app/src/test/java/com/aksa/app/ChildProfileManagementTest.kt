@@ -5,8 +5,15 @@ import com.aksa.app.data.repository.demo.DemoProfileRepository
 import com.aksa.app.domain.model.Profile
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.viewmodel.ProfileManagementViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -14,16 +21,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ChildProfileManagementTest {
 
+    private val testDispatcher = StandardTestDispatcher()
     private lateinit var authRepository: DemoAuthRepository
     private lateinit var profileRepository: DemoProfileRepository
 
     @Before
     fun setUp() {
+        Dispatchers.setMain(testDispatcher)
         authRepository = DemoAuthRepository()
         profileRepository = DemoProfileRepository()
         AksaUserState.clearSession()
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -159,5 +174,86 @@ class ChildProfileManagementTest {
         assertEquals(p2.profileId, specificActive?.profileId)
         assertEquals("Anak Kedua", specificActive?.name)
     }
+
+    @Test
+    fun deleteProfile_removesTargetChildProfileOnly() = runTest {
+        val parentUid = "parent_del"
+        val p1 = profileRepository.createProfile(parentUid, "Budi", "mascot_classic", age = 7).getOrThrow()
+        val p2 = profileRepository.createProfile(parentUid, "Siti", "cat_orange", age = 9).getOrThrow()
+
+        val deleteResult = profileRepository.deleteProfile(parentUid, p1.profileId)
+        assertTrue(deleteResult.isSuccess)
+
+        val remaining = profileRepository.getProfiles(parentUid)
+        assertEquals(1, remaining.size)
+        assertEquals(p2.profileId, remaining[0].profileId)
+        assertEquals("Siti", remaining[0].name)
+    }
+
+    @Test
+    fun deleteProfile_verifiesOwnership() = runTest {
+        val parent1 = "parent_owner_1"
+        val parent2 = "parent_owner_2"
+
+        val p1 = profileRepository.createProfile(parent1, "Anak Parent 1", "mascot_classic", age = 8).getOrThrow()
+
+        // Parent 2 attempts to delete Parent 1's child profile
+        val unauthorizedDelete = profileRepository.deleteProfile(parent2, p1.profileId)
+        assertTrue(unauthorizedDelete.isFailure)
+
+        // Verify profile still exists for Parent 1
+        val parent1Profiles = profileRepository.getProfiles(parent1)
+        assertEquals(1, parent1Profiles.size)
+    }
+
+    @Test
+    fun deleteActiveProfile_whenOtherProfilesExist_switchesToNextProfile() = runTest {
+        val user = authRepository.signInWithGoogle("token_del_active").getOrThrow()
+        val parentUid = user.uid
+
+        val p1 = profileRepository.createProfile(parentUid, "Active Child", "mascot_classic", age = 8).getOrThrow()
+        val p2 = profileRepository.createProfile(parentUid, "Second Child", "dino_lime", age = 10).getOrThrow()
+
+        AksaUserState.syncFromProfile(p1)
+        assertEquals(p1.profileId, AksaUserState.currentProfileId)
+
+        val viewModel = ProfileManagementViewModel(authRepository, profileRepository)
+        testScheduler.advanceUntilIdle()
+
+        var destinationResult: com.aksa.app.ui.viewmodel.DeleteNavigationDestination? = null
+        viewModel.deleteProfile(p1.profileId) { dest ->
+            destinationResult = dest
+        }
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(com.aksa.app.ui.viewmodel.DeleteNavigationDestination.SELECT_PROFILE, destinationResult)
+        assertEquals(p2.profileId, AksaUserState.currentProfileId)
+        assertEquals("Second Child", AksaUserState.username)
+    }
+
+    @Test
+    fun deleteActiveProfile_whenOnlyProfile_clearsSessionState() = runTest {
+        val user = authRepository.signInWithGoogle("token_del_only").getOrThrow()
+        val parentUid = user.uid
+
+        val p1 = profileRepository.createProfile(parentUid, "Only Child", "mascot_classic", age = 8).getOrThrow()
+
+        AksaUserState.syncFromProfile(p1)
+        assertEquals(p1.profileId, AksaUserState.currentProfileId)
+
+        val viewModel = ProfileManagementViewModel(authRepository, profileRepository)
+        testScheduler.advanceUntilIdle()
+
+        var destinationResult: com.aksa.app.ui.viewmodel.DeleteNavigationDestination? = null
+        viewModel.deleteProfile(p1.profileId) { dest ->
+            destinationResult = dest
+        }
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(com.aksa.app.ui.viewmodel.DeleteNavigationDestination.CREATE_PROFILE, destinationResult)
+        assertTrue(AksaUserState.currentProfileId.isBlank())
+        assertTrue(AksaUserState.username.isBlank())
+    }
 }
+
 
