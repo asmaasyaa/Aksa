@@ -58,12 +58,10 @@ enum class AksaButtonStyle {
     SECONDARY_LIME,
     WHITE_CARD,
     OUTLINE,
-    SOCIAL
+    SOCIAL,
+    DESTRUCTIVE_RED
 }
 
-/**
- * High-fidelity, child-friendly tactile button with 3D press effect.
- */
 @Composable
 fun AksaButton(
     text: String,
@@ -120,6 +118,12 @@ fun AksaButton(
             AksaDarkBrown,
             AksaGrayBorder
         )
+        AksaButtonStyle.DESTRUCTIVE_RED -> QuadColor(
+            Color(0xFFE53935),
+            Color(0xFFB71C1C),
+            AksaWhite,
+            Color.Transparent
+        )
     }
 
     val finalBg = if (enabled) bgColor else AksaGrayDisabled
@@ -149,7 +153,6 @@ fun AksaButton(
                 }
             }
     ) {
-        // Bottom bevel shadow (3D effect)
         if (style != AksaButtonStyle.OUTLINE && enabled) {
             Box(
                 modifier = Modifier
@@ -160,7 +163,6 @@ fun AksaButton(
             )
         }
 
-        // Top button surface
         Box(
             modifier = Modifier
                 .fillMaxWidth()
