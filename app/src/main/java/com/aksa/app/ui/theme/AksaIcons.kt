@@ -6,10 +6,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
-/**
- * 100% self-contained AKSA Vector Icons.
- * Pure vector paths with zero external dependencies.
- */
 object AksaIcons {
 
     val Star: ImageVector by lazy {
@@ -949,6 +945,37 @@ object AksaIcons {
                 lineTo(18.665f, 19.418f)
                 curveTo(18.455f, 19.61f, 22f, 17f, 22f, 12f)
                 curveTo(22f, 11.327f, 21.931f, 10.67f, 21.805f, 10.023f)
+                close()
+            }
+        }.build()
+    }
+
+    val Delete: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "AksaDelete",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                moveTo(6f, 19f)
+                curveTo(6f, 20.1f, 6.9f, 21f, 8f, 21f)
+                horizontalLineTo(16f)
+                curveTo(17.1f, 21f, 18f, 20.1f, 18f, 19f)
+                verticalLineTo(7f)
+                horizontalLineTo(6f)
+                verticalLineTo(19f)
+                close()
+                moveTo(19f, 4f)
+                horizontalLineTo(15.5f)
+                lineTo(14.5f, 3f)
+                horizontalLineTo(9.5f)
+                lineTo(8.5f, 4f)
+                horizontalLineTo(5f)
+                verticalLineTo(6f)
+                horizontalLineTo(19f)
+                verticalLineTo(4f)
                 close()
             }
         }.build()

@@ -103,6 +103,21 @@ class DemoProfileRepository : ProfileRepository {
         return Result.success(updated)
     }
 
+    override suspend fun deleteProfile(userId: String, profileId: String): Result<Unit> {
+        if (userId.isBlank()) return Result.failure(IllegalArgumentException("User ID tidak boleh kosong"))
+        if (profileId.isBlank()) return Result.failure(IllegalArgumentException("Profile ID tidak boleh kosong"))
+
+        val existing = profiles.value[profileId]
+            ?: return Result.failure(SecurityException("Profil tidak ditemukan"))
+
+        if (existing.userId != userId) {
+            return Result.failure(SecurityException("Tidak memiliki izin untuk menghapus profil akun lain"))
+        }
+
+        profiles.value = profiles.value - profileId
+        return Result.success(Unit)
+    }
+
     override suspend fun getActiveChildProfile(guardianUid: String, activeProfileId: String?): Profile? {
         val allProfiles = getProfiles(guardianUid)
         if (allProfiles.isEmpty()) return null

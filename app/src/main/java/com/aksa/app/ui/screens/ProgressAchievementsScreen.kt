@@ -217,6 +217,15 @@ fun ProgressAchievementsScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Total bintang aksa
+                    StatRow(
+                        label = "Total Bintang Diraih",
+                        value = "⭐{uiState.totalStarsEarned} Bintang",
+                        highlightColor = AksaYellowDark
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     // Total Soal Dijawab
                     StatRow(
                         label = "Total Soal Dijawab",

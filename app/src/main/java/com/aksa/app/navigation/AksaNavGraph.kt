@@ -1,9 +1,7 @@
 package com.aksa.app.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -65,32 +63,11 @@ fun AksaNavGraph(
             navController = navController,
             startDestination = Screen.Splash.route,
             modifier = Modifier.fillMaxSize(),
-            enterTransition = {
-                slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Left,
-                    animationSpec = tween(350)
-                ) + fadeIn(animationSpec = tween(350))
-            },
-            exitTransition = {
-                slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Left,
-                    animationSpec = tween(350)
-                ) + fadeOut(animationSpec = tween(350))
-            },
-            popEnterTransition = {
-                slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(350)
-                ) + fadeIn(animationSpec = tween(350))
-            },
-            popExitTransition = {
-                slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(350)
-                ) + fadeOut(animationSpec = tween(350))
-            }
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
         ) {
-            // Splash Screen
             composable(Screen.Splash.route) {
                 SplashScreen(
                     onNavigateNext = { route ->
@@ -428,6 +405,17 @@ fun AksaNavGraph(
                 EditProfileScreen(
                     onNavigateBack = {
                         navController.popBackStack()
+                    },
+                    onNavigateToSelectProfile = {
+                        navController.navigate(Screen.SelectProfile.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToCreateProfile = {
+                        createProfileViewModel.reset()
+                        navController.navigate(Screen.CreateProfile.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
                     }
                 )
             }

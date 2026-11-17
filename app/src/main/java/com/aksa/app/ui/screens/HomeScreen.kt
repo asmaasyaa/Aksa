@@ -106,7 +106,16 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AksaOrange)
-    ) {
+    )
+    {
+        Text(
+            text = "Profil",
+            fontFamily = Poppins,
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp,
+            color = AksaWhite
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()

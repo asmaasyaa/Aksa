@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,11 +57,14 @@ import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.DeleteNavigationDestination
 import com.aksa.app.ui.viewmodel.ProfileManagementViewModel
 
 @Composable
 fun EditProfileScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToSelectProfile: () -> Unit = {},
+    onNavigateToCreateProfile: () -> Unit = {},
     viewModel: ProfileManagementViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -69,6 +73,7 @@ fun EditProfileScreen(
     var name by remember { mutableStateOf(activeProfile?.name ?: AksaUserState.username) }
     var selectedAge by remember { mutableIntStateOf(if ((activeProfile?.age ?: 0) > 0) activeProfile!!.age else AksaUserState.age) }
     var selectedAvatarId by remember { mutableStateOf(activeProfile?.avatarId ?: AksaUserState.avatarId) }
+    var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
 
     // Sync initial state when active profile loads
     LaunchedEffect(activeProfile) {
@@ -260,6 +265,145 @@ fun EditProfileScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Visually separated Delete Child Profile section
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(12.dp, cardShape, spotColor = Color(0x33441100))
+                    .background(AksaWhite, cardShape)
+                    .padding(24.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Hapus Profil Anak",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color(0xFFE53935)
+                    )
+
+                    Text(
+                        text = "Hapus profil ini beserta seluruh data pembelajaran secara permanen",
+                        fontFamily = Poppins,
+                        fontSize = 13.sp,
+                        color = AksaGrayText,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 18.dp)
+                    )
+
+                    AksaButton(
+                        text = "Hapus Profil Anak",
+                        style = AksaButtonStyle.DESTRUCTIVE_RED,
+                        icon = AksaIcons.Delete,
+                        onClick = { showDeleteConfirmationDialog = true }
+                    )
+                }
+            }
+        }
+
+        if (showDeleteConfirmationDialog) {
+            val childName = activeProfile?.name ?: name.ifBlank { "Anak" }
+            AlertDialog(
+                onDismissRequest = {
+                    if (!uiState.isDeleting) {
+                        showDeleteConfirmationDialog = false
+                        viewModel.clearError()
+                    }
+                },
+                shape = RoundedCornerShape(28.dp),
+                containerColor = AksaWhite,
+                title = {
+                    Text(
+                        text = "Hapus Profil $childName?",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = AksaDarkBrown,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = "Profil $childName dan seluruh data pembelajarannya (termasuk riwayat latihan, hasil sesi, dan lencana) akan dihapus secara permanen.",
+                            fontFamily = Poppins,
+                            fontSize = 13.sp,
+                            color = AksaGrayText,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Tindakan ini tidak dapat dibatalkan.",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = Color(0xFFE53935),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (uiState.errorMessage != null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = uiState.errorMessage!!,
+                                fontFamily = Poppins,
+                                fontSize = 12.sp,
+                                color = Color(0xFFCC3300)
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    if (uiState.isDeleting) {
+                        CircularProgressIndicator(
+                            color = Color(0xFFE53935),
+                            modifier = Modifier
+                                .size(36.dp)
+                                .padding(end = 12.dp)
+                        )
+                    } else {
+                        AksaButton(
+                            text = "Hapus",
+                            style = AksaButtonStyle.DESTRUCTIVE_RED,
+                            height = 46.dp,
+                            fontSize = 14.sp,
+                            cornerRadius = 16.dp,
+                            onClick = {
+                                viewModel.deleteProfile { destination ->
+                                    showDeleteConfirmationDialog = false
+                                    when (destination) {
+                                        DeleteNavigationDestination.SELECT_PROFILE -> onNavigateToSelectProfile()
+                                        DeleteNavigationDestination.CREATE_PROFILE -> onNavigateToCreateProfile()
+                                        DeleteNavigationDestination.NONE -> onNavigateBack()
+                                    }
+                                }
+                            }
+                        )
+                    }
+                },
+                dismissButton = {
+                    if (!uiState.isDeleting) {
+                        AksaButton(
+                            text = "Batal",
+                            style = AksaButtonStyle.WHITE_CARD,
+                            height = 46.dp,
+                            fontSize = 14.sp,
+                            cornerRadius = 16.dp,
+                            onClick = {
+                                showDeleteConfirmationDialog = false
+                                viewModel.clearError()
+                            }
+                        )
+                    }
+                }
+            )
         }
     }
 }
