@@ -13,10 +13,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
-/**
- * Cloud Firestore implementation of ProfileRepository.
- * Manages child profiles under users/{parentUid}/profiles/{profileId}.
- */
 class FirestoreProfileRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) : ProfileRepository {
@@ -155,6 +151,54 @@ class FirestoreProfileRepository(
             Result.success(updated)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteProfile(userId: String, profileId: String): Result<Unit> {
+        if (userId.isBlank()) return Result.failure(IllegalArgumentException("User ID tidak boleh kosong"))
+        if (profileId.isBlank()) return Result.failure(IllegalArgumentException("Profile ID tidak boleh kosong"))
+
+        return try {
+            val docRef = firestore.document(FirestorePaths.profileDoc(userId, profileId))
+            val snapshot = docRef.get().await()
+
+            if (!snapshot.exists()) {
+                return Result.failure(SecurityException("Profil tidak ditemukan"))
+            }
+
+            val existing = snapshot.toObject(ProfileDto::class.java)?.toDomain()
+                ?: return Result.failure(IllegalStateException("Gagal memproses data profil"))
+
+            if (existing.userId != userId) {
+                return Result.failure(SecurityException("Tidak memiliki izin untuk menghapus profil akun lain"))
+            }
+
+            // Delete associated learning subcollections (answerLogs, sessionResults, badges)
+            deleteSubcollection(FirestorePaths.answerLogsCollection(userId, profileId))
+            deleteSubcollection(FirestorePaths.sessionResultsCollection(userId, profileId))
+            deleteSubcollection(FirestorePaths.badgesCollection(userId, profileId))
+
+            // Delete the parent child profile document itself
+            docRef.delete().await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun deleteSubcollection(collectionPath: String) {
+        try {
+            val snapshot = firestore.collection(collectionPath).get().await()
+            if (snapshot.documents.isNotEmpty()) {
+                val batch = firestore.batch()
+                for (doc in snapshot.documents) {
+                    batch.delete(doc.reference)
+                }
+                batch.commit().await()
+            }
+        } catch (_: Exception) {
+            // Subcollection deletion fails silently if collection is empty or path doesn't exist
         }
     }
 
