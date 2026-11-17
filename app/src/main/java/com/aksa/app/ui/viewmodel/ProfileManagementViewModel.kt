@@ -12,13 +12,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+enum class DeleteNavigationDestination {
+    SELECT_PROFILE,
+    CREATE_PROFILE,
+    NONE
+}
+
 data class ProfileManagementUiState(
     val profiles: List<Profile> = emptyList(),
     val activeProfile: Profile? = null,
     val isLoading: Boolean = false,
     val isUpdating: Boolean = false,
+    val isDeleting: Boolean = false,
     val errorMessage: String? = null,
-    val updateSuccess: Boolean = false
+    val updateSuccess: Boolean = false,
+    val deleteSuccess: Boolean = false
 )
 
 class ProfileManagementViewModel(
@@ -117,6 +125,68 @@ class ProfileManagementViewModel(
                         isUpdating = false,
                         updateSuccess = false,
                         errorMessage = error.localizedMessage ?: "Gagal memperbarui profil anak."
+                    )
+                }
+            )
+        }
+    }
+
+    fun deleteProfile(
+        profileId: String? = null,
+        onSuccess: (DeleteNavigationDestination) -> Unit
+    ) {
+        val targetProfileId = profileId ?: _uiState.value.activeProfile?.profileId ?: AksaUserState.currentProfileId
+        if (targetProfileId.isBlank()) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Profil tidak ditemukan.")
+            return
+        }
+
+        val parentUid = authRepository.currentGuardian.value?.uid
+        if (parentUid == null) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Sesi tidak ditemukan. Silakan masuk kembali.")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isDeleting = true, errorMessage = null, deleteSuccess = false)
+            val allProfilesBeforeDelete = profileRepository.getProfiles(parentUid)
+            val result = profileRepository.deleteProfile(
+                userId = parentUid,
+                profileId = targetProfileId
+            )
+            result.fold(
+                onSuccess = {
+                    val currentActiveId = AksaUserState.currentProfileId
+                    val wasActive = (targetProfileId == currentActiveId)
+                    val remainingProfiles = allProfilesBeforeDelete.filter { it.profileId != targetProfileId }
+
+                    val destination = if (wasActive) {
+                        if (remainingProfiles.isNotEmpty()) {
+                            val nextProfile = remainingProfiles.first()
+                            AksaUserState.syncFromProfile(nextProfile)
+                            DeleteNavigationDestination.SELECT_PROFILE
+                        } else {
+                            AksaUserState.clearSession()
+                            DeleteNavigationDestination.CREATE_PROFILE
+                        }
+                    } else {
+                        DeleteNavigationDestination.NONE
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        profiles = remainingProfiles,
+                        activeProfile = if (wasActive) remainingProfiles.firstOrNull() else _uiState.value.activeProfile,
+                        isDeleting = false,
+                        deleteSuccess = true,
+                        errorMessage = null
+                    )
+                    onSuccess(destination)
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isDeleting = false,
+                        deleteSuccess = false,
+                        errorMessage = error.localizedMessage ?: "Gagal menghapus profil anak."
                     )
                 }
             )

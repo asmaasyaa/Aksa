@@ -405,6 +405,17 @@ fun AksaNavGraph(
                 EditProfileScreen(
                     onNavigateBack = {
                         navController.popBackStack()
+                    },
+                    onNavigateToSelectProfile = {
+                        navController.navigate(Screen.SelectProfile.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToCreateProfile = {
+                        createProfileViewModel.reset()
+                        navController.navigate(Screen.CreateProfile.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
                     }
                 )
             }
