@@ -29,6 +29,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -45,8 +46,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaSyllableCard
@@ -95,6 +98,11 @@ fun SyllableQuizScreen(
             SyllableQuizItem("sq_5", "KAKI", "KA", "KI", listOf("KA", "MA", "KI", "DA", "LU", "SI"))
         )
     }
+
+    var sessionId by remember { mutableStateOf("session_syllable_${UUID.randomUUID()}") }
+    var sessionStartedAt by remember { mutableStateOf(System.currentTimeMillis()) }
+    val recordedAnswers = remember { mutableStateListOf<AnswerLog>() }
+    val activeChildResolver = remember { GetActiveChildIdUseCase() }
 
     var currentQuestionIndex by remember { mutableIntStateOf(0) }
     var slot1 by remember { mutableStateOf<String?>(null) }
@@ -431,6 +439,22 @@ fun SyllableQuizScreen(
                         style = if (isFilled) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
                         enabled = isFilled,
                         onClick = {
+                            val childId = activeChildResolver.getSync()
+                            val log = AnswerLog(
+                                answerId = "ans_${sessionId}_syl_${currentQ.id}",
+                                sessionId = sessionId,
+                                childId = childId,
+                                moduleId = "dunia_suku_kata",
+                                activityId = "syllable_quiz",
+                                questionId = currentQ.id,
+                                targetChar = currentQ.targetWord,
+                                chosenChar = "${effectiveSlot1 ?: ""}${effectiveSlot2 ?: ""}",
+                                isCorrect = isCorrect,
+                                responseTimeMs = 1500L,
+                                timestamp = System.currentTimeMillis()
+                            )
+                            recordedAnswers.add(log)
+
                             if (currentQuestionIndex < quizItems.size - 1) {
                                 currentQuestionIndex++
                                 slot1 = null
@@ -441,12 +465,16 @@ fun SyllableQuizScreen(
                                 if (!sessionCommitted) {
                                     sessionCommitted = true
                                     coroutineScope.launch {
+                                        val actualChildId = activeChildResolver()
+                                        for (ans in recordedAnswers) {
+                                            AksaRepositoryProvider.sessionRepository.recordAnswer(ans.copy(childId = actualChildId))
+                                        }
                                         val sessionResult = SessionResult(
-                                            sessionId = "session_syllable_${UUID.randomUUID()}",
-                                            childId = "child_marvin_demo",
+                                            sessionId = sessionId,
+                                            childId = actualChildId,
                                             moduleId = "dunia_suku_kata",
                                             activityId = "syllable_quiz",
-                                            startedAt = System.currentTimeMillis() - 90_000,
+                                            startedAt = sessionStartedAt,
                                             completedAt = System.currentTimeMillis(),
                                             totalQuestions = quizItems.size,
                                             correctAnswers = correctCount,
@@ -580,6 +608,9 @@ fun SyllableQuizScreen(
                                 slot2 = null
                                 correctCount = 0
                                 sessionCommitted = false
+                                sessionId = "session_syllable_${UUID.randomUUID()}"
+                                sessionStartedAt = System.currentTimeMillis()
+                                recordedAnswers.clear()
                             }
                         )
 

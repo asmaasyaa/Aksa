@@ -47,10 +47,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.mutableStateListOf
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaProgressBar
@@ -124,6 +127,11 @@ fun LetterLearningScreen(
             LetterQuizQuestion(lettersToLearn[2].letter, "Mana huruf ${lettersToLearn[2].letter}?", listOf(lettersToLearn[2].letter, lettersToLearn[1].letter, lettersToLearn[0].letter).shuffled())
         )
     }
+
+    val sessionId = remember { "session_letter_${UUID.randomUUID()}" }
+    val sessionStartedAt = remember { System.currentTimeMillis() }
+    val recordedAnswers = remember { mutableStateListOf<AnswerLog>() }
+    val activeChildResolver = remember { GetActiveChildIdUseCase() }
 
     var step by remember { mutableStateOf(LetterLearningStep.INTRODUCTION) }
     var currentIntroIndex by remember { mutableIntStateOf(0) }
@@ -451,6 +459,21 @@ fun LetterLearningScreen(
                                                 isAnswered = true
                                                 val correct = choice == currentQ.targetLetter
                                                 isCorrect = correct
+                                                val childId = activeChildResolver.getSync()
+                                                val log = AnswerLog(
+                                                    answerId = "ans_${sessionId}_letter_${currentQuizIndex}",
+                                                    sessionId = sessionId,
+                                                    childId = childId,
+                                                    moduleId = "pulau_alfabet",
+                                                    activityId = "letter_learning",
+                                                    questionId = "letter_q_${currentQ.targetLetter}_$currentQuizIndex",
+                                                    targetChar = currentQ.targetLetter,
+                                                    chosenChar = choice,
+                                                    isCorrect = correct,
+                                                    responseTimeMs = 1000L,
+                                                    timestamp = System.currentTimeMillis()
+                                                )
+                                                recordedAnswers.add(log)
                                                 if (correct) {
                                                     correctCount++
                                                     tts.speak("Benar! Ini huruf $choice.")
@@ -537,12 +560,16 @@ fun LetterLearningScreen(
                                         if (!sessionCommitted) {
                                             sessionCommitted = true
                                             coroutineScope.launch {
+                                                val childId = activeChildResolver()
+                                                for (ans in recordedAnswers) {
+                                                    AksaRepositoryProvider.sessionRepository.recordAnswer(ans.copy(childId = childId))
+                                                }
                                                 val sessionResult = SessionResult(
-                                                    sessionId = "session_letter_${UUID.randomUUID()}",
-                                                    childId = "child_marvin_demo",
+                                                    sessionId = sessionId,
+                                                    childId = childId,
                                                     moduleId = "pulau_alfabet",
                                                     activityId = "letter_learning",
-                                                    startedAt = System.currentTimeMillis() - 60_000,
+                                                    startedAt = sessionStartedAt,
                                                     completedAt = System.currentTimeMillis(),
                                                     totalQuestions = quizQuestions.size,
                                                     correctAnswers = correctCount,

@@ -35,12 +35,15 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private var observeJob: kotlinx.coroutines.Job? = null
+
     init {
         loadData()
     }
 
     fun loadData() {
-        viewModelScope.launch {
+        observeJob?.cancel()
+        observeJob = viewModelScope.launch {
             val guardian = authRepository.currentGuardian.value
             val guardianUid = guardian?.uid ?: return@launch
             val activeId = AksaUserState.currentProfileId.takeIf { it.isNotBlank() }
