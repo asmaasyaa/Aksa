@@ -3,6 +3,7 @@ package com.aksa.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.domain.model.MilestoneBadgeInfo
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.WeeklyAchievement
@@ -16,6 +17,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.Job
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
@@ -43,11 +47,18 @@ class ProgressAchievementsViewModel(
     val uiState: StateFlow<ProgressAchievementsUiState> = _uiState.asStateFlow()
 
     init {
-        loadData()
+        viewModelScope.launch {
+            snapshotFlow { AksaUserState.currentProfileId }
+                .distinctUntilChanged()
+                .collect { loadData() }
+        }
     }
 
+    private var activeLoadJob: Job? = null
+
     private fun loadData() {
-        viewModelScope.launch {
+        activeLoadJob?.cancel()
+        activeLoadJob = viewModelScope.launch {
             val guardian = authRepository.currentGuardian.value
             val guardianUid = guardian?.uid ?: "demo_guardian_default"
             val activeId = com.aksa.app.ui.state.AksaUserState.currentProfileId.takeIf { it.isNotBlank() }

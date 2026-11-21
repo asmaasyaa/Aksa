@@ -45,7 +45,9 @@ class FirestoreSessionRepository(
 
     override suspend fun getAnswersForSession(sessionId: String): List<AnswerLog> {
         return try {
+            val parentUid = getParentUid()
             val snapshot = firestore.collectionGroup(FirestorePaths.ANSWER_LOGS)
+                .whereEqualTo("userId", parentUid)
                 .whereEqualTo("sessionId", sessionId)
                 .get()
                 .await()

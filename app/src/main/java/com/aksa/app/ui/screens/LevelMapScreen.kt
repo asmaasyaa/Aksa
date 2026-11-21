@@ -185,7 +185,7 @@ fun LevelMapScreen(
                         .align(Alignment.BottomStart)
                         .offset(x = 24.dp, y = (-70).dp)
                 ) {
-                    MascotPeeking(size = 90.dp)
+                    MascotPeeking(width = 90.dp, height = 60.dp)
                 }
 
                 // LEVEL 4 — Sungai Cerita (Top Right)

@@ -177,6 +177,7 @@ class FirestoreProfileRepository(
             deleteSubcollection(FirestorePaths.answerLogsCollection(userId, profileId))
             deleteSubcollection(FirestorePaths.sessionResultsCollection(userId, profileId))
             deleteSubcollection(FirestorePaths.badgesCollection(userId, profileId))
+            deleteSubcollection("${FirestorePaths.profileDoc(userId, profileId)}/levelProgress")
 
             // Delete the parent child profile document itself
             docRef.delete().await()
@@ -188,17 +189,13 @@ class FirestoreProfileRepository(
     }
 
     private suspend fun deleteSubcollection(collectionPath: String) {
-        try {
-            val snapshot = firestore.collection(collectionPath).get().await()
-            if (snapshot.documents.isNotEmpty()) {
-                val batch = firestore.batch()
-                for (doc in snapshot.documents) {
-                    batch.delete(doc.reference)
-                }
-                batch.commit().await()
-            }
-        } catch (_: Exception) {
-            // Subcollection deletion fails silently if collection is empty or path doesn't exist
+        // Firestore batched writes have limits; delete safely in chunks, never suppress failures.
+        while (true) {
+            val snapshot = firestore.collection(collectionPath).limit(400).get().await()
+            if (snapshot.isEmpty) return
+            val batch = firestore.batch()
+            for (doc in snapshot.documents) batch.delete(doc.reference)
+            batch.commit().await()
         }
     }
 

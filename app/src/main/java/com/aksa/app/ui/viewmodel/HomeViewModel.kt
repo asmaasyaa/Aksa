@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.Job
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -35,15 +38,19 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    private var observeJob: kotlinx.coroutines.Job? = null
-
     init {
-        loadData()
+        viewModelScope.launch {
+            snapshotFlow { AksaUserState.currentProfileId }
+                .distinctUntilChanged()
+                .collect { loadData() }
+        }
     }
 
+    private var activeLoadJob: Job? = null
+
     fun loadData() {
-        observeJob?.cancel()
-        observeJob = viewModelScope.launch {
+        activeLoadJob?.cancel()
+        activeLoadJob = viewModelScope.launch {
             val guardian = authRepository.currentGuardian.value
             val guardianUid = guardian?.uid ?: return@launch
             val activeId = AksaUserState.currentProfileId.takeIf { it.isNotBlank() }

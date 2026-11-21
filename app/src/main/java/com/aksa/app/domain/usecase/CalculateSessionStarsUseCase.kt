@@ -1,15 +1,13 @@
 package com.aksa.app.domain.usecase
 
-/**
- * Menghitung perolehan bintang (1 - 3) berdasarkan akurasi sesi belajar
- * Ramah anak disleksia: anak selalu diapresiasi (minimal 1 bintang jika selesai).
- */
+/** Stars per COMPLETED session. SessionResult.accuracy is a fraction in [0f, 1f]. */
 class CalculateSessionStarsUseCase {
-    operator fun invoke(accuracyPercentage: Float): Int{
+    operator fun invoke(accuracy: Float): Int {
+        require(accuracy in 0f..1f) { "Session accuracy must be between 0 and 1" }
         return when {
-            accuracyPercentage >= 85f -> 3 //akurasi tinggi, sangat baik
-            accuracyPercentage >= 60f -> 2 //akurasi sedang, baik
-            else -> 1 // nilai apresiasi usaha penyelesaian
+            accuracy >= 0.90f -> 3
+            accuracy >= 0.70f -> 2
+            else -> 1
         }
     }
 }

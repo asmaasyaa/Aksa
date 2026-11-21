@@ -220,7 +220,7 @@ fun ProgressAchievementsScreen(
                     // Total bintang aksa
                     StatRow(
                         label = "Total Bintang Diraih",
-                        value = "⭐{uiState.totalStarsEarned} Bintang",
+                        value = "⭐${uiState.totalStarsEarned} Bintang",
                         highlightColor = AksaYellowDark
                     )
 

@@ -17,6 +17,7 @@ service cloud.firestore {
       return ('name' in data) && data.name is string && data.name.size() > 0 && data.name.size() <= 50
           && ('avatarId' in data) && data.avatarId is string && data.avatarId.size() > 0
           && (!('age' in data) || data.age is int)
+          && (!('unlockedLevels' in data) || data.unlockedLevels is list)
           && (!('userId' in data) || data.userId == parentUid);
     }
 
@@ -26,7 +27,7 @@ service cloud.firestore {
           && ('targetChar' in data) && data.targetChar is string
           && ('chosenChar' in data) && data.chosenChar is string
           && ('isCorrect' in data) && data.isCorrect is bool
-          && (!('userId' in data) || data.userId == parentUid);
+          && ('userId' in data) && data.userId == parentUid;
     }
 
     function isValidSessionResult(parentUid) {
@@ -64,6 +65,14 @@ service cloud.firestore {
           allow create, update: if isOwner(parentUid) && isValidSessionResult(parentUid);
         }
 
+        match /levelProgress/{progressId} {
+          allow read, delete: if isOwner(parentUid);
+          allow create, update: if isOwner(parentUid)
+            && request.resource.data.userId == parentUid
+            && request.resource.data.profileId == profileId
+            && request.resource.data.unlockedLevels is list;
+        }
+
         match /badges/{badgeId} {
           allow read, delete: if isOwner(parentUid);
           allow create, update: if isOwner(parentUid) && isValidBadge(parentUid);
@@ -73,7 +82,7 @@ service cloud.firestore {
 
     // Support collection group queries (e.g., answerLogs queried across sessions by owner)
     match /{path=**}/answerLogs/{logId} {
-      allow read: if isAuthenticated() && (!('userId' in resource.data) || resource.data.userId == request.auth.uid);
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }

@@ -578,37 +578,30 @@ class LevelReadinessEvaluationTest {
         assertTrue(kakakUnlockedAgain.contains("dunia_suku_kata"))
     }
 
-    // 27. FirestoreLevelProgressRepository fallback preserves default level, set operations, and anti-relocking.
+    // 27. LevelProgressRepository preserves default level, set operations, and anti-relocking.
     @Test
-    fun test27_firestoreLevelProgressRepository_fallbackAndAntiRelocking() = runTest {
-        val authRepo = DemoAuthRepository()
-        authRepo.signIn("demo.orangtua@aksa.id", "123456")
-
-        val firestoreRepo = FirestoreLevelProgressRepository(
-            authRepository = authRepo,
-            fallbackRepository = DemoLevelProgressRepository()
-        )
-
+    fun test27_levelProgressRepository_monotonicAndAntiRelocking() = runTest {
+        val repo = DemoLevelProgressRepository()
         val testChild = "child_test_repo_fallback"
 
         // Brand-new child always has pulau_alfabet
-        val initialLevels = firestoreRepo.getUnlockedLevels(testChild)
+        val initialLevels = repo.getUnlockedLevels(testChild)
         assertEquals(setOf("pulau_alfabet"), initialLevels)
 
         // Unlock Level 2
-        firestoreRepo.unlockLevel(testChild, "dunia_suku_kata")
-        val afterUnlock = firestoreRepo.getUnlockedLevels(testChild)
+        repo.unlockLevel(testChild, "dunia_suku_kata")
+        val afterUnlock = repo.getUnlockedLevels(testChild)
         assertTrue(afterUnlock.contains("dunia_suku_kata"))
         assertTrue(afterUnlock.contains("pulau_alfabet"))
 
         // Overwrite save without default level still keeps pulau_alfabet
-        firestoreRepo.saveUnlockedLevels(testChild, setOf("gunung_kata"))
-        val afterSave = firestoreRepo.getUnlockedLevels(testChild)
+        repo.saveUnlockedLevels(testChild, setOf("gunung_kata"))
+        val afterSave = repo.getUnlockedLevels(testChild)
         assertTrue(afterSave.contains("pulau_alfabet"))
         assertTrue(afterSave.contains("gunung_kata"))
     }
 
-    // 28. GetActiveChildIdUseCase priority: AksaUserState.currentProfileId > ProfileRepository > fallback.
+    // 28. GetActiveChildIdUseCase: enforces authenticated guardian and valid selected child profile.
     @Test
     fun test28_getActiveChildIdUseCase_priorityAndFallback() = runTest {
         val authRepo = DemoAuthRepository()
@@ -619,32 +612,52 @@ class LevelReadinessEvaluationTest {
         AksaUserState.currentProfileId = ""
         authRepo.signOut()
 
-        // 1. Unauthenticated + no profile -> fallback child_default
-        val unauthChild = useCase()
-        assertEquals("child_default", unauthChild)
+        // 1. Unauthenticated -> throws IllegalStateException
+        try {
+            useCase()
+            org.junit.Assert.fail("Should throw IllegalStateException when unauthenticated")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("login"))
+        }
 
-        // 2. Authenticated parent with a profile in repository
-        authRepo.signIn("demo.orangtua@aksa.id", "123456")
+        // 2. Authenticated parent but no profiles created yet -> throws IllegalStateException
+        authRepo.signIn("user_baru@aksa.id", "123456")
         val parentUid = authRepo.currentGuardian.value!!.uid
-        profileRepo.saveChildProfile(
-            Profile(
-                profileId = "profile_repo_child_1",
-                userId = parentUid,
-                name = "Ahmad",
-                avatarId = "mascot_classic"
-            )
+        try {
+            useCase()
+            org.junit.Assert.fail("Should throw IllegalStateException when no child profile exists")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("profil anak"))
+        }
+
+        // 3. Parent has a profile in repository -> resolves active profile
+        val profile = Profile(
+            profileId = "profile_repo_child_1",
+            userId = parentUid,
+            name = "Ahmad",
+            avatarId = "mascot_classic"
         )
+        profileRepo.saveChildProfile(profile)
 
         val resolvedFromRepo = useCase()
         assertEquals("profile_repo_child_1", resolvedFromRepo)
 
-        // 3. AksaUserState explicit currentProfileId overrides repository default
-        AksaUserState.currentProfileId = "profile_explicit_active"
+        // 4. AksaUserState explicit currentProfileId resolves validated profile
+        AksaUserState.currentProfileId = "profile_repo_child_1"
         val resolvedFromState = useCase()
-        assertEquals("profile_explicit_active", resolvedFromState)
+        assertEquals("profile_repo_child_1", resolvedFromState)
 
         // Sync helper
-        assertEquals("profile_explicit_active", useCase.getSync())
+        assertEquals("profile_repo_child_1", useCase.getSync())
+
+        // 5. Blank AksaUserState causes getSync() to throw
+        AksaUserState.currentProfileId = ""
+        try {
+            useCase.getSync()
+            org.junit.Assert.fail("getSync should throw when currentProfileId is blank")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("Pilih profil anak"))
+        }
     }
 
     // 29. Session eligibility: only COMPLETED sessions with valid status are considered.
