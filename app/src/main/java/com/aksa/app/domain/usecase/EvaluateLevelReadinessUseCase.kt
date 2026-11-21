@@ -7,20 +7,25 @@ import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
 import com.aksa.app.domain.model.TargetPerformance
 import com.aksa.app.domain.repository.SessionRepository
+import java.time.Clock
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Evaluates whether a child has achieved sufficient learning mastery to unlock the next level.
  *
  * UNLOCK RULES:
  * 1. At least 3 valid completed sessions for the evaluated module.
- * 2. Average accuracy across the latest 3 valid sessions >= 80% (0.80f).
- * 3. Relevant learning targets have sufficient evidence (>= 3 recorded attempts per target).
- * 4. Error rate of every evaluated target must not exceed 40% (0.40f).
- *
- * Note: Distinct learning day counts, streaks, and calendar requirements are deliberately excluded.
+ * 2. Practice on at least 2 distinct days within the last 7 days.
+ * 3. Average accuracy across the latest 3 valid sessions >= 80% (0.80f).
+ * 4. Relevant learning targets have sufficient evidence (>= 3 recorded attempts per target).
+ * 5. Error rate of every evaluated target must not exceed 40% (0.40f).
  */
 class EvaluateLevelReadinessUseCase(
-    private val sessionRepository: SessionRepository = AksaRepositoryProvider.sessionRepository
+    private val sessionRepository: SessionRepository = AksaRepositoryProvider.sessionRepository,
+    private val clock: Clock = Clock.system(ZoneId.of("Asia/Jakarta")),
+    private val zoneId: ZoneId = ZoneId.of("Asia/Jakarta")
 ) {
     suspend operator fun invoke(
         childId: String,
@@ -36,6 +41,24 @@ class EvaluateLevelReadinessUseCase(
             .sortedByDescending { it.completedAt }
 
         val sessionCount = validSessions.size
+
+        // Calculate distinct practice days within the last 7 days
+        val today = LocalDate.now(clock.withZone(zoneId))
+        val sevenDaysCutoff = today.minusDays(6) // 7 days window: [today - 6 days .. today]
+
+        val distinctPracticeDates = validSessions.mapNotNull { session ->
+            val completedAt = session.completedAt ?: return@mapNotNull null
+            val sessionDate = Instant.ofEpochMilli(completedAt)
+                .atZone(zoneId)
+                .toLocalDate()
+            if (!sessionDate.isBefore(sevenDaysCutoff) && !sessionDate.isAfter(today)) {
+                sessionDate
+            } else {
+                null
+            }
+        }.toSet()
+
+        val distinctDaysCount = distinctPracticeDates.size
 
         // CONDITION 1: At least three valid completed sessions
         if (sessionCount < 3) {
@@ -53,14 +76,35 @@ class EvaluateLevelReadinessUseCase(
                 validSessions = validSessions,
                 averageAccuracy = 0f,
                 targetPerformances = emptyMap(),
-                explanation = explanation
+                explanation = explanation,
+                distinctDaysInLast7Days = distinctDaysCount
+            )
+        }
+
+        // CONDITION 2: Practice on at least 2 distinct days within the last 7 days
+        if (distinctDaysCount < 2) {
+            val explanation = if (distinctDaysCount == 0) {
+                "Yuk, latihan minimal di 2 hari berbeda dalam 7 hari terakhir agar ingatanmu semakin kuat!"
+            } else {
+                "Hebat sudah berlatih! Latihan di 1 hari berbeda lagi dalam 7 hari terakhir untuk membuka petualangan ini, ya!"
+            }
+            return LevelReadinessResult(
+                childId = childId,
+                moduleId = moduleId,
+                status = LevelReadinessStatus.INSUFFICIENT_PRACTICE_DAYS,
+                sessionCount = sessionCount,
+                validSessions = validSessions,
+                averageAccuracy = 0f,
+                targetPerformances = emptyMap(),
+                explanation = explanation,
+                distinctDaysInLast7Days = distinctDaysCount
             )
         }
 
         // Take latest three valid sessions
         val latestThree = validSessions.take(3)
 
-        // CONDITION 2: Average accuracy of latest three sessions >= 80% (0.80f)
+        // CONDITION 3: Average accuracy of latest three sessions >= 80% (0.80f)
         val averageAccuracy = (latestThree[0].accuracy + latestThree[1].accuracy + latestThree[2].accuracy) / 3f
 
         if (averageAccuracy < 0.80f - 1e-6f) {
@@ -72,7 +116,8 @@ class EvaluateLevelReadinessUseCase(
                 validSessions = latestThree,
                 averageAccuracy = averageAccuracy,
                 targetPerformances = emptyMap(),
-                explanation = "Ayo latihan lagi supaya hasil akurasimu mencapai 80% atau lebih!"
+                explanation = "Ayo latihan lagi supaya hasil akurasimu mencapai 80% atau lebih!",
+                distinctDaysInLast7Days = distinctDaysCount
             )
         }
 
@@ -94,7 +139,8 @@ class EvaluateLevelReadinessUseCase(
                 validSessions = latestThree,
                 averageAccuracy = averageAccuracy,
                 targetPerformances = emptyMap(),
-                explanation = "Kita perlu beberapa jawaban lagi untuk memastikan kamu siap."
+                explanation = "Kita perlu beberapa jawaban lagi untuk memastikan kamu siap.",
+                distinctDaysInLast7Days = distinctDaysCount
             )
         }
 
@@ -109,7 +155,8 @@ class EvaluateLevelReadinessUseCase(
                 validSessions = latestThree,
                 averageAccuracy = averageAccuracy,
                 targetPerformances = emptyMap(),
-                explanation = "Kita perlu beberapa jawaban lagi untuk memastikan kamu siap."
+                explanation = "Kita perlu beberapa jawaban lagi untuk memastikan kamu siap.",
+                distinctDaysInLast7Days = distinctDaysCount
             )
         }
 
@@ -135,7 +182,7 @@ class EvaluateLevelReadinessUseCase(
             }
         }
 
-        // CONDITION 3: Sufficient answer evidence per evaluated target
+        // CONDITION 4: Sufficient answer evidence per evaluated target
         if (hasInsufficientEvidenceTarget) {
             return LevelReadinessResult(
                 childId = childId,
@@ -145,11 +192,12 @@ class EvaluateLevelReadinessUseCase(
                 validSessions = latestThree,
                 averageAccuracy = averageAccuracy,
                 targetPerformances = targetPerformances,
-                explanation = "Kita perlu beberapa jawaban lagi untuk memastikan kamu siap."
+                explanation = "Kita perlu beberapa jawaban lagi untuk memastikan kamu siap.",
+                distinctDaysInLast7Days = distinctDaysCount
             )
         }
 
-        // CONDITION 4: Error rate of every sufficiently evaluated target <= 40% (0.40f)
+        // CONDITION 5: Error rate of every sufficiently evaluated target <= 40% (0.40f)
         val failingTargets = targetPerformances.values.filter { it.errorRate > 0.40f + 1e-6f }
         if (failingTargets.isNotEmpty()) {
             val targetsString = failingTargets.joinToString(", ") { it.target }
@@ -166,7 +214,8 @@ class EvaluateLevelReadinessUseCase(
                 validSessions = latestThree,
                 averageAccuracy = averageAccuracy,
                 targetPerformances = targetPerformances,
-                explanation = explanation
+                explanation = explanation,
+                distinctDaysInLast7Days = distinctDaysCount
             )
         }
 
@@ -179,7 +228,8 @@ class EvaluateLevelReadinessUseCase(
             validSessions = latestThree,
             averageAccuracy = averageAccuracy,
             targetPerformances = targetPerformances,
-            explanation = "Hebat! Petualangan berikutnya sudah terbuka!"
+            explanation = "Hebat! Petualangan berikutnya sudah terbuka!",
+            distinctDaysInLast7Days = distinctDaysCount
         )
     }
 

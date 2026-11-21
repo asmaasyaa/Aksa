@@ -1,6 +1,5 @@
 package com.aksa.app
 
-import com.aksa.app.data.repository.FirestoreLevelProgressRepository
 import com.aksa.app.data.repository.demo.DemoAuthRepository
 import com.aksa.app.data.repository.demo.DemoLevelProgressRepository
 import com.aksa.app.data.repository.demo.DemoProfileRepository
@@ -25,8 +24,15 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.time.Clock
+import java.time.LocalDate
+import java.time.ZoneId
 
 class LevelReadinessEvaluationTest {
+
+    private val zoneId = ZoneId.of("Asia/Jakarta")
+    private val baseDate = LocalDate.of(2026, 11, 21)
+    private val fixedClock = Clock.fixed(baseDate.atStartOfDay(zoneId).toInstant(), zoneId)
 
     private lateinit var sessionRepository: DemoSessionRepository
     private lateinit var levelProgressRepository: DemoLevelProgressRepository
@@ -39,9 +45,26 @@ class LevelReadinessEvaluationTest {
     fun setUp() {
         sessionRepository = DemoSessionRepository()
         levelProgressRepository = DemoLevelProgressRepository()
-        evaluateReadinessUseCase = EvaluateLevelReadinessUseCase(sessionRepository)
+        evaluateReadinessUseCase = EvaluateLevelReadinessUseCase(sessionRepository, fixedClock, zoneId)
         getProgressionUseCase = GetLevelProgressionUseCase(evaluateReadinessUseCase, levelProgressRepository)
         DeveloperPreviewManager.enablePreview(false)
+    }
+
+    private fun timestampForDay(daysAgo: Long, hour: Int = 10, minute: Int = 0): Long {
+        return baseDate.minusDays(daysAgo).atTime(hour, minute).atZone(zoneId).toInstant().toEpochMilli()
+    }
+
+    private fun defaultTimestamp(id: String): Long {
+        val sessionNum = Regex("""s(\d+)""").find(id)?.groupValues?.get(1)?.toIntOrNull() ?: 1
+        return when (sessionNum) {
+            1 -> timestampForDay(1, 10) // Yesterday
+            2 -> timestampForDay(0, 10) // Today morning
+            3 -> timestampForDay(0, 14) // Today afternoon
+            4 -> timestampForDay(0, 16)
+            5 -> timestampForDay(0, 17)
+            6 -> timestampForDay(0, 18)
+            else -> timestampForDay(0, 12)
+        }
     }
 
     private fun session(
@@ -54,7 +77,7 @@ class LevelReadinessEvaluationTest {
         incorrect: Int = 0,
         acc: Float = 1.0f,
         status: SessionStatus = SessionStatus.COMPLETED,
-        time: Long = System.currentTimeMillis()
+        time: Long = defaultTimestamp(id)
     ) = SessionResult(
         sessionId = id,
         childId = cId,
@@ -97,7 +120,7 @@ class LevelReadinessEvaluationTest {
         total: Int = 3,
         incorrect: Int = 0,
         acc: Float = if (total > 0) (total - incorrect).toFloat() / total.toFloat() else 0f,
-        time: Long = System.currentTimeMillis()
+        time: Long = defaultTimestamp(sId)
     ) {
         val s = session(
             id = sId,
@@ -147,8 +170,8 @@ class LevelReadinessEvaluationTest {
     // 3. Fewer than three sessions do not unlock a level.
     @Test
     fun test3_fewerThanThreeSessions_doNotUnlock() = runTest {
-        seedStandardSessionWithAnswers("s1", time = 1000L)
-        seedStandardSessionWithAnswers("s2", time = 2000L)
+        seedStandardSessionWithAnswers("s1")
+        seedStandardSessionWithAnswers("s2")
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
         assertEquals(LevelReadinessStatus.INSUFFICIENT_SESSIONS, result.status)
@@ -159,24 +182,25 @@ class LevelReadinessEvaluationTest {
         assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(2))
     }
 
-    // 4. Three valid sessions are sufficient for session count.
+    // 4. Three valid sessions spanning 2 distinct days are sufficient for unlock readiness.
     @Test
     fun test4_threeValidSessions_sufficientSessionCount() = runTest {
-        seedStandardSessionWithAnswers("s1", time = 1000L)
-        seedStandardSessionWithAnswers("s2", time = 2000L)
-        seedStandardSessionWithAnswers("s3", time = 3000L)
+        seedStandardSessionWithAnswers("s1")
+        seedStandardSessionWithAnswers("s2")
+        seedStandardSessionWithAnswers("s3")
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
         assertNotEquals(LevelReadinessStatus.INSUFFICIENT_SESSIONS, result.status)
         assertEquals(3, result.sessionCount)
+        assertEquals(2, result.distinctDaysInLast7Days)
     }
 
     // 5. Exactly 80% average accuracy passes.
     @Test
     fun test5_exactly80PercentAverageAccuracy_passes() = runTest {
-        seedStandardSessionWithAnswers("s1", targetLetter = "b", total = 5, incorrect = 1, acc = 0.80f, time = 1000L)
-        seedStandardSessionWithAnswers("s2", targetLetter = "b", total = 5, incorrect = 1, acc = 0.80f, time = 2000L)
-        seedStandardSessionWithAnswers("s3", targetLetter = "b", total = 5, incorrect = 1, acc = 0.80f, time = 3000L)
+        seedStandardSessionWithAnswers("s1", targetLetter = "b", total = 5, incorrect = 1, acc = 0.80f)
+        seedStandardSessionWithAnswers("s2", targetLetter = "b", total = 5, incorrect = 1, acc = 0.80f)
+        seedStandardSessionWithAnswers("s3", targetLetter = "b", total = 5, incorrect = 1, acc = 0.80f)
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
         assertEquals(LevelReadinessStatus.READY_TO_UNLOCK, result.status)
@@ -187,9 +211,9 @@ class LevelReadinessEvaluationTest {
     // 6. Average accuracy below 80% fails.
     @Test
     fun test6_averageAccuracyBelow80Percent_fails() = runTest {
-        seedStandardSessionWithAnswers("s1", total = 4, incorrect = 1, acc = 0.75f, time = 1000L)
-        seedStandardSessionWithAnswers("s2", total = 5, incorrect = 1, acc = 0.80f, time = 2000L)
-        seedStandardSessionWithAnswers("s3", total = 5, incorrect = 1, acc = 0.80f, time = 3000L)
+        seedStandardSessionWithAnswers("s1", total = 4, incorrect = 1, acc = 0.75f)
+        seedStandardSessionWithAnswers("s2", total = 5, incorrect = 1, acc = 0.80f)
+        seedStandardSessionWithAnswers("s3", total = 5, incorrect = 1, acc = 0.80f)
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
         assertEquals(LevelReadinessStatus.LOW_ACCURACY, result.status)
@@ -199,9 +223,9 @@ class LevelReadinessEvaluationTest {
     // 7. Exactly 40% target error rate passes.
     @Test
     fun test7_exactly40PercentTargetErrorRate_passes() = runTest {
-        val s1 = session("s1", total = 4, correct = 4, incorrect = 0, acc = 1.0f, time = 1000L)
-        val s2 = session("s2", total = 3, correct = 2, incorrect = 1, acc = 0.80f, time = 2000L)
-        val s3 = session("s3", total = 3, correct = 2, incorrect = 1, acc = 0.80f, time = 3000L)
+        val s1 = session("s1", total = 4, correct = 4, incorrect = 0, acc = 1.0f)
+        val s2 = session("s2", total = 3, correct = 2, incorrect = 1, acc = 0.80f)
+        val s3 = session("s3", total = 3, correct = 2, incorrect = 1, acc = 0.80f)
         sessionRepository.saveSessionResult(s1)
         sessionRepository.saveSessionResult(s2)
         sessionRepository.saveSessionResult(s3)
@@ -231,9 +255,9 @@ class LevelReadinessEvaluationTest {
     // 8. Target error rate above 40% fails.
     @Test
     fun test8_targetErrorRateAbove40Percent_fails() = runTest {
-        val s1 = session("s1", total = 5, correct = 4, incorrect = 1, acc = 0.80f, time = 1000L)
-        val s2 = session("s2", total = 5, correct = 4, incorrect = 1, acc = 0.80f, time = 2000L)
-        val s3 = session("s3", total = 5, correct = 4, incorrect = 1, acc = 0.80f, time = 3000L)
+        val s1 = session("s1", total = 5, correct = 4, incorrect = 1, acc = 0.80f)
+        val s2 = session("s2", total = 5, correct = 4, incorrect = 1, acc = 0.80f)
+        val s3 = session("s3", total = 5, correct = 4, incorrect = 1, acc = 0.80f)
         sessionRepository.saveSessionResult(s1)
         sessionRepository.saveSessionResult(s2)
         sessionRepository.saveSessionResult(s3)
@@ -260,19 +284,17 @@ class LevelReadinessEvaluationTest {
     // 9. Fewer than three attempts for an evaluated target returns insufficient evidence.
     @Test
     fun test9_fewerThanThreeAttemptsForTarget_returnsInsufficientEvidence() = runTest {
-        val s1 = session("s1", total = 5, correct = 5, incorrect = 0, acc = 1.0f, time = 1000L)
-        val s2 = session("s2", total = 5, correct = 5, incorrect = 0, acc = 1.0f, time = 2000L)
-        val s3 = session("s3", total = 5, correct = 5, incorrect = 0, acc = 1.0f, time = 3000L)
+        val s1 = session("s1", total = 5, correct = 5, incorrect = 0, acc = 1.0f)
+        val s2 = session("s2", total = 5, correct = 5, incorrect = 0, acc = 1.0f)
+        val s3 = session("s3", total = 5, correct = 5, incorrect = 0, acc = 1.0f)
         sessionRepository.saveSessionResult(s1)
         sessionRepository.saveSessionResult(s2)
         sessionRepository.saveSessionResult(s3)
 
-        // Target 'b' has 5 attempts
         for (i in 1..5) {
             val sid = if (i <= 2) "s1" else if (i <= 4) "s2" else "s3"
             sessionRepository.recordAnswer(answer("a$i", sid, target = "b", isCorrect = true))
         }
-        // Target 'd' has ONLY 2 attempts (< 3)
         sessionRepository.recordAnswer(answer("ad1", "s1", target = "d", isCorrect = true))
         sessionRepository.recordAnswer(answer("ad2", "s2", target = "d", isCorrect = true))
 
@@ -284,9 +306,9 @@ class LevelReadinessEvaluationTest {
     // 10. Missing AnswerLog does not count as zero errors.
     @Test
     fun test10_missingAnswerLog_doesNotCountAsZeroErrors() = runTest {
-        val s1 = session("s1", total = 5, correct = 5, incorrect = 0, acc = 1.0f, time = 1000L)
-        val s2 = session("s2", total = 5, correct = 5, incorrect = 0, acc = 1.0f, time = 2000L)
-        val s3 = session("s3", total = 5, correct = 5, incorrect = 0, acc = 1.0f, time = 3000L)
+        val s1 = session("s1", total = 5, correct = 5, incorrect = 0, acc = 1.0f)
+        val s2 = session("s2", total = 5, correct = 5, incorrect = 0, acc = 1.0f)
+        val s3 = session("s3", total = 5, correct = 5, incorrect = 0, acc = 1.0f)
         sessionRepository.saveSessionResult(s1)
         sessionRepository.saveSessionResult(s2)
         sessionRepository.saveSessionResult(s3)
@@ -299,10 +321,10 @@ class LevelReadinessEvaluationTest {
     // 11. ABANDONED sessions do not count.
     @Test
     fun test11_abandonedSessions_doNotCount() = runTest {
-        seedStandardSessionWithAnswers("s1", time = 1000L)
-        seedStandardSessionWithAnswers("s2", time = 2000L)
+        seedStandardSessionWithAnswers("s1")
+        seedStandardSessionWithAnswers("s2")
 
-        val abandoned = session("s3_abandoned", status = SessionStatus.ABANDONED, time = 3000L)
+        val abandoned = session("s3_abandoned", status = SessionStatus.ABANDONED)
         sessionRepository.saveSessionResult(abandoned)
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
@@ -313,10 +335,10 @@ class LevelReadinessEvaluationTest {
     // 12. IN_PROGRESS sessions do not count.
     @Test
     fun test12_inProgressSessions_doNotCount() = runTest {
-        seedStandardSessionWithAnswers("s1", time = 1000L)
-        seedStandardSessionWithAnswers("s2", time = 2000L)
+        seedStandardSessionWithAnswers("s1")
+        seedStandardSessionWithAnswers("s2")
 
-        val inProgress = session("s3_in_progress", status = SessionStatus.IN_PROGRESS, time = 3000L)
+        val inProgress = session("s3_in_progress", status = SessionStatus.IN_PROGRESS)
         sessionRepository.saveSessionResult(inProgress)
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
@@ -327,10 +349,10 @@ class LevelReadinessEvaluationTest {
     // 13. Sessions from different modules do not mix.
     @Test
     fun test13_sessionsFromDifferentModules_doNotMix() = runTest {
-        seedStandardSessionWithAnswers("s1", modId = "pulau_alfabet", time = 1000L)
-        seedStandardSessionWithAnswers("s2", modId = "pulau_alfabet", time = 2000L)
-        seedStandardSessionWithAnswers("s3", modId = "dunia_suku_kata", time = 3000L)
-        seedStandardSessionWithAnswers("s4", modId = "dunia_suku_kata", time = 4000L)
+        seedStandardSessionWithAnswers("s1", modId = "pulau_alfabet")
+        seedStandardSessionWithAnswers("s2", modId = "pulau_alfabet")
+        seedStandardSessionWithAnswers("s3", modId = "dunia_suku_kata")
+        seedStandardSessionWithAnswers("s4", modId = "dunia_suku_kata")
 
         val resultAlfa = evaluateReadinessUseCase(childId, "pulau_alfabet")
         assertEquals(LevelReadinessStatus.INSUFFICIENT_SESSIONS, resultAlfa.status)
@@ -344,10 +366,10 @@ class LevelReadinessEvaluationTest {
     // 14. Mini-game sessions do not unlock learning levels.
     @Test
     fun test14_miniGameSessions_doNotUnlockLearningLevels() = runTest {
-        seedStandardSessionWithAnswers("s1", time = 1000L)
-        seedStandardSessionWithAnswers("s2", time = 2000L)
+        seedStandardSessionWithAnswers("s1")
+        seedStandardSessionWithAnswers("s2")
 
-        val miniGame = session("s3_mini", actId = "tangkap_huruf_game", acc = 1.0f, time = 3000L)
+        val miniGame = session("s3_mini", actId = "tangkap_huruf_game", acc = 1.0f)
         sessionRepository.saveSessionResult(miniGame)
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
@@ -361,9 +383,9 @@ class LevelReadinessEvaluationTest {
         val childA = "child_a_syakira"
         val childB = "child_b_other"
 
-        seedStandardSessionWithAnswers("s1_a", cId = childA, time = 1000L)
-        seedStandardSessionWithAnswers("s2_a", cId = childA, time = 2000L)
-        seedStandardSessionWithAnswers("s3_a", cId = childA, time = 3000L)
+        seedStandardSessionWithAnswers("s1_a", cId = childA)
+        seedStandardSessionWithAnswers("s2_a", cId = childA)
+        seedStandardSessionWithAnswers("s3_a", cId = childA)
 
         val resultA = evaluateReadinessUseCase(childA, "pulau_alfabet")
         assertTrue(resultA.isReadyToUnlock)
@@ -379,17 +401,17 @@ class LevelReadinessEvaluationTest {
     // 16. Prior unlocked levels remain unlocked after later low scores.
     @Test
     fun test16_priorUnlockedLevels_remainUnlockedAfterLaterLowScores() = runTest {
-        seedStandardSessionWithAnswers("s1", time = 1000L)
-        seedStandardSessionWithAnswers("s2", time = 2000L)
-        seedStandardSessionWithAnswers("s3", time = 3000L)
+        seedStandardSessionWithAnswers("s1")
+        seedStandardSessionWithAnswers("s2")
+        seedStandardSessionWithAnswers("s3")
 
         val progressInitial = getProgressionUseCase(childId)
         assertTrue(progressInitial.level2.isUnlocked)
         assertEquals(LevelNodeStatus.ACTIVE, progressInitial.getNodeStatus(2))
 
-        seedStandardSessionWithAnswers("s4_low", total = 5, incorrect = 4, acc = 0.20f, time = 4000L)
-        seedStandardSessionWithAnswers("s5_low", total = 5, incorrect = 4, acc = 0.20f, time = 5000L)
-        seedStandardSessionWithAnswers("s6_low", total = 5, incorrect = 4, acc = 0.20f, time = 6000L)
+        seedStandardSessionWithAnswers("s4_low", total = 5, incorrect = 4, acc = 0.20f)
+        seedStandardSessionWithAnswers("s5_low", total = 5, incorrect = 4, acc = 0.20f)
+        seedStandardSessionWithAnswers("s6_low", total = 5, incorrect = 4, acc = 0.20f)
 
         val resultAfter = evaluateReadinessUseCase(childId, "pulau_alfabet")
         assertEquals(LevelReadinessStatus.LOW_ACCURACY, resultAfter.status)
@@ -402,18 +424,18 @@ class LevelReadinessEvaluationTest {
     // 17. Level 3 depends on Level 2 mastery.
     @Test
     fun test17_level3_dependsOnLevel2Mastery() = runTest {
-        seedStandardSessionWithAnswers("s1_l1", modId = "pulau_alfabet", time = 1000L)
-        seedStandardSessionWithAnswers("s2_l1", modId = "pulau_alfabet", time = 2000L)
-        seedStandardSessionWithAnswers("s3_l1", modId = "pulau_alfabet", time = 3000L)
+        seedStandardSessionWithAnswers("s1_l1", modId = "pulau_alfabet")
+        seedStandardSessionWithAnswers("s2_l1", modId = "pulau_alfabet")
+        seedStandardSessionWithAnswers("s3_l1", modId = "pulau_alfabet")
 
         var progress = getProgressionUseCase(childId)
         assertTrue(progress.level2.isUnlocked)
         assertFalse(progress.level3.isUnlocked)
         assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(3))
 
-        seedStandardSessionWithAnswers("s1_l2", modId = "dunia_suku_kata", targetLetter = "MATA", time = 4000L)
-        seedStandardSessionWithAnswers("s2_l2", modId = "dunia_suku_kata", targetLetter = "MATA", time = 5000L)
-        seedStandardSessionWithAnswers("s3_l2", modId = "dunia_suku_kata", targetLetter = "MATA", time = 6000L)
+        seedStandardSessionWithAnswers("s1_l2", modId = "dunia_suku_kata", targetLetter = "MATA")
+        seedStandardSessionWithAnswers("s2_l2", modId = "dunia_suku_kata", targetLetter = "MATA")
+        seedStandardSessionWithAnswers("s3_l2", modId = "dunia_suku_kata", targetLetter = "MATA")
 
         progress = getProgressionUseCase(childId)
         assertTrue(progress.level3.isUnlocked)
@@ -423,22 +445,22 @@ class LevelReadinessEvaluationTest {
     // 18. Level 4 depends on Level 3 mastery.
     @Test
     fun test18_level4_dependsOnLevel3Mastery() = runTest {
-        seedStandardSessionWithAnswers("s1_l1", modId = "pulau_alfabet", time = 1000L)
-        seedStandardSessionWithAnswers("s2_l1", modId = "pulau_alfabet", time = 2000L)
-        seedStandardSessionWithAnswers("s3_l1", modId = "pulau_alfabet", time = 3000L)
+        seedStandardSessionWithAnswers("s1_l1", modId = "pulau_alfabet")
+        seedStandardSessionWithAnswers("s2_l1", modId = "pulau_alfabet")
+        seedStandardSessionWithAnswers("s3_l1", modId = "pulau_alfabet")
 
-        seedStandardSessionWithAnswers("s1_l2", modId = "dunia_suku_kata", targetLetter = "MATA", time = 4000L)
-        seedStandardSessionWithAnswers("s2_l2", modId = "dunia_suku_kata", targetLetter = "MATA", time = 5000L)
-        seedStandardSessionWithAnswers("s3_l2", modId = "dunia_suku_kata", targetLetter = "MATA", time = 6000L)
+        seedStandardSessionWithAnswers("s1_l2", modId = "dunia_suku_kata", targetLetter = "MATA")
+        seedStandardSessionWithAnswers("s2_l2", modId = "dunia_suku_kata", targetLetter = "MATA")
+        seedStandardSessionWithAnswers("s3_l2", modId = "dunia_suku_kata", targetLetter = "MATA")
 
         var progress = getProgressionUseCase(childId)
         assertTrue(progress.level3.isUnlocked)
         assertFalse(progress.level4.isUnlocked)
         assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(4))
 
-        seedStandardSessionWithAnswers("s1_l3", modId = "gunung_kata", targetLetter = "BOLA", time = 7000L)
-        seedStandardSessionWithAnswers("s2_l3", modId = "gunung_kata", targetLetter = "BOLA", time = 8000L)
-        seedStandardSessionWithAnswers("s3_l3", modId = "gunung_kata", targetLetter = "BOLA", time = 9000L)
+        seedStandardSessionWithAnswers("s1_l3", modId = "gunung_kata", targetLetter = "BOLA")
+        seedStandardSessionWithAnswers("s2_l3", modId = "gunung_kata", targetLetter = "BOLA")
+        seedStandardSessionWithAnswers("s3_l3", modId = "gunung_kata", targetLetter = "BOLA")
 
         progress = getProgressionUseCase(childId)
         assertTrue(progress.level4.isUnlocked)
@@ -490,9 +512,9 @@ class LevelReadinessEvaluationTest {
         var progress = getProgressionUseCase(childId)
         assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(2))
 
-        seedStandardSessionWithAnswers("s1", time = 1000L)
-        seedStandardSessionWithAnswers("s2", time = 2000L)
-        seedStandardSessionWithAnswers("s3", time = 3000L)
+        seedStandardSessionWithAnswers("s1")
+        seedStandardSessionWithAnswers("s2")
+        seedStandardSessionWithAnswers("s3")
 
         progress = getProgressionUseCase(childId)
         assertEquals(LevelNodeStatus.ACTIVE, progress.getNodeStatus(2))
@@ -502,29 +524,114 @@ class LevelReadinessEvaluationTest {
     // 23. Duplicate sessions do not increase session count.
     @Test
     fun test23_duplicateSessions_doNotIncreaseSessionCount() = runTest {
-        seedStandardSessionWithAnswers("s1_dup", time = 1000L)
-        seedStandardSessionWithAnswers("s1_dup", time = 1000L)
-        seedStandardSessionWithAnswers("s2_other", time = 2000L)
+        seedStandardSessionWithAnswers("s1_dup")
+        seedStandardSessionWithAnswers("s1_dup")
+        seedStandardSessionWithAnswers("s2_other")
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
         assertEquals(LevelReadinessStatus.INSUFFICIENT_SESSIONS, result.status)
         assertEquals(2, result.sessionCount)
     }
 
-    // 24. No requirement checks the number of distinct learning days.
+    // 24. Practicing only on 1 single day fails the 2-day requirement within the last 7 days.
     @Test
-    fun test24_noRequirementChecks_numberOfDistinctLearningDays() = runTest {
-        val sameTimestamp = 1700000000000L
-        seedStandardSessionWithAnswers("s1_sametime", time = sameTimestamp)
-        seedStandardSessionWithAnswers("s2_sametime", time = sameTimestamp)
-        seedStandardSessionWithAnswers("s3_sametime", time = sameTimestamp)
+    fun test24_sameDayPractice_failsDistinctDaysRequirement() = runTest {
+        val sameDayTime = timestampForDay(0, 10)
+        seedStandardSessionWithAnswers("s1_same", time = sameDayTime)
+        seedStandardSessionWithAnswers("s2_same", time = sameDayTime + 60_000)
+        seedStandardSessionWithAnswers("s3_same", time = sameDayTime + 120_000)
+
+        val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
+        assertEquals(LevelReadinessStatus.INSUFFICIENT_PRACTICE_DAYS, result.status)
+        assertEquals(3, result.sessionCount)
+        assertEquals(1, result.distinctDaysInLast7Days)
+        assertFalse(result.isReadyToUnlock)
+
+        val progress = getProgressionUseCase(childId)
+        assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(2))
+    }
+
+    // 24B. Practicing across 2 distinct days within the last 7 days passes.
+    @Test
+    fun test24b_twoDistinctDaysWithinLastSevenDays_passes() = runTest {
+        seedStandardSessionWithAnswers("s1_day1", time = timestampForDay(1, 10))
+        seedStandardSessionWithAnswers("s2_day2", time = timestampForDay(0, 10))
+        seedStandardSessionWithAnswers("s3_day2", time = timestampForDay(0, 14))
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
         assertEquals(LevelReadinessStatus.READY_TO_UNLOCK, result.status)
+        assertEquals(3, result.sessionCount)
+        assertEquals(2, result.distinctDaysInLast7Days)
         assertTrue(result.isReadyToUnlock)
 
         val progress = getProgressionUseCase(childId)
         assertTrue(progress.level2.isUnlocked)
+    }
+
+    // 24C. Sessions older than 7 days do not count towards the 7-day practice window.
+    @Test
+    fun test24c_sessionsOlderThanSevenDays_doNotCountTowardsPracticeDays() = runTest {
+        // 2 sessions from 8 days ago (outside 7-day window)
+        seedStandardSessionWithAnswers("s1_old", time = timestampForDay(8, 10))
+        seedStandardSessionWithAnswers("s2_old", time = timestampForDay(8, 14))
+        // 1 session today
+        seedStandardSessionWithAnswers("s3_new", time = timestampForDay(0, 10))
+
+        val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
+        assertEquals(LevelReadinessStatus.INSUFFICIENT_PRACTICE_DAYS, result.status)
+        assertEquals(3, result.sessionCount)
+        assertEquals(1, result.distinctDaysInLast7Days)
+        assertFalse(result.isReadyToUnlock)
+    }
+
+    // 24D. Exact 7th day boundary (session on today - 6 days counts as valid practice day).
+    @Test
+    fun test24d_exactSevenDayBoundary_countsAsValidPracticeDay() = runTest {
+        // Session exactly 6 days ago (7th calendar day of window [today-6 .. today])
+        seedStandardSessionWithAnswers("s1_edge", time = timestampForDay(6, 10))
+        seedStandardSessionWithAnswers("s2_today", time = timestampForDay(0, 10))
+        seedStandardSessionWithAnswers("s3_today", time = timestampForDay(0, 14))
+
+        val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
+        assertEquals(LevelReadinessStatus.READY_TO_UNLOCK, result.status)
+        assertEquals(3, result.sessionCount)
+        assertEquals(2, result.distinctDaysInLast7Days)
+        assertTrue(result.isReadyToUnlock)
+    }
+
+    // 24E. Abandoned sessions do not count towards practice days.
+    @Test
+    fun test24e_abandonedSessions_doNotCountTowardsPracticeDays() = runTest {
+        seedStandardSessionWithAnswers("s1_c", time = timestampForDay(1, 10))
+        val abandoned = session("s2_ab", status = SessionStatus.ABANDONED, time = timestampForDay(0, 10))
+        sessionRepository.saveSessionResult(abandoned)
+        seedStandardSessionWithAnswers("s3_c", time = timestampForDay(0, 14))
+
+        val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
+        assertEquals(LevelReadinessStatus.INSUFFICIENT_SESSIONS, result.status)
+        assertEquals(2, result.sessionCount)
+    }
+
+    // 24F. Multi-profile isolation: practice days are strictly isolated per child profile.
+    @Test
+    fun test24f_multiProfileIsolation_practiceDaysNotShared() = runTest {
+        val childKakak = "profile_kakak"
+        val childAdik = "profile_adik"
+
+        seedStandardSessionWithAnswers("s1_k", cId = childKakak, time = timestampForDay(1, 10))
+        seedStandardSessionWithAnswers("s2_k", cId = childKakak, time = timestampForDay(0, 10))
+        seedStandardSessionWithAnswers("s3_k", cId = childKakak, time = timestampForDay(0, 14))
+
+        val resultKakak = evaluateReadinessUseCase(childKakak, "pulau_alfabet")
+        assertTrue(resultKakak.isReadyToUnlock)
+        assertEquals(2, resultKakak.distinctDaysInLast7Days)
+
+        seedStandardSessionWithAnswers("s1_a", cId = childAdik, time = timestampForDay(0, 10))
+
+        val resultAdik = evaluateReadinessUseCase(childAdik, "pulau_alfabet")
+        assertEquals(LevelReadinessStatus.INSUFFICIENT_SESSIONS, resultAdik.status)
+        assertEquals(1, resultAdik.sessionCount)
+        assertEquals(1, resultAdik.distinctDaysInLast7Days)
     }
 
     // 25. Multi-profile isolation under same guardian: Child 1 unlocking Level 2 does not unlock Level 2 for Child 2.
@@ -533,16 +640,14 @@ class LevelReadinessEvaluationTest {
         val child1 = "profile_child_kakak"
         val child2 = "profile_child_adik"
 
-        // Child 1 qualifies and unlocks Level 2
-        seedStandardSessionWithAnswers("s1_c1", cId = child1, time = 1000L)
-        seedStandardSessionWithAnswers("s2_c1", cId = child1, time = 2000L)
-        seedStandardSessionWithAnswers("s3_c1", cId = child1, time = 3000L)
+        seedStandardSessionWithAnswers("s1_c1", cId = child1)
+        seedStandardSessionWithAnswers("s2_c1", cId = child1)
+        seedStandardSessionWithAnswers("s3_c1", cId = child1)
 
         val progressChild1 = getProgressionUseCase(child1)
         assertTrue("Child 1 should have Level 2 unlocked", progressChild1.level2.isUnlocked)
         assertEquals(LevelNodeStatus.ACTIVE, progressChild1.getNodeStatus(2))
 
-        // Child 2 has zero sessions recorded
         val progressChild2 = getProgressionUseCase(child2)
         assertFalse("Child 2 must NOT have Level 2 unlocked", progressChild2.level2.isUnlocked)
         assertEquals(LevelNodeStatus.LOCKED, progressChild2.getNodeStatus(2))
@@ -555,24 +660,20 @@ class LevelReadinessEvaluationTest {
         val childKakak = "profile_kakak"
         val childAdik = "profile_adik"
 
-        // Unlock Level 2 for Kakak
-        seedStandardSessionWithAnswers("s1_k", cId = childKakak, time = 1000L)
-        seedStandardSessionWithAnswers("s2_k", cId = childKakak, time = 2000L)
-        seedStandardSessionWithAnswers("s3_k", cId = childKakak, time = 3000L)
+        seedStandardSessionWithAnswers("s1_k", cId = childKakak)
+        seedStandardSessionWithAnswers("s2_k", cId = childKakak)
+        seedStandardSessionWithAnswers("s3_k", cId = childKakak)
         getProgressionUseCase(childKakak)
 
-        // Switch to Kakak
         AksaUserState.currentProfileId = childKakak
         val kakakUnlocked = levelProgressRepository.getUnlockedLevels(AksaUserState.currentProfileId)
         assertTrue(kakakUnlocked.contains("dunia_suku_kata"))
 
-        // Switch to Adik
         AksaUserState.currentProfileId = childAdik
         val adikUnlocked = levelProgressRepository.getUnlockedLevels(AksaUserState.currentProfileId)
         assertFalse(adikUnlocked.contains("dunia_suku_kata"))
         assertEquals(setOf("pulau_alfabet"), adikUnlocked)
 
-        // Switch back to Kakak
         AksaUserState.currentProfileId = childKakak
         val kakakUnlockedAgain = levelProgressRepository.getUnlockedLevels(AksaUserState.currentProfileId)
         assertTrue(kakakUnlockedAgain.contains("dunia_suku_kata"))
@@ -584,17 +685,14 @@ class LevelReadinessEvaluationTest {
         val repo = DemoLevelProgressRepository()
         val testChild = "child_test_repo_fallback"
 
-        // Brand-new child always has pulau_alfabet
         val initialLevels = repo.getUnlockedLevels(testChild)
         assertEquals(setOf("pulau_alfabet"), initialLevels)
 
-        // Unlock Level 2
         repo.unlockLevel(testChild, "dunia_suku_kata")
         val afterUnlock = repo.getUnlockedLevels(testChild)
         assertTrue(afterUnlock.contains("dunia_suku_kata"))
         assertTrue(afterUnlock.contains("pulau_alfabet"))
 
-        // Overwrite save without default level still keeps pulau_alfabet
         repo.saveUnlockedLevels(testChild, setOf("gunung_kata"))
         val afterSave = repo.getUnlockedLevels(testChild)
         assertTrue(afterSave.contains("pulau_alfabet"))
@@ -608,11 +706,9 @@ class LevelReadinessEvaluationTest {
         val profileRepo = DemoProfileRepository()
         val useCase = GetActiveChildIdUseCase(authRepo, profileRepo)
 
-        // Reset state
         AksaUserState.currentProfileId = ""
         authRepo.signOut()
 
-        // 1. Unauthenticated -> throws IllegalStateException
         try {
             useCase()
             org.junit.Assert.fail("Should throw IllegalStateException when unauthenticated")
@@ -620,7 +716,6 @@ class LevelReadinessEvaluationTest {
             assertTrue(e.message!!.contains("login"))
         }
 
-        // 2. Authenticated parent but no profiles created yet -> throws IllegalStateException
         authRepo.signIn("user_baru@aksa.id", "123456")
         val parentUid = authRepo.currentGuardian.value!!.uid
         try {
@@ -630,7 +725,6 @@ class LevelReadinessEvaluationTest {
             assertTrue(e.message!!.contains("profil anak"))
         }
 
-        // 3. Parent has a profile in repository -> resolves active profile
         val profile = Profile(
             profileId = "profile_repo_child_1",
             userId = parentUid,
@@ -642,15 +736,12 @@ class LevelReadinessEvaluationTest {
         val resolvedFromRepo = useCase()
         assertEquals("profile_repo_child_1", resolvedFromRepo)
 
-        // 4. AksaUserState explicit currentProfileId resolves validated profile
         AksaUserState.currentProfileId = "profile_repo_child_1"
         val resolvedFromState = useCase()
         assertEquals("profile_repo_child_1", resolvedFromState)
 
-        // Sync helper
         assertEquals("profile_repo_child_1", useCase.getSync())
 
-        // 5. Blank AksaUserState causes getSync() to throw
         AksaUserState.currentProfileId = ""
         try {
             useCase.getSync()
@@ -663,19 +754,15 @@ class LevelReadinessEvaluationTest {
     // 29. Session eligibility: only COMPLETED sessions with valid status are considered.
     @Test
     fun test29_sessionEligibility_onlyCompletedSessionsCount() = runTest {
-        // 1 valid completed session
-        seedStandardSessionWithAnswers("s_valid", time = 1000L)
+        seedStandardSessionWithAnswers("s_valid")
 
-        // 1 abandoned session
-        val abandoned = session("s_abandoned", status = SessionStatus.ABANDONED, time = 2000L)
+        val abandoned = session("s_abandoned", status = SessionStatus.ABANDONED)
         sessionRepository.saveSessionResult(abandoned)
 
-        // 1 in_progress session
-        val inProgress = session("s_in_progress", status = SessionStatus.IN_PROGRESS, time = 3000L)
+        val inProgress = session("s_in_progress", status = SessionStatus.IN_PROGRESS)
         sessionRepository.saveSessionResult(inProgress)
 
-        // 1 mini game session
-        val miniGame = session("s_game", actId = "tangkap_huruf_game", time = 4000L)
+        val miniGame = session("s_game", actId = "tangkap_huruf_game")
         sessionRepository.saveSessionResult(miniGame)
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
@@ -684,4 +771,3 @@ class LevelReadinessEvaluationTest {
         assertFalse(result.isReadyToUnlock)
     }
 }
-

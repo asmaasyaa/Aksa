@@ -5,6 +5,7 @@ package com.aksa.app.domain.model
  */
 enum class LevelReadinessStatus {
     INSUFFICIENT_SESSIONS,
+    INSUFFICIENT_PRACTICE_DAYS,
     INSUFFICIENT_EVIDENCE,
     LOW_ACCURACY,
     HIGH_ERROR_RATE,
@@ -36,6 +37,7 @@ data class LevelReadinessResult(
     val averageAccuracy: Float, // Range 0.0f .. 1.0f
     val targetPerformances: Map<String, TargetPerformance>,
     val explanation: String,
+    val distinctDaysInLast7Days: Int = 0,
     val isReadyToUnlock: Boolean = (status == LevelReadinessStatus.READY_TO_UNLOCK)
 ) {
     val profileId: String get() = childId

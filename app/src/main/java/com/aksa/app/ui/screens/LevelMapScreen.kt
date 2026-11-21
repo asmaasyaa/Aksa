@@ -439,6 +439,21 @@ private fun LockedLevelExplanationDialog(
                                 color = AksaDarkBrown
                             )
                         }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = AksaIcons.Check,
+                                contentDescription = null,
+                                tint = AksaLimeDark,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = locked.practiceDaysRequirement,
+                                fontFamily = Poppins,
+                                fontSize = 11.sp,
+                                color = AksaDarkBrown
+                            )
+                        }
                     }
                 }
 

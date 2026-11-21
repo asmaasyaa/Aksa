@@ -26,6 +26,7 @@ data class LockedLevelDetails(
     val explanation: String,
     val targetAccuracies: String = "Rata-rata akurasi minimal 80%",
     val targetErrorLimit: String = "Tingkat kesalahan materi maksimal 40%",
+    val practiceDaysRequirement: String = "Latihan minimal 2 hari berbeda dalam 7 hari terakhir",
     val recommendedLevelNumber: Int = (levelNumber - 1).coerceAtLeast(1)
 )
 
