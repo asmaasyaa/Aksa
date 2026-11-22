@@ -12,8 +12,10 @@ import com.aksa.app.domain.repository.AchievementRepository
 import com.aksa.app.domain.repository.AuthRepository
 import com.aksa.app.domain.repository.ProfileRepository
 import com.aksa.app.domain.repository.SessionRepository
+import com.aksa.app.domain.usecase.AnalyzeTargetErrorsUseCase
 import com.aksa.app.domain.usecase.EvaluateWeeklyMilestonesUseCase
 import com.aksa.app.domain.usecase.GenerateHurufMiripQuestionsUseCase
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.state.AksaUserState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +38,11 @@ data class HurufMiripUiState(
     val showCompletionDialog: Boolean = false,
     val sessionResult: SessionResult? = null,
     val newlyAwardedMilestones: List<Int> = emptyList(),
-    val isTtsReady: Boolean = false
+    val isTtsReady: Boolean = false,
+    val currentDifficulty: Int = 1,
+    val consecutiveCorrect: Int = 0,
+    val consecutiveIncorrect: Int = 0,
+    val weakTargets: List<String> = emptyList()
 ) {
     val currentQuestion: HurufMiripQuestion?
         get() = questions.getOrNull(currentQuestionIndex)
@@ -49,7 +55,9 @@ class HurufMiripViewModel(
     private val authRepository: AuthRepository = AksaRepositoryProvider.authRepository,
     private val profileRepository: ProfileRepository = AksaRepositoryProvider.profileRepository,
     private val questionGenerator: GenerateHurufMiripQuestionsUseCase = GenerateHurufMiripQuestionsUseCase(),
-    private val evaluateWeeklyMilestonesUseCase: EvaluateWeeklyMilestonesUseCase = EvaluateWeeklyMilestonesUseCase(achievementRepository)
+    private val evaluateWeeklyMilestonesUseCase: EvaluateWeeklyMilestonesUseCase = EvaluateWeeklyMilestonesUseCase(achievementRepository),
+    private val getActiveChildIdUseCase: GetActiveChildIdUseCase = GetActiveChildIdUseCase(authRepository, profileRepository),
+    private val analyzeTargetErrorsUseCase: AnalyzeTargetErrorsUseCase = AnalyzeTargetErrorsUseCase(sessionRepository)
 ) : ViewModel() {
 
     private val sessionId = "session_${UUID.randomUUID()}"
@@ -69,6 +77,11 @@ class HurufMiripViewModel(
         questionDisplayedAtMs = System.currentTimeMillis()
         playCurrentQuestionAudio()
 
+        // Load adaptive questions based on past performance
+        viewModelScope.launch {
+            loadAdaptiveQuestions()
+        }
+
         // Observe TTS readiness if speaker provided
         if (audioSpeaker != null) {
             viewModelScope.launch {
@@ -76,6 +89,29 @@ class HurufMiripViewModel(
                     _uiState.value = _uiState.value.copy(isTtsReady = ready)
                 }
             }
+        }
+    }
+
+    private suspend fun loadAdaptiveQuestions() {
+        try {
+            val childId = getActiveChildId()
+            val report = analyzeTargetErrorsUseCase(childId, moduleId = "pulau_alfabet", activityId = "huruf_mirip")
+            if (report.weakTargets.isNotEmpty()) {
+                val currentState = _uiState.value
+                // Only update questions if the child has not started answering yet
+                if (currentState.currentQuestionIndex == 0 && !currentState.isAnswered) {
+                    val adaptiveQuestions = questionGenerator(report.weakTargets)
+                    _uiState.value = currentState.copy(
+                        questions = adaptiveQuestions,
+                        weakTargets = report.weakTargets
+                    )
+                    playCurrentQuestionAudio()
+                } else {
+                    _uiState.value = currentState.copy(weakTargets = report.weakTargets)
+                }
+            }
+        } catch (_: Exception) {
+            // Silently retain standard question set if loading adaptive targets fails
         }
     }
 
@@ -95,12 +131,42 @@ class HurufMiripViewModel(
         val newCorrectCount = if (isCorrect) state.correctAnswersCount + 1 else state.correctAnswersCount
         val newIncorrectCount = if (!isCorrect) state.incorrectAnswersCount + 1 else state.incorrectAnswersCount
 
+        // Adaptive difficulty progression (matching DeveloperPreviewAndAdaptiveLogicTest specifications)
+        // 3 consecutive correct -> level up by 1 (max 3), reset consecutiveCorrect to 0
+        // 2 consecutive incorrect -> level down by 1 (min 1), reset consecutiveIncorrect to 0
+        val newConsecutiveCorrect: Int
+        val newConsecutiveIncorrect: Int
+        var newDifficulty = state.currentDifficulty
+
+        if (isCorrect) {
+            val count = state.consecutiveCorrect + 1
+            newConsecutiveIncorrect = 0
+            if (count >= 3) {
+                if (newDifficulty < 3) newDifficulty++
+                newConsecutiveCorrect = 0
+            } else {
+                newConsecutiveCorrect = count
+            }
+        } else {
+            val count = state.consecutiveIncorrect + 1
+            newConsecutiveCorrect = 0
+            if (count >= 2) {
+                if (newDifficulty > 1) newDifficulty--
+                newConsecutiveIncorrect = 0
+            } else {
+                newConsecutiveIncorrect = count
+            }
+        }
+
         _uiState.value = state.copy(
             selectedChoice = choice,
             isAnswered = true,
             isCorrect = isCorrect,
             correctAnswersCount = newCorrectCount,
-            incorrectAnswersCount = newIncorrectCount
+            incorrectAnswersCount = newIncorrectCount,
+            currentDifficulty = newDifficulty,
+            consecutiveCorrect = newConsecutiveCorrect,
+            consecutiveIncorrect = newConsecutiveIncorrect
         )
 
         // Persist AnswerLog idempotently
@@ -227,12 +293,17 @@ class HurufMiripViewModel(
     }
 
     private fun getActiveChildId(): String {
-        if (com.aksa.app.ui.state.AksaUserState.currentProfileId.isNotBlank()) {
-            return com.aksa.app.ui.state.AksaUserState.currentProfileId
+        return try {
+            getActiveChildIdUseCase.getSync()
+        } catch (_: Exception) {
+            if (AksaUserState.currentProfileId.isNotBlank()) {
+                AksaUserState.currentProfileId
+            } else {
+                val guardian = authRepository.currentGuardian.value
+                val guardianUid = guardian?.uid ?: "demo_guardian_default"
+                "child_$guardianUid"
+            }
         }
-        val guardian = authRepository.currentGuardian.value
-        val guardianUid = guardian?.uid ?: "demo_guardian_default"
-        return "child_$guardianUid"
     }
 
     override fun onCleared() {

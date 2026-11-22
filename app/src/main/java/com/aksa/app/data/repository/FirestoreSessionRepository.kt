@@ -58,6 +58,19 @@ class FirestoreSessionRepository(
         }
     }
 
+    override suspend fun getAnswersForChild(childId: String): List<AnswerLog> {
+        return try {
+            val parentUid = getParentUid()
+            val snapshot = firestore.collection(FirestorePaths.answerLogsCollection(parentUid, childId))
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { it.toObject(AnswerLogDto::class.java)?.toDomain() }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     override suspend fun saveSessionResult(result: SessionResult): Result<Unit> {
         return try {
             val parentUid = getParentUid()

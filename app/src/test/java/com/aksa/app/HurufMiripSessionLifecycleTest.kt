@@ -97,9 +97,10 @@ class HurufMiripSessionLifecycleTest {
         assertEquals(1.0f, state.sessionResult?.accuracy ?: 0f, 0.01f)
 
         // Verify committed in repository
-        val completed = sessionRepository.getCompletedSessions(state.sessionResult!!.childId)
+        val sessionResult = state.sessionResult!!
+        val completed = sessionRepository.getCompletedSessions(sessionResult.childId)
         assertEquals(1, completed.size)
-        assertEquals(state.sessionResult!!.sessionId, completed[0].sessionId)
+        assertEquals(sessionResult.sessionId, completed[0].sessionId)
     }
 
     @Test
@@ -175,5 +176,120 @@ class HurufMiripSessionLifecycleTest {
         assertEquals(4, result?.correctAnswers)
         assertEquals(6, result?.incorrectAnswers)
         assertEquals(0.40f, result?.accuracy ?: 0f, 0.01f)
+    }
+
+    @Test
+    fun inGameAdaptiveDifficultyAdjustsOnConsecutiveAnswers() = runTest {
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(1, vm.uiState.value.currentDifficulty)
+        assertEquals(0, vm.uiState.value.consecutiveCorrect)
+
+        // 1st correct
+        val q1 = vm.uiState.value.currentQuestion!!
+        vm.selectChoice(q1.targetLetter)
+        advanceUntilIdle()
+        assertEquals(1, vm.uiState.value.currentDifficulty)
+        assertEquals(1, vm.uiState.value.consecutiveCorrect)
+        vm.nextQuestion()
+        advanceUntilIdle()
+
+        // 2nd correct
+        val q2 = vm.uiState.value.currentQuestion!!
+        vm.selectChoice(q2.targetLetter)
+        advanceUntilIdle()
+        assertEquals(1, vm.uiState.value.currentDifficulty)
+        assertEquals(2, vm.uiState.value.consecutiveCorrect)
+        vm.nextQuestion()
+        advanceUntilIdle()
+
+        // 3rd correct -> Level up to 2!
+        val q3 = vm.uiState.value.currentQuestion!!
+        vm.selectChoice(q3.targetLetter)
+        advanceUntilIdle()
+        assertEquals(2, vm.uiState.value.currentDifficulty)
+        assertEquals(0, vm.uiState.value.consecutiveCorrect)
+        vm.nextQuestion()
+        advanceUntilIdle()
+
+        // 4th correct, 5th correct, 6th correct -> Level up to 3!
+        val q4 = vm.uiState.value.currentQuestion!!
+        vm.selectChoice(q4.targetLetter)
+        advanceUntilIdle()
+        vm.nextQuestion()
+        advanceUntilIdle()
+
+        val q5 = vm.uiState.value.currentQuestion!!
+        vm.selectChoice(q5.targetLetter)
+        advanceUntilIdle()
+        vm.nextQuestion()
+        advanceUntilIdle()
+
+        val q6 = vm.uiState.value.currentQuestion!!
+        vm.selectChoice(q6.targetLetter)
+        advanceUntilIdle()
+        assertEquals(3, vm.uiState.value.currentDifficulty)
+        vm.nextQuestion()
+        advanceUntilIdle()
+
+        // 1st incorrect -> difficulty stays 3, consecutiveIncorrect = 1
+        val q7 = vm.uiState.value.currentQuestion!!
+        vm.selectChoice(q7.pairLetter) // wrong
+        advanceUntilIdle()
+        assertEquals(3, vm.uiState.value.currentDifficulty)
+        assertEquals(1, vm.uiState.value.consecutiveIncorrect)
+        vm.nextQuestion()
+        advanceUntilIdle()
+
+        // 2nd incorrect -> Level drops to 2!
+        val q8 = vm.uiState.value.currentQuestion!!
+        vm.selectChoice(q8.pairLetter) // wrong
+        advanceUntilIdle()
+        assertEquals(2, vm.uiState.value.currentDifficulty)
+        assertEquals(0, vm.uiState.value.consecutiveIncorrect)
+    }
+
+    @Test
+    fun adaptiveQuestionsLoadedWhenWeakTargetsExist() = runTest {
+        val childId = "child_demo_guardian_default"
+        val pastSessionId = "session_past_adaptive_test"
+
+        // Seed 1 past completed session with errors on 'b'
+        sessionRepository.saveSessionResult(
+            com.aksa.app.domain.model.SessionResult(
+                sessionId = pastSessionId,
+                childId = childId,
+                moduleId = "pulau_alfabet",
+                activityId = "huruf_mirip",
+                startedAt = 1000L,
+                completedAt = 2000L,
+                totalQuestions = 10,
+                correctAnswers = 7,
+                incorrectAnswers = 3,
+                accuracy = 0.7f,
+                status = SessionStatus.COMPLETED
+            )
+        )
+
+        // Seed past answers: 3 attempts on 'b', 2 incorrect (errorRate = 66.7%)
+        val pastAnswers = listOf(
+            com.aksa.app.domain.model.AnswerLog("a1", pastSessionId, childId, "pulau_alfabet", "huruf_mirip", "q1", "b", "d", false, 500L),
+            com.aksa.app.domain.model.AnswerLog("a2", pastSessionId, childId, "pulau_alfabet", "huruf_mirip", "q2", "b", "d", false, 500L),
+            com.aksa.app.domain.model.AnswerLog("a3", pastSessionId, childId, "pulau_alfabet", "huruf_mirip", "q3", "b", "b", true, 500L),
+            com.aksa.app.domain.model.AnswerLog("a4", pastSessionId, childId, "pulau_alfabet", "huruf_mirip", "q4", "d", "d", true, 500L),
+            com.aksa.app.domain.model.AnswerLog("a5", pastSessionId, childId, "pulau_alfabet", "huruf_mirip", "q5", "p", "p", true, 500L),
+            com.aksa.app.domain.model.AnswerLog("a6", pastSessionId, childId, "pulau_alfabet", "huruf_mirip", "q6", "q", "q", true, 500L)
+        )
+        sessionRepository.seedAnswers(pastAnswers)
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        // Verify that weak target 'b' was detected and questions were adaptively generated with 4 'b' questions!
+        val state = vm.uiState.value
+        assertEquals(listOf("b"), state.weakTargets)
+        val bCount = state.questions.count { it.targetLetter == "b" }
+        assertEquals("Weak letter 'b' must have 4 questions adaptively allocated", 4, bCount)
     }
 }

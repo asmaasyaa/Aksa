@@ -167,7 +167,67 @@ fun HurufMiripScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Adaptive Level & Focus Indicator Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Difficulty Badge
+                val diffTitle = when (uiState.currentDifficulty) {
+                    1 -> "Tingkat 1: Terbimbing"
+                    2 -> "Tingkat 2: Mandiri"
+                    else -> "Tingkat 3: Tantangan"
+                }
+
+                Box(
+                    modifier = Modifier
+                        .shadow(2.dp, PillShape)
+                        .clip(PillShape)
+                        .background(AksaWhite)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(if (uiState.currentDifficulty == 3) AksaOrange else AksaLimeDark)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = diffTitle,
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = AksaDarkBrown
+                        )
+                    }
+                }
+
+                // Adaptive Weak Target Focus Badge
+                if (uiState.weakTargets.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .shadow(2.dp, PillShape)
+                            .clip(PillShape)
+                            .background(AksaWhite)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Fokus: ${uiState.weakTargets.joinToString(", ")}",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = AksaOrange
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             // VISUAL EXPLANATION / EDUCATIONAL HINT CARD
             if (currentQuestion != null) {
