@@ -1,391 +1,127 @@
 # AKSA 📚
 
-### Aplikasi Pembelajaran Membaca Interaktif untuk Android
+### Aplikasi Pembelajaran Membaca untuk Anak dengan Disleksia
 
-AKSA adalah aplikasi pembelajaran membaca berbasis Android yang dirancang untuk membantu anak usia **10–15 tahun** berlatih membaca melalui pengalaman belajar yang interaktif, bertahap, dan menyenangkan.
-
-Project ini dikembangkan sebagai **High-Fidelity Interactive Prototype** untuk Proyek Akhir Praktikum **Pengembangan Aplikasi Perangkat Bergerak (PAPB) 2026**.
-
-> **Status Project:** Prototype / Mockup Interaktif  
->
-> Versi saat ini difokuskan pada implementasi antarmuka, navigasi, dan simulasi interaksi aplikasi. Beberapa fitur seperti autentikasi, speech recognition, dan penyimpanan data permanen masih berupa simulasi menggunakan local state.
-
----
-
-## 📖 Tentang AKSA
-
-AKSA menggunakan pendekatan pembelajaran membaca secara bertahap:
-
-**Huruf → Suku Kata → Kata → Kalimat**
-
-Pengalaman belajar dikemas dalam bentuk petualangan melalui beberapa level agar proses belajar terasa lebih menarik dan tidak monoton.
-
-### 🏝️ Level 1 — Pulau Alfabet
-
-Mengenal huruf, melatih pengucapan, dan menulis huruf.
-
-### 🌱 Level 2 — Dunia Suku Kata
-
-Belajar menggabungkan huruf menjadi suku kata.
-
-### ⛰️ Level 3 — Gunung Kata
-
-Menyusun huruf menjadi sebuah kata.
-
-### 🌊 Level 4 — Sungai Cerita
-
-Menerapkan kemampuan membaca melalui kalimat dan cerita sederhana.
-
-AKSA juga memiliki sistem **learning streak**, **progress tracking**, dan **achievement** untuk mendukung pengalaman belajar yang lebih engaging.
-
----
+AKSA adalah aplikasi Android yang membantu anak-anak berlatih membaca Bahasa Indonesia secara bertahap dan interaktif. Dirancang khusus dengan mempertimbangkan tantangan disleksia, AKSA menggunakan pendekatan **Huruf → Suku Kata → Kata** yang dikemas dalam mini-game adaptif, pelacakan progres, dan sistem reward berbasis pencapaian.
 
 ## ✨ Fitur Utama
 
-### 🔐 Authentication & Onboarding
+### Autentikasi & Profil
+- Login dan registrasi via email/password atau Google Sign-In (Firebase Auth)
+- Manajemen multi-profil anak dalam satu akun orang tua
+- Data profil dan progres belajar tersimpan di Firestore
 
-- Splash Screen
-- Login
-- Registrasi akun
-- Input NISN
-- Input tanggal lahir
-- Setup nama anak
-- Pemilihan usia 10–15 tahun
-- Parent onboarding
+### Aktivitas Belajar
+- **Pengenalan Huruf** — kuis interaktif per huruf A–Z
+- **Huruf Mirip** — latihan membedakan huruf yang sering tertukar (b/d, p/q)
+- **Latihan Menulis** — tracing stroke huruf di atas kanvas
+- **Latihan Pengucapan** — praktik pelafalan berbasis mikrofon
+- **Suku Kata** — pengenalan, contoh, dan kuis penggabungan suku kata
+- **Tangkap Huruf** — mini-game menangkap huruf yang jatuh
+- **Pembentukan Kata** — menyusun huruf menjadi kata
+- **Latihan Membaca** — membaca kalimat dan teks sederhana
 
-### 📚 Learning Experience
+### Sistem Adaptif & Progres
+- Analisis pola kesalahan per sesi untuk menyesuaikan soal berikutnya
+- Pelacakan aktivitas mingguan dan pencapaian milestone
+- Sistem bintang per sesi dan badge pencapaian
+- Penyimpanan seluruh data progres di Firestore
 
-- Home Dashboard
-- Interactive Level Map
-- Alphabet Selection A–Z
-- Pronunciation Practice
-- Writing Practice
-- Syllable Learning
-- Syllable Quiz
-- Word Formation
-- Reading Practice
+## 🛠️ Teknologi
 
-### 🏆 Progress & Gamification
-
-- Learning streak
-- Progress per modul
-- Level progression
-- Achievement badges
-- Profil anak
-
----
-
-## 🗺️ Application Flow
-
-```text
-Splash
-   ↓
-Login / Register
-   ↓
-Parent Welcome
-   ↓
-Child Profile Setup
-   ↓
-Home
-   ↓
-Level Map
-   │
-   ├── Pulau Alfabet
-   │      ├── Alphabet Selection
-   │      ├── Pronunciation Practice
-   │      └── Writing Practice
-   │
-   ├── Dunia Suku Kata
-   │      ├── Introduction
-   │      ├── Example
-   │      └── Syllable Quiz
-   │
-   ├── Gunung Kata
-   │      └── Word Formation
-   │
-   └── Sungai Cerita
-          └── Reading Practice
-
-Home
-   └── Profile
-          └── Progress & Achievements
-```
-
----
-
-## 📱 Screens
-
-AKSA saat ini memiliki **18 interactive screens**:
-
-1. Splash Screen
-2. Login
-3. Register
-4. Parent Welcome
-5. Child Name
-6. Child Age
-7. Home
-8. Level Map
-9. Alphabet Selection
-10. Pronunciation Practice
-11. Writing Practice
-12. Syllable Introduction
-13. Syllable Example
-14. Syllable Quiz
-15. Word Formation
-16. Reading Practice
-17. Profile
-18. Progress & Achievements
-
----
-
-## 🛠️ Tech Stack
-
-| Technology | Penggunaan |
+| Teknologi | Versi |
 |---|---|
-| **Kotlin 2.2.10** | Bahasa pemrograman |
-| **Jetpack Compose** | Declarative Android UI |
-| **Material 3** | Base UI components |
-| **Navigation Compose 2.9.8** | Navigasi antar-screen |
-| **Compose Canvas** | Custom drawing dan visual component |
-| **Poppins** | Typography |
-| **Gradle** | Build system |
-| **Android SDK 37** | Compile & Target SDK |
-| **Min SDK 24** | Minimum Android SDK |
+| Kotlin | 2.4.0 | 
+| Android Gradle Plugin | 9.3.3 | 
+| Jetpack Compose BOM | 2026.02.01 | 
+| Material 3 | (via BOM) | 
+| Navigation Compose | 2.9.8 | 
+| Firebase BOM | 33.9.0 | 
+| Firebase Auth | (via BOM) | 
+| Firebase Firestore | (via BOM) | 
+| Credentials API | 1.5.0 | 
+| Coroutines | 1.10.1 | 
+| Compile SDK | 37 | 
+| Min SDK | 24 
 
----
+## 🚀 Panduan Penggunaan
 
-## 🏗️ Project Structure
+### Prasyarat
 
-```text
-app/src/main/java/com/aksa/app/
-│
-├── MainActivity.kt
-│
-├── navigation/
-│   ├── AksaNavGraph.kt
-│   └── Screen.kt
-│
-└── ui/
-    │
-    ├── components/
-    │   ├── AksaAlphabetCard.kt
-    │   ├── AksaButton.kt
-    │   ├── AksaLevelNode.kt
-    │   ├── AksaMascot.kt
-    │   ├── AksaProfileCard.kt
-    │   ├── AksaProgressBar.kt
-    │   ├── AksaSyllableCard.kt
-    │   └── AksaTextField.kt
-    │
-    ├── screens/
-    │   ├── SplashScreen.kt
-    │   ├── LoginScreen.kt
-    │   ├── RegisterScreen.kt
-    │   ├── ParentWelcomeScreen.kt
-    │   ├── ChildNameScreen.kt
-    │   ├── ChildAgeScreen.kt
-    │   ├── HomeScreen.kt
-    │   ├── LevelMapScreen.kt
-    │   ├── AlphabetSelectionScreen.kt
-    │   ├── PronunciationScreen.kt
-    │   ├── WritingPracticeScreen.kt
-    │   ├── SyllableIntroScreen.kt
-    │   ├── SyllableExampleScreen.kt
-    │   ├── SyllableQuizScreen.kt
-    │   ├── WordFormationScreen.kt
-    │   ├── ReadingPracticeScreen.kt
-    │   ├── ProfileScreen.kt
-    │   └── ProgressAchievementsScreen.kt
-    │
-    └── theme/
-        ├── AksaIcons.kt
-        ├── Color.kt
-        ├── Shape.kt
-        ├── Theme.kt
-        └── Type.kt
-```
+- Android Studio (versi terbaru)
+- JDK 11 atau lebih baru
+- Android Emulator atau perangkat fisik (API 24+)
+- File `google-services.json` dari Firebase Console (tidak disertakan di repo)
 
----
-
-## 🚧 Prototype Status
-
-Versi AKSA saat ini difokuskan pada **UI/UX, navigation, dan interactive prototype**.
-
-| Fitur | Status |
-|---|---|
-| UI/UX | ✅ Implemented |
-| Navigation | ✅ Implemented |
-| Interactive Local State | ✅ Implemented |
-| Writing Canvas | ✅ Prototype |
-| Syllable Interaction | ✅ Prototype |
-| Word Formation | ✅ Prototype |
-| Reading Practice | ✅ Prototype |
-| Progress & Achievement UI | ✅ Prototype |
-| Pronunciation Detection | 🟡 Simulated |
-| Authentication | 🟡 Mock |
-| Persistent Local Database | ⏳ Planned |
-| Backend / API | ⏳ Planned |
-
-Pada tahap pengembangan selanjutnya, prototype dapat dikembangkan menjadi aplikasi yang lebih fungsional dengan menambahkan **ViewModel, persistent storage, authentication, speech recognition, dan data progress pengguna**.
-
----
-
-## 🚀 Menjalankan Project
-
-### Requirements
-
-Pastikan perangkat telah memiliki:
-
-- Android Studio
-- Android SDK
-- JDK yang kompatibel
-- Android Emulator atau perangkat Android
-- Minimum Android API 24
-
-### 1. Clone Repository
+### Menjalankan Aplikasi
 
 ```bash
 git clone https://github.com/asmaasyaa/Aksa.git
 cd Aksa
 ```
 
-### 2. Buka Project
+Buka folder `Aksa` di Android Studio, tunggu Gradle Sync selesai, lalu tekan **Run ▶**.
 
-Buka **Android Studio**, lalu pilih:
+> Aplikasi membutuhkan `google-services.json` yang valid untuk fitur autentikasi dan penyimpanan data. Tambahkan file tersebut ke direktori `app/` setelah mengonfigurasi project di [Firebase Console](https://console.firebase.google.com).
 
-```text
-Open → pilih folder Aksa
-```
-
-Tunggu hingga proses **Gradle Sync** selesai.
-
-### 3. Jalankan Aplikasi
-
-Hubungkan perangkat Android atau gunakan Android Emulator, kemudian tekan tombol:
-
-```text
-Run ▶
-```
-
----
-
-## 🔨 Build APK
-
-### Linux / macOS
+### Build APK
 
 ```bash
+# Linux / macOS
 ./gradlew assembleDebug
-```
 
-### Windows
-
-```powershell
+# Windows
 gradlew.bat assembleDebug
 ```
 
-APK hasil build dapat ditemukan pada:
+Output: `app/build/outputs/apk/debug/app-debug.apk`
 
-```text
-app/build/outputs/apk/debug/app-debug.apk
+## 📂 Struktur Proyek
+
+```
+app/src/main/java/com/aksa/app/
+│
+├── AksaApplication.kt          # Inisialisasi aplikasi
+├── MainActivity.kt             # Entry point Activity
+│
+├── audio/                      # Text-to-speech dan audio helper
+│
+├── data/
+│   ├── model/                  # DTO untuk serialisasi Firestore
+│   ├── remote/                 # Konstanta path Firestore
+│   └── repository/             # Implementasi repository (Firebase + demo)
+│
+├── domain/
+│   ├── model/                  # Domain model (ChildProfile, SessionResult, dll.)
+│   ├── repository/             # Interface repository
+│   └── usecase/                # Business logic (analisis error, kalkulasi bintang, dll.)
+│
+├── navigation/                 # NavGraph dan definisi Screen
+│
+└── ui/
+    ├── components/             # Reusable Compose components (AksaButton, AksaNavbar, dll.)
+    ├── screens/                # Seluruh screen aplikasi (~24 screens)
+    ├── state/                  # State holder global (AksaUserState)
+    ├── theme/                  # Warna, tipografi, shape, ikon
+    └── viewmodel/              # ViewModel per fitur
 ```
 
----
 
-## 🎨 Design System
+## 📜 Referensi & Atribusi
 
-AKSA menggunakan visual language yang playful dan child-friendly.
+- **Referensi Utama:** [AyoBaca](https://github.com/yoshikazuuu/AyoBaca), aplikasi pembelajaran membaca untuk iOS yang menjadi referensi konsep dan alur pembelajaran AKSA.
+- **Adaptasi Proyek:** AKSA dikembangkan kembali untuk platform Android menggunakan Kotlin dan Jetpack Compose. Struktur UI, navigasi, komponen, dan logika aplikasi diimplementasikan ulang oleh tim AKSA.
 
-### Color Palette
+## 👥 Kontributor
 
-- 🟠 **Orange** — Primary color
-- 🟢 **Lime Green** — Level map & environment
-- 🔵 **Light Blue** — Learning activity
-- 🟡 **Yellow** — Accent & interactive elements
-- ⚪ **White** — Card & content surface
+AKSA dikembangkan oleh **Kelompok 3** sebagai Proyek Akhir Praktikum mata kuliah **Pengembangan Aplikasi Perangkat Bergerak (PAPB), kelas TIF-A**.
 
-### Visual Characteristics
-
-- Rounded UI components
-- Large touch targets
-- Flat-vector illustration style
-- Custom AKSA mascot
-- Playful learning environment
-- Poppins typography
-- Minimal visual complexity
-- Consistent color coding pada setiap learning module
-
----
-
-## 🧸 AKSA Mascot
-
-AKSA menggunakan karakter maskot sebagai pendamping anak selama proses pembelajaran.
-
-Maskot digunakan dalam berbagai kondisi seperti:
-
-- Menyambut pengguna
-- Memberikan instruksi
-- Menemani latihan
-- Memberikan feedback
-- Merayakan keberhasilan pengguna
-
-Penggunaan maskot bertujuan membuat proses pembelajaran terasa lebih ramah, interaktif, dan menyenangkan.
-
----
-
-## 💡 Reference & Inspiration
-
-Konsep AKSA dikembangkan dengan mengadaptasi gagasan aplikasi pembelajaran membaca **AyoBaca**, kemudian direimplementasikan untuk platform Android menggunakan **Kotlin dan Jetpack Compose**.
-
-Original reference:
-
-- **AyoBaca**
-- GitHub: https://github.com/yoshikazuuu/AyoBaca
-
-AKSA dikembangkan sebagai **Android reimplementation** untuk kebutuhan Project PAPB.
-
-Source code Swift dari AyoBaca tidak diterjemahkan secara langsung. Struktur UI, navigasi, reusable component, dan implementasi Jetpack Compose pada AKSA dikembangkan kembali untuk platform Android.
-
----
-
-## 🔮 Future Development
-
-Beberapa pengembangan yang dapat dilakukan pada tahap selanjutnya:
-
-- Implementasi authentication
-- Penyimpanan profil pengguna
-- Penyimpanan progress belajar
-- Room Database
-- DataStore
-- Android Speech Recognition
-- Audio pronunciation
-- Persistent learning progress
-- Sistem unlock level
-- Dynamic learning content
-- Improved handwriting interaction
-- Achievement system
-- Parent progress monitoring
-
----
-
-## 📌 Project Information
-
-| Informasi | Detail |
+| Kontributor | GitHub |
 |---|---|
-| **Project Name** | AKSA |
-| **Platform** | Android |
-| **Course** | Pengembangan Aplikasi Perangkat Bergerak |
-| **Project Type** | Proyek Akhir Praktikum PAPB 2026 |
-| **Current Stage** | High-Fidelity Interactive Prototype |
-| **Language** | Kotlin |
-| **UI Framework** | Jetpack Compose |
-
----
-
-## 👥 Contributors
-
-Project AKSA dikembangkan sebagai bagian dari Proyek Akhir Praktikum **Pengembangan Aplikasi Perangkat Bergerak (PAPB) 2026**.
-
-> Informasi anggota kelompok dapat ditambahkan pada bagian ini.
+| Rafiqi Abyan | [@rafeeq-s](https://github.com/rafeeq-s) |
+| Dealova Nabila | [@dvsalmah](https://github.com/dvsalmah) |
+| Diny Eka | [@dzharafahh](https://github.com/dzharafahh) |
+| Syakira Asma | [@asmaasyaa](https://github.com/asmaasyaa) |
 
 ---
 
@@ -393,6 +129,6 @@ Project AKSA dikembangkan sebagai bagian dari Proyek Akhir Praktikum **Pengemban
   <b>AKSA</b>
   <br>
   <i>Belajar membaca, satu langkah dalam satu petualangan.</i>
-  <br><br>
+  <br>
   📚 ✨
 </p>
