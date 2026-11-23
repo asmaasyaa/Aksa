@@ -51,18 +51,6 @@ import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
 
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.LevelMapPreviewState
-
-private data class MapStatuses(
-    val s1: LevelNodeStatus,
-    val s2: LevelNodeStatus,
-    val s3: LevelNodeStatus,
-    val s4: LevelNodeStatus
-)
-
 @Composable
 fun LevelMapScreen(
     onNavigateBack: () -> Unit,
@@ -70,22 +58,12 @@ fun LevelMapScreen(
     onNavigateToLevel2: () -> Unit,
     onNavigateToLevel3: () -> Unit,
     onNavigateToLevel4: () -> Unit,
-    onNavigateToTangkapHuruf: () -> Unit = {},
-    onNavigateToDeveloperPreview: () -> Unit = {}
+    onNavigateToTangkapHuruf: () -> Unit = {}
 ) {
-    val levelMapState by DeveloperPreviewManager.levelMapState.collectAsState()
-    val isPreviewActive by DeveloperPreviewManager.isPreviewActive.collectAsState()
-
-    val (status1, status2, status3, status4) = when (levelMapState) {
-        LevelMapPreviewState.ALL_UNLOCKED ->
-            MapStatuses(LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE)
-        LevelMapPreviewState.ALL_COMPLETED ->
-            MapStatuses(LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED)
-        LevelMapPreviewState.ALL_LOCKED_EXCEPT_LEVEL_1 ->
-            MapStatuses(LevelNodeStatus.ACTIVE, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED)
-        LevelMapPreviewState.DEFAULT_PROGRESSION ->
-            MapStatuses(LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED)
-    }
+    val status1 = LevelNodeStatus.ACTIVE
+    val status2 = LevelNodeStatus.ACTIVE
+    val status3 = LevelNodeStatus.LOCKED
+    val status4 = LevelNodeStatus.LOCKED
 
     Box(
         modifier = Modifier
@@ -126,25 +104,6 @@ fun LevelMapScreen(
                     ) {
                         Text(
                             text = "Tangkap Huruf",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            color = AksaDarkBrown
-                        )
-                    }
-                }
-
-                if (com.aksa.app.BuildConfig.DEBUG) {
-                    Box(
-                        modifier = Modifier
-                            .shadow(4.dp, RoundedCornerShape(16.dp))
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(AksaWhite)
-                            .clickable(onClick = onNavigateToDeveloperPreview)
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
-                    ) {
-                        Text(
-                            text = "Dev Preview",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,

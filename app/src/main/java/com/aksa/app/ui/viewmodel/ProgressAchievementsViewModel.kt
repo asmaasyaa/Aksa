@@ -49,10 +49,10 @@ class ProgressAchievementsViewModel(
     private fun loadData() {
         viewModelScope.launch {
             val guardian = authRepository.currentGuardian.value
-            val guardianUid = guardian?.uid ?: "demo_guardian_default"
+            val guardianUid = guardian?.uid ?: ""
             val activeId = com.aksa.app.ui.state.AksaUserState.currentProfileId.takeIf { it.isNotBlank() }
-            val profile = profileRepository.getActiveChildProfile(guardianUid, activeId)
-            val childId = activeId ?: profile?.childId ?: "child_${guardianUid}"
+            val profile = if (guardianUid.isNotBlank()) profileRepository.getActiveChildProfile(guardianUid, activeId) else null
+            val childId = activeId ?: profile?.childId ?: if (guardianUid.isNotBlank()) "child_${guardianUid}" else ""
 
             combine(
                 sessionRepository.observeCompletedSessions(childId),

@@ -92,14 +92,7 @@ fun HomeScreen(
         ?: "Pengguna"
     val displayAge = "${profile?.age ?: AksaUserState.age} tahun"
     val avatarId = profile?.avatarId ?: AksaUserState.avatarId
-    val isDevPreview by com.aksa.app.ui.preview.DeveloperPreviewManager.isPreviewActive.collectAsState()
-    val previewDays by com.aksa.app.ui.preview.DeveloperPreviewManager.previewWeeklyDays.collectAsState()
-
-    val effectiveWeeklyProgress = if (isDevPreview) {
-        com.aksa.app.ui.preview.DeveloperPreviewFixtures.createWeeklyProgress(previewDays)
-    } else {
-        uiState.weeklyProgress
-    }
+    val effectiveWeeklyProgress = uiState.weeklyProgress
     val currentStreak = effectiveWeeklyProgress?.currentStreak ?: AksaUserState.streakCount
 
     Box(

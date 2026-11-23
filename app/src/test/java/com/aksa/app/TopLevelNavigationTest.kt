@@ -27,8 +27,7 @@ class TopLevelNavigationTest {
             Screen.EditProfile.route,
             Screen.SelectProfile.route,
             Screen.LevelMap.route,
-            Screen.ProgressAchievements.route,
-            Screen.DeveloperPreview.route
+            Screen.ProgressAchievements.route
         )
 
         topLevelRoutes.forEach { route ->

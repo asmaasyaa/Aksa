@@ -59,8 +59,6 @@ import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.PreviewVisualState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
@@ -112,17 +110,13 @@ fun WordFormationScreen(
     var showCompletionDialog by remember { mutableStateOf(false) }
     var sessionCommitted by remember { mutableStateOf(false) }
 
-    // Developer Preview overrides
-    val visualState by DeveloperPreviewManager.visualState.collectAsState()
-    val isDevPreview by DeveloperPreviewManager.isPreviewActive.collectAsState()
-
     val currentLetters = selectedIndices.map { currentQ.shuffled[it] }
     val isComplete = selectedIndices.size == currentQ.letters.size
     val isCorrect = isComplete && currentLetters == currentQ.letters
 
-    val effectiveIsComplete = if (isDevPreview && (visualState == PreviewVisualState.CORRECT_FEEDBACK || visualState == PreviewVisualState.INCORRECT_FEEDBACK)) true else isComplete
-    val effectiveIsCorrect = if (isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK) true else if (isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK) false else isCorrect
-    val effectiveShowCompletion = (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) || showCompletionDialog
+    val effectiveIsComplete = isComplete
+    val effectiveIsCorrect = isCorrect
+    val effectiveShowCompletion = showCompletionDialog
 
     DisposableEffect(Unit) {
         onDispose {
@@ -287,16 +281,11 @@ fun WordFormationScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         for (i in 0 until currentQ.letters.size) {
-                            val letterInSlot = when {
-                                isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK -> currentQ.letters[i]
-                                isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK -> currentQ.shuffled[i]
-                                i < selectedIndices.size -> currentQ.shuffled[selectedIndices[i]]
-                                else -> null
-                            }
+                            val letterInSlot = if (i < selectedIndices.size) currentQ.shuffled[selectedIndices[i]] else null
                             WordTargetSlot(
                                 letter = letterInSlot,
                                 onClick = {
-                                    if (i < selectedIndices.size && !isDevPreview) {
+                                    if (i < selectedIndices.size) {
                                         selectedIndices.removeAt(i)
                                     }
                                 }
@@ -413,7 +402,7 @@ fun WordFormationScreen(
                                     coroutineScope.launch {
                                         val sessionResult = SessionResult(
                                             sessionId = "session_word_${UUID.randomUUID()}",
-                                            childId = "child_marvin_demo",
+                                            childId = com.aksa.app.ui.state.AksaUserState.currentProfileId.ifBlank { "child_${AksaRepositoryProvider.authRepository.currentGuardian.value?.uid ?: ""}" },
                                             moduleId = "gunung_kata",
                                             activityId = "word_formation",
                                             startedAt = System.currentTimeMillis() - 120_000,
@@ -480,8 +469,8 @@ fun WordFormationScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        val scoreText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "5 / 5" else "$correctCount / ${questions.size}"
-                        val accuracyText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "100%" else "${((correctCount.toFloat() / questions.size) * 100).toInt()}%"
+                        val scoreText = "$correctCount / ${questions.size}"
+                        val accuracyText = "${((correctCount.toFloat() / questions.size) * 100).toInt()}%"
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),

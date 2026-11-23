@@ -470,8 +470,8 @@ class TangkapHurufViewModel(
             return com.aksa.app.ui.state.AksaUserState.currentProfileId
         }
         val guardian = authRepository.currentGuardian.value
-        val guardianUid = guardian?.uid ?: "demo_guardian_default"
-        return "child_$guardianUid"
+        val guardianUid = guardian?.uid ?: ""
+        return if (guardianUid.isNotBlank()) "child_$guardianUid" else ""
     }
 
     override fun onCleared() {

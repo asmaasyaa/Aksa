@@ -42,7 +42,6 @@ import com.aksa.app.ui.screens.SyllableIntroScreen
 import com.aksa.app.ui.screens.SyllableQuizScreen
 import com.aksa.app.ui.screens.LetterLearningScreen
 import com.aksa.app.ui.screens.TangkapHurufScreen
-import com.aksa.app.ui.preview.DeveloperPreviewScreen
 import com.aksa.app.ui.screens.WordFormationScreen
 import com.aksa.app.ui.screens.WritingPracticeScreen
 
@@ -222,9 +221,6 @@ fun AksaNavGraph(
                     },
                     onNavigateToTangkapHuruf = {
                         navController.navigate(Screen.TangkapHuruf.route)
-                    },
-                    onNavigateToDeveloperPreview = {
-                        navController.navigate(Screen.DeveloperPreview.route)
                     }
                 )
             }
@@ -387,9 +383,6 @@ fun AksaNavGraph(
                             popUpTo(0) { inclusive = true }
                         }
                     },
-                    onNavigateToDeveloperPreview = {
-                        navController.navigate(Screen.DeveloperPreview.route)
-                    },
                     onNavigateToEditProfile = {
                         navController.navigate(Screen.EditProfile.route)
                     },
@@ -439,54 +432,6 @@ fun AksaNavGraph(
                         if (!navController.popBackStack(Screen.LevelMap.route, inclusive = false)) {
                             navController.navigate(Screen.LevelMap.route)
                         }
-                    }
-                )
-            }
-
-            // DEVELOPER PREVIEW MODE (DEBUG ONLY)
-            composable(Screen.DeveloperPreview.route) {
-                DeveloperPreviewScreen(
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    },
-                    onNavigateToHome = {
-                        navController.navigate(Screen.Home.route)
-                    },
-                    onNavigateToLevelMap = {
-                        navController.navigate(Screen.LevelMap.route)
-                    },
-                    onNavigateToAlphabetSelection = {
-                        navController.navigate(Screen.AlphabetSelection.route)
-                    },
-                    onNavigateToLetterLearning = {
-                        navController.navigate(Screen.LetterLearning.route)
-                    },
-                    onNavigateToHurufMirip = {
-                        navController.navigate(Screen.HurufMirip.route)
-                    },
-                    onNavigateToSyllableIntro = {
-                        navController.navigate(Screen.SyllableIntro.route)
-                    },
-                    onNavigateToSyllableExample = {
-                        navController.navigate(Screen.SyllableExample.route)
-                    },
-                    onNavigateToSyllableQuiz = {
-                        navController.navigate(Screen.SyllableQuiz.route)
-                    },
-                    onNavigateToWordFormation = {
-                        navController.navigate(Screen.WordFormation.route)
-                    },
-                    onNavigateToReadingPractice = {
-                        navController.navigate(Screen.ReadingPractice.route)
-                    },
-                    onNavigateToTangkapHuruf = {
-                        navController.navigate(Screen.TangkapHuruf.route)
-                    },
-                    onNavigateToProfile = {
-                        navController.navigate(Screen.Profile.route)
-                    },
-                    onNavigateToProgressAchievements = {
-                        navController.navigate(Screen.ProgressAchievements.route)
                     }
                 )
             }

@@ -63,15 +63,8 @@ fun ProgressAchievementsScreen(
     viewModel: ProgressAchievementsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val isDevPreview by com.aksa.app.ui.preview.DeveloperPreviewManager.isPreviewActive.collectAsState()
-    val previewDays by com.aksa.app.ui.preview.DeveloperPreviewManager.previewWeeklyDays.collectAsState()
-
-    val effectiveStreak = if (isDevPreview) previewDays else uiState.currentStreak
-    val effectiveBadges = if (isDevPreview) {
-        com.aksa.app.ui.preview.DeveloperPreviewFixtures.createMilestoneBadges(previewDays)
-    } else {
-        uiState.milestoneBadges
-    }
+    val effectiveStreak = uiState.currentStreak
+    val effectiveBadges = uiState.milestoneBadges
 
     Box(
         modifier = Modifier

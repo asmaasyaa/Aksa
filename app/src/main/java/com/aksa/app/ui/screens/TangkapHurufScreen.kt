@@ -68,8 +68,6 @@ import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.PreviewVisualState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
@@ -205,14 +203,7 @@ fun TangkapHurufScreen(
 
     val uiState by vm.uiState.collectAsState()
 
-    // Developer Preview overrides
-    val visualState by DeveloperPreviewManager.visualState.collectAsState()
-    val isDevPreview by DeveloperPreviewManager.isPreviewActive.collectAsState()
-
-    val effectiveStage = when {
-        isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED -> MiniGameStage.RESULTS
-        else -> uiState.stage
-    }
+    val effectiveStage = uiState.stage
 
     DisposableEffect(Unit) {
         onDispose {
@@ -796,7 +787,7 @@ fun TangkapHurufScreen(
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 // Stars Rating
-                                val starsCount = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) 3 else uiState.starRating
+                                val starsCount = uiState.starRating
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -811,9 +802,9 @@ fun TangkapHurufScreen(
 
                                 Spacer(modifier = Modifier.height(18.dp))
 
-                                val finalScoreDisplay = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "14 / 15" else "${uiState.correctAnswersCount} / ${uiState.totalRounds}"
-                                val finalAccuracyPct = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "93%" else "${(uiState.accuracy * 100).toInt()}%"
-                                val finalScorePoints = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "210 Point" else "${uiState.score} Point"
+                                val finalScoreDisplay = "${uiState.correctAnswersCount} / ${uiState.totalRounds}"
+                                val finalAccuracyPct = "${(uiState.accuracy * 100).toInt()}%"
+                                val finalScorePoints = "${uiState.score} Point"
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
