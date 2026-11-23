@@ -67,7 +67,6 @@ fun ProfileScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToProgress: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    onNavigateToDeveloperPreview: () -> Unit = {},
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToCreateProfile: () -> Unit = {},
     authViewModel: com.aksa.app.ui.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
@@ -75,7 +74,7 @@ fun ProfileScreen(
 ) {
     val authState by authViewModel.uiState.collectAsState()
     val profileManagementState by profileManagementViewModel.uiState.collectAsState()
-    val guardianEmail = authState.currentGuardian?.email ?: "demo.orangtua@aksa.id"
+    val guardianEmail = authState.currentGuardian?.email ?: ""
     var showLogoutConfirmation by remember { mutableStateOf(false) }
     var showSwitchProfileSheet by remember { mutableStateOf(false) }
     Box(
@@ -258,18 +257,6 @@ fun ProfileScreen(
                         badge = "Lihat",
                         onClick = onNavigateToProgress
                     )
-
-                    if (com.aksa.app.BuildConfig.DEBUG) {
-                        HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
-                        ProfileMenuRow(
-                            icon = AksaIcons.Star,
-                            iconBg = AksaYellow.copy(alpha = 0.3f),
-                            title = "Developer Preview Mode",
-                            badge = "Debug",
-                            textColor = AksaDarkBrown,
-                            onClick = onNavigateToDeveloperPreview
-                        )
-                    }
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
