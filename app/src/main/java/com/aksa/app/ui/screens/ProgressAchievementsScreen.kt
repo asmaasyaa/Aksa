@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -92,31 +93,18 @@ fun ProgressAchievementsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
-                Box(
+                IconButton(
+                    onClick = onNavigateBack,
                     modifier = Modifier
-                        .shadow(4.dp, PillShape)
-                        .clip(PillShape)
-                        .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(AksaWhite.copy(alpha = 0.25f))
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = AksaIcons.ArrowBack,
-                            contentDescription = "Kembali",
-                            tint = AksaDarkBrown,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Kembali",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = AksaDarkBrown
-                        )
-                    }
+                    Icon(
+                        imageVector = AksaIcons.ArrowBack,
+                        contentDescription = "Kembali",
+                        tint = AksaWhite
+                    )
                 }
 
                 Text(
@@ -127,7 +115,7 @@ fun ProgressAchievementsScreen(
                     color = AksaWhite
                 )
 
-                Spacer(modifier = Modifier.width(48.dp))
+                Spacer(modifier = Modifier.width(42.dp))
             }
 
             Spacer(modifier = Modifier.height(18.dp))
