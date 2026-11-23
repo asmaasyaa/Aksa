@@ -12,8 +12,10 @@ import com.aksa.app.domain.repository.AchievementRepository
 import com.aksa.app.domain.repository.AuthRepository
 import com.aksa.app.domain.repository.ProfileRepository
 import com.aksa.app.domain.repository.SessionRepository
+import com.aksa.app.domain.usecase.AnalyzeErrorPatternsUseCase
 import com.aksa.app.domain.usecase.EvaluateWeeklyMilestonesUseCase
 import com.aksa.app.domain.usecase.GenerateHurufMiripQuestionsUseCase
+import com.aksa.app.domain.usecase.PairConfusionStat
 import com.aksa.app.ui.state.AksaUserState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +27,8 @@ import java.util.UUID
 
 data class HurufMiripUiState(
     val sessionId: String = "",
+    val isLoading: Boolean = true,
+    val priorityLetters: List<String> = emptyList(),
     val questions: List<HurufMiripQuestion> = emptyList(),
     val currentQuestionIndex: Int = 0,
     val selectedChoice: String? = null,
@@ -35,6 +39,7 @@ data class HurufMiripUiState(
     val incorrectAnswersCount: Int = 0,
     val showCompletionDialog: Boolean = false,
     val sessionResult: SessionResult? = null,
+    val sessionPairStats: List<PairConfusionStat> = emptyList(),
     val newlyAwardedMilestones: List<Int> = emptyList(),
     val isTtsReady: Boolean = false
 ) {
@@ -49,6 +54,7 @@ class HurufMiripViewModel(
     private val authRepository: AuthRepository = AksaRepositoryProvider.authRepository,
     private val profileRepository: ProfileRepository = AksaRepositoryProvider.profileRepository,
     private val questionGenerator: GenerateHurufMiripQuestionsUseCase = GenerateHurufMiripQuestionsUseCase(),
+    private val analyzeErrorPatternsUseCase: AnalyzeErrorPatternsUseCase = AnalyzeErrorPatternsUseCase(sessionRepository),
     private val evaluateWeeklyMilestonesUseCase: EvaluateWeeklyMilestonesUseCase = EvaluateWeeklyMilestonesUseCase(achievementRepository)
 ) : ViewModel() {
 
@@ -56,19 +62,17 @@ class HurufMiripViewModel(
     private val startedAtMs = System.currentTimeMillis()
     private var questionDisplayedAtMs: Long = startedAtMs
     private var isSessionCommitted = false
+    private val currentSessionLogs = mutableListOf<AnswerLog>()
 
     private val _uiState = MutableStateFlow(
         HurufMiripUiState(
             sessionId = sessionId,
-            questions = questionGenerator()
+            isLoading = true
         )
     )
     val uiState: StateFlow<HurufMiripUiState> = _uiState.asStateFlow()
 
     init {
-        questionDisplayedAtMs = System.currentTimeMillis()
-        playCurrentQuestionAudio()
-
         // Observe TTS readiness if speaker provided
         if (audioSpeaker != null) {
             viewModelScope.launch {
@@ -76,6 +80,23 @@ class HurufMiripViewModel(
                     _uiState.value = _uiState.value.copy(isTtsReady = ready)
                 }
             }
+        }
+
+        // Jalankan analisis pola kesalahan dari 3 sesi terakhir sebelum menyusun soal
+        viewModelScope.launch {
+            val childId = getActiveChildId()
+            val analysisResult = analyzeErrorPatternsUseCase(childId)
+            val generatedQuestions = questionGenerator(analysisResult.priorityLetters)
+
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                priorityLetters = analysisResult.priorityLetters,
+                questions = generatedQuestions,
+                totalQuestions = generatedQuestions.size
+            )
+
+            questionDisplayedAtMs = System.currentTimeMillis()
+            playCurrentQuestionAudio()
         }
     }
 
@@ -86,7 +107,7 @@ class HurufMiripViewModel(
 
     fun selectChoice(choice: String) {
         val state = _uiState.value
-        if (state.isAnswered) return // Prevent multiple answers on same question
+        if (state.isLoading || state.isAnswered) return // Prevent multiple answers on same question
 
         val question = state.currentQuestion ?: return
         val isCorrect = choice == question.targetLetter
@@ -103,22 +124,23 @@ class HurufMiripViewModel(
             incorrectAnswersCount = newIncorrectCount
         )
 
+        val answerLog = AnswerLog(
+            answerId = "ans_${sessionId}_${question.id}",
+            sessionId = sessionId,
+            childId = getActiveChildId(),
+            moduleId = "pulau_alfabet",
+            activityId = "huruf_mirip",
+            questionId = question.id,
+            targetChar = question.targetLetter,
+            chosenChar = choice,
+            isCorrect = isCorrect,
+            responseTimeMs = responseTimeMs,
+            timestamp = System.currentTimeMillis()
+        )
+        currentSessionLogs.add(answerLog)
+
         // Persist AnswerLog idempotently
         viewModelScope.launch {
-            val childId = getActiveChildId()
-            val answerLog = AnswerLog(
-                answerId = "ans_${sessionId}_${question.id}",
-                sessionId = sessionId,
-                childId = childId,
-                moduleId = "pulau_alfabet",
-                activityId = "huruf_mirip",
-                questionId = question.id,
-                targetChar = question.targetLetter,
-                chosenChar = choice,
-                isCorrect = isCorrect,
-                responseTimeMs = responseTimeMs,
-                timestamp = System.currentTimeMillis()
-            )
             sessionRepository.recordAnswer(answerLog)
         }
     }
@@ -152,6 +174,9 @@ class HurufMiripViewModel(
         val correct = state.correctAnswersCount
         val incorrect = state.incorrectAnswersCount
         val accuracy = if (total > 0) correct.toFloat() / total.toFloat() else 0f
+
+        // Hitung breakdown benar & salah per pasangan huruf (b/d dan p/q) untuk sesi ini
+        val sessionAnalysis = analyzeErrorPatternsUseCase.analyzeLogs(currentSessionLogs)
 
         val result = SessionResult(
             sessionId = sessionId,
@@ -194,6 +219,7 @@ class HurufMiripViewModel(
             _uiState.value = _uiState.value.copy(
                 showCompletionDialog = true,
                 sessionResult = result,
+                sessionPairStats = sessionAnalysis.pairStats,
                 newlyAwardedMilestones = awarded
             )
         }

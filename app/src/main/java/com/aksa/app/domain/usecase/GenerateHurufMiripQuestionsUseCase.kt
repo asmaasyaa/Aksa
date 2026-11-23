@@ -5,24 +5,41 @@ import kotlin.random.Random
 
 /**
  * Generates exactly 10 questions for a Huruf Mirip session.
- * Targets are b, d, p, and q with a balanced distribution where each letter appears 2 or 3 times (3+3+2+2 = 10).
- * Supports an injectable [Random] instance for deterministic testing.
+ * - If [priorityLetters] is empty: balanced distribution (3+3+2+2 = 10).
+ * - If [priorityLetters] is provided (1..3 letters): 60% (6 questions) from priority letters,
+ *   and 40% (4 questions) from the remaining letters.
  */
 class GenerateHurufMiripQuestionsUseCase(
     private val random: Random = Random.Default
 ) {
-    operator fun invoke(): List<HurufMiripQuestion> {
-        // Choose two letters to appear 3 times and two letters to appear 2 times
-        val letters = listOf("b", "d", "p", "q").shuffled(random)
-        val targetLetters = mutableListOf<String>()
+    operator fun invoke(priorityLetters: List<String> = emptyList()): List<HurufMiripQuestion> {
+        val allLetters = listOf("b", "d", "p", "q")
+        val validPriority = priorityLetters
+            .map { it.lowercase() }
+            .distinct()
+            .filter { it in allLetters }
+            .take(3)
 
-        // 2 letters get 3 occurrences, 2 letters get 2 occurrences (total = 10)
-        targetLetters.addAll(List(3) { letters[0] })
-        targetLetters.addAll(List(3) { letters[1] })
-        targetLetters.addAll(List(2) { letters[2] })
-        targetLetters.addAll(List(2) { letters[3] })
+        val targetLetters = if (validPriority.isEmpty()) {
+            // Distribusi seimbang default (sesi awal / data belum cukup)
+            val shuffled = allLetters.shuffled(random)
+            buildList {
+                addAll(List(3) { shuffled[0] })
+                addAll(List(3) { shuffled[1] })
+                addAll(List(2) { shuffled[2] })
+                addAll(List(2) { shuffled[3] })
+            }
+        } else {
+            val otherLetters = allLetters.filterNot { it in validPriority }
+            val priorityPool = buildBalancedPool(validPriority, totalCount = 6)
+            val nonPriorityPool = if (otherLetters.isNotEmpty()) {
+                buildBalancedPool(otherLetters, totalCount = 4)
+            } else {
+                buildBalancedPool(allLetters, totalCount = 4)
+            }
+            priorityPool + nonPriorityPool
+        }
 
-        // Shuffle order of questions
         val shuffledTargets = targetLetters.shuffled(random)
 
         return shuffledTargets.mapIndexed { index, target ->
@@ -32,6 +49,18 @@ class GenerateHurufMiripQuestionsUseCase(
                 random = random
             )
         }
+    }
+
+    private fun buildBalancedPool(letters: List<String>, totalCount: Int): List<String> {
+        val pool = mutableListOf<String>()
+        val baseCount = totalCount / letters.size
+        val remainder = totalCount % letters.size
+
+        letters.forEachIndexed { index, letter ->
+            val count = baseCount + if (index < remainder) 1 else 0
+            repeat(count) { pool.add(letter) }
+        }
+        return pool
     }
 
     private fun createQuestion(
