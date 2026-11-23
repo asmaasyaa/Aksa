@@ -23,20 +23,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.theme.AksaDarkBrown
-import com.aksa.app.ui.theme.AksaGrayDisabled
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaOrangeDark
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
@@ -124,7 +121,7 @@ fun AksaLevelNode(
                     LevelNodeStatus.ACTIVE -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = AksaIcons.Star,
+                                painter = AksaIcons.star(),
                                 contentDescription = null,
                                 tint = AksaOrange,
                                 modifier = Modifier.size(18.dp)
@@ -140,7 +137,7 @@ fun AksaLevelNode(
                     }
                     LevelNodeStatus.COMPLETED -> {
                         Icon(
-                            imageVector = AksaIcons.Check,
+                            painter = AksaIcons.check(),
                             contentDescription = "Completed",
                             tint = AksaWhite,
                             modifier = Modifier.size(34.dp)
@@ -148,7 +145,7 @@ fun AksaLevelNode(
                     }
                     LevelNodeStatus.LOCKED -> {
                         Icon(
-                            imageVector = AksaIcons.Lock,
+                            painter = AksaIcons.lock(),
                             contentDescription = "Locked",
                             tint = AksaGrayText,
                             modifier = Modifier.size(26.dp)

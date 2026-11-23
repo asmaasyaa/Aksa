@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -43,12 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.state.AksaAvatarItem
 import com.aksa.app.ui.state.AksaUserState
-import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaBlueDark
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
-import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaOrangeLight
 import com.aksa.app.ui.theme.AksaPeachDark
@@ -82,7 +79,6 @@ fun AksaAvatar(
     }
 }
 
-
 @Composable
 fun AksaAvatarSelector(
     selectedAvatarId: String,
@@ -104,7 +100,6 @@ fun AksaAvatarSelector(
             )
         }
 
-        // 3x2 Grid of Avatars
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -195,7 +190,6 @@ private fun AvatarOptionCard(
             )
         }
 
-        // Selection Checkmark Badge
         if (isSelected) {
             Box(
                 modifier = Modifier
@@ -207,7 +201,7 @@ private fun AvatarOptionCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = AksaIcons.Check,
+                    painter = AksaIcons.check(),
                     contentDescription = "Terpilih",
                     tint = AksaWhite,
                     modifier = Modifier.size(13.dp)
@@ -216,7 +210,6 @@ private fun AvatarOptionCard(
         }
     }
 }
-
 
 private fun DrawScope.drawAvatarClassic(w: Float, h: Float) {
     val cx = w / 2f
@@ -274,7 +267,6 @@ private fun DrawScope.drawAvatarChampion(w: Float, h: Float) {
     drawAvatarFace(cx, cy + r * 0.08f, r)
 }
 
-
 private fun DrawScope.drawAvatarHappy(w: Float, h: Float) {
     val cx = w / 2f
     val cy = h * 0.54f
@@ -331,7 +323,6 @@ private fun DrawScope.drawAvatarHappy(w: Float, h: Float) {
 
     drawCircle(AksaYellow, r * 0.16f, Offset(cx + r * 0.72f, cy - r * 0.2f))
 }
-
 
 private fun DrawScope.drawAvatarCat(w: Float, h: Float) {
     val cx = w / 2f
@@ -404,7 +395,6 @@ private fun DrawScope.drawAvatarCat(w: Float, h: Float) {
     drawLine(AksaDarkBrown.copy(alpha = 0.5f), Offset(cx + r * 0.4f, cy + r * 0.2f), Offset(cx + r * 0.75f, cy + r * 0.16f), 2.5f, StrokeCap.Round)
     drawLine(AksaDarkBrown.copy(alpha = 0.5f), Offset(cx + r * 0.4f, cy + r * 0.28f), Offset(cx + r * 0.75f, cy + r * 0.32f), 2.5f, StrokeCap.Round)
 }
-
 
 private fun DrawScope.drawAvatarBunny(w: Float, h: Float) {
     val cx = w / 2f

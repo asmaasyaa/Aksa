@@ -1,7 +1,6 @@
 package com.aksa.app.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,7 +36,6 @@ import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.Poppins
@@ -78,7 +76,6 @@ fun ParentWelcomeScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Large White Rounded Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -116,7 +113,7 @@ fun ParentWelcomeScreen(
 
                     // 3 Reassuring Feature Highlights
                     ParentFeatureHighlight(
-                        icon = AksaIcons.AutoAwesome,
+                        icon = AksaIcons.autoAwesome(),
                         iconBg = AksaYellow,
                         title = "Pendekatan Tanpa Tekanan",
                         description = "Belajar perlahan dengan ritme ramah anak"
@@ -125,7 +122,7 @@ fun ParentWelcomeScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     ParentFeatureHighlight(
-                        icon = AksaIcons.MenuBook,
+                        icon = AksaIcons.menuBook(),
                         iconBg = AksaBlue,
                         title = "Materi Terstruktur",
                         description = "Mulai dari fonetik, huruf, hingga suku kata"
@@ -134,7 +131,7 @@ fun ParentWelcomeScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     ParentFeatureHighlight(
-                        icon = AksaIcons.Favorite,
+                        icon = AksaIcons.favorite(),
                         iconBg = AksaLime,
                         title = "Dukungan Penuh",
                         description = "Pantau dan rayakan setiap pencapaian kecilnya"
@@ -142,7 +139,6 @@ fun ParentWelcomeScreen(
 
                     Spacer(modifier = Modifier.height(26.dp))
 
-                    // Primary Button: Mulai Petualangan
                     AksaButton(
                         text = "Mulai Petualangan",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
@@ -169,7 +165,7 @@ fun ParentWelcomeScreen(
 
 @Composable
 private fun ParentFeatureHighlight(
-    icon: ImageVector,
+    icon: androidx.compose.ui.graphics.painter.Painter,
     iconBg: Color,
     title: String,
     description: String
@@ -190,7 +186,7 @@ private fun ParentFeatureHighlight(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = icon,
+                painter = icon,
                 contentDescription = null,
                 tint = AksaDarkBrown,
                 modifier = Modifier.size(20.dp)

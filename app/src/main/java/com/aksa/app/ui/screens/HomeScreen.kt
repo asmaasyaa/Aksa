@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -41,7 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
@@ -54,15 +51,12 @@ import com.aksa.app.ui.components.AksaProfileCard
 import com.aksa.app.ui.components.MascotHeadband
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaBlue
-import com.aksa.app.ui.theme.AksaBlueDark
-import com.aksa.app.ui.theme.AksaBlueLight
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaOrangeDark
 import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
@@ -173,7 +167,7 @@ fun HomeScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = AksaIcons.Star,
+                                    painter = AksaIcons.star(),
                                     contentDescription = null,
                                     tint = AksaYellowDark,
                                     modifier = Modifier.size(14.dp)
@@ -242,7 +236,7 @@ fun HomeScreen(
                     AksaButton(
                         text = "Mulai Latihan",
                         style = AksaButtonStyle.SECONDARY_YELLOW,
-                        trailingIcon = AksaIcons.ArrowForward,
+                        trailingIconPainter = AksaIcons.arrowForward(),
                         height = 60.dp,
                         fontSize = 18.sp,
                         onClick = {
@@ -372,7 +366,7 @@ private fun DailyChallengeCard(streakCount: Int = 0) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = AksaIcons.EmojiEvents,
+                    painter = AksaIcons.emojiEvents(),
                     contentDescription = null,
                     tint = AksaDarkBrown,
                     modifier = Modifier.size(24.dp)

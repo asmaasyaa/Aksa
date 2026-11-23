@@ -45,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aksa.app.audio.AndroidTextToSpeechHelper
-import com.aksa.app.domain.model.HurufMiripQuestion
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
@@ -134,7 +133,7 @@ fun HurufMiripScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -193,7 +192,7 @@ fun HurufMiripScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = AksaIcons.AutoAwesome,
+                                        painter = AksaIcons.autoAwesome(),
                                         contentDescription = null,
                                         tint = AksaDarkBrown,
                                         modifier = Modifier.size(16.dp)
@@ -278,7 +277,7 @@ fun HurufMiripScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AksaIcons.VolumeUp,
+                                        painter = AksaIcons.volumeUp(),
                                         contentDescription = "Dengarkan Suara",
                                         tint = AksaDarkBrown,
                                         modifier = Modifier.size(16.dp)
@@ -355,7 +354,7 @@ fun HurufMiripScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Icon(
-                                            imageVector = if (isCorrect) AksaIcons.Check else AksaIcons.Info,
+                                            painter = if (isCorrect) AksaIcons.check() else AksaIcons.info(),
                                             contentDescription = null,
                                             tint = feedbackBorderColor,
                                             modifier = Modifier.size(24.dp)
@@ -510,7 +509,7 @@ fun HurufMiripScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AksaIcons.Star,
+                                        painter = AksaIcons.star(),
                                         contentDescription = null,
                                         tint = AksaYellowDark,
                                         modifier = Modifier.size(18.dp)

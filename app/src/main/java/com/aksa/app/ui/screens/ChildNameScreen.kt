@@ -136,7 +136,7 @@ fun ChildNameScreen(
                         },
                         label = "Nama Lengkap / Panggilan",
                         placeholder = "Masukkan Nama Di Sini",
-                        leadingIcon = AksaIcons.Face,
+                        leadingIconPainter = AksaIcons.face(),
                         height = 60.dp,
                         cornerRadius = 22.dp
                     )

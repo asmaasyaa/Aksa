@@ -101,7 +101,6 @@ fun EditProfileScreen(
                 .padding(bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -114,7 +113,7 @@ fun EditProfileScreen(
                         .background(AksaWhite.copy(alpha = 0.25f))
                 ) {
                     Icon(
-                        imageVector = AksaIcons.ArrowBack,
+                        painter = AksaIcons.arrowBack(),
                         contentDescription = "Kembali",
                         tint = AksaWhite
                     )
@@ -173,7 +172,7 @@ fun EditProfileScreen(
                         },
                         label = "Nama Anak",
                         placeholder = "Masukkan nama anak",
-                        leadingIcon = AksaIcons.Face,
+                        leadingIconPainter = AksaIcons.face(),
                         height = 58.dp,
                         cornerRadius = 20.dp
                     )
@@ -300,7 +299,7 @@ fun EditProfileScreen(
                     AksaButton(
                         text = "Hapus Profil Anak",
                         style = AksaButtonStyle.DESTRUCTIVE_RED,
-                        icon = AksaIcons.Delete,
+                        iconPainter = AksaIcons.delete(),
                         onClick = { showDeleteConfirmationDialog = true }
                     )
                 }

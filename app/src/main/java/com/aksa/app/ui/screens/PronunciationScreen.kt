@@ -50,13 +50,11 @@ import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotPeeking
 import com.aksa.app.ui.theme.AksaBlue
-import com.aksa.app.ui.theme.AksaBlueDark
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaOrangeDark
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
@@ -100,7 +98,6 @@ fun PronunciationScreen(
                 .padding(bottom = 120.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar (Kembali + Progress Pill)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -108,7 +105,6 @@ fun PronunciationScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -119,7 +115,7 @@ fun PronunciationScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -135,7 +131,6 @@ fun PronunciationScreen(
                     }
                 }
 
-                // Progress Badge
                 Box(
                     modifier = Modifier
                         .clip(PillShape)
@@ -154,7 +149,6 @@ fun PronunciationScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Instruction Text
             Text(
                 text = "Bunyikan Huruf Ini!",
                 fontFamily = Poppins,
@@ -179,7 +173,6 @@ fun PronunciationScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Speaker Button (to hear sound)
                     Box(
                         modifier = Modifier
                             .align(Alignment.End)
@@ -192,7 +185,7 @@ fun PronunciationScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = AksaIcons.VolumeUp,
+                            painter = AksaIcons.volumeUp(),
                             contentDescription = "Dengarkan Suara",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(24.dp)
@@ -264,7 +257,7 @@ fun PronunciationScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AksaIcons.Check,
+                                        painter = AksaIcons.check(),
                                         contentDescription = null,
                                         tint = AksaDarkBrown,
                                         modifier = Modifier.size(20.dp)
@@ -359,7 +352,7 @@ private fun MicrophoneButton(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = if (state == MicState.SUCCESS) AksaIcons.Check else AksaIcons.Mic,
+                painter = if (state == MicState.SUCCESS) AksaIcons.check() else AksaIcons.mic(),
                 contentDescription = "Mikrofon",
                 tint = iconColor,
                 modifier = Modifier.size(34.dp)

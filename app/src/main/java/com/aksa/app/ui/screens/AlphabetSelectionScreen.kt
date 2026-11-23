@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.components.AksaAlphabetCard
 import com.aksa.app.ui.components.AlphabetCardStatus
-import com.aksa.app.ui.components.MascotPeeking
 import com.aksa.app.ui.components.MascotStanding
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -89,7 +88,6 @@ fun AlphabetSelectionScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill button
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -100,7 +98,7 @@ fun AlphabetSelectionScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)

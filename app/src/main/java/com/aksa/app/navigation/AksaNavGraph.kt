@@ -18,7 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.aksa.app.ui.components.MinimalAksaBottomBar
+import com.aksa.app.ui.components.AksaNavbar
 import com.aksa.app.ui.viewmodel.CreateProfileViewModel
 import com.aksa.app.ui.screens.AlphabetSelectionScreen
 import com.aksa.app.ui.screens.ChildAgeScreen
@@ -438,7 +438,7 @@ fun AksaNavGraph(
         }
 
         if (showBottomBar) {
-            MinimalAksaBottomBar(
+            AksaNavbar(
                 selectedTab = selectedBottomTab,
                 onTabSelected = { tab ->
                     val targetRoute = if (tab == 0) Screen.Home.route else Screen.Profile.route

@@ -1,6 +1,5 @@
 package com.aksa.app.ui.screens
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -23,14 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -53,10 +48,8 @@ import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
-import com.aksa.app.ui.components.AksaProgressBar
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
-import com.aksa.app.ui.components.ProgressBarColor
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaError
@@ -177,7 +170,7 @@ fun LetterLearningScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -295,7 +288,7 @@ fun LetterLearningScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AksaIcons.VolumeUp,
+                                        painter = AksaIcons.volumeUp(),
                                         contentDescription = "Dengarkan",
                                         tint = AksaDarkBrown,
                                         modifier = Modifier.size(22.dp)
@@ -384,7 +377,7 @@ fun LetterLearningScreen(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            imageVector = AksaIcons.VolumeUp,
+                                            painter = AksaIcons.volumeUp(),
                                             contentDescription = "Dengarkan",
                                             tint = AksaDarkBrown,
                                             modifier = Modifier.size(16.dp)
@@ -466,7 +459,6 @@ fun LetterLearningScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // Feedback Banner
                             AnimatedVisibility(
                                 visible = effectiveIsAnswered,
                                 enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
@@ -486,7 +478,7 @@ fun LetterLearningScreen(
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                imageVector = if (effectiveIsCorrect) AksaIcons.Check else AksaIcons.Info,
+                                                painter = if (effectiveIsCorrect) AksaIcons.check() else AksaIcons.info(),
                                                 contentDescription = null,
                                                 tint = bannerBorder,
                                                 modifier = Modifier.size(20.dp)

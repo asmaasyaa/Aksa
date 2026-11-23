@@ -173,7 +173,6 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Level Badge
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -184,7 +183,7 @@ fun ProfileScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = AksaIcons.Star,
+                                    painter = AksaIcons.star(),
                                     contentDescription = null,
                                     tint = AksaYellowDark,
                                     modifier = Modifier.size(18.dp)
@@ -211,7 +210,7 @@ fun ProfileScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = AksaIcons.Flame,
+                                    painter = AksaIcons.flame(),
                                     contentDescription = null,
                                     tint = AksaOrange,
                                     modifier = Modifier.size(18.dp)
@@ -242,7 +241,7 @@ fun ProfileScreen(
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     ProfileMenuRow(
-                        icon = AksaIcons.Edit,
+                        icon = AksaIcons.edit(),
                         iconBg = AksaPeachLight,
                         title = "Edit Profil",
                         onClick = onNavigateToEditProfile
@@ -251,7 +250,7 @@ fun ProfileScreen(
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
                     ProfileMenuRow(
-                        icon = AksaIcons.EmojiEvents,
+                        icon = AksaIcons.emojiEvents(),
                         iconBg = AksaYellow.copy(alpha = 0.35f),
                         title = "Progress Belajar",
                         badge = "Lihat",
@@ -261,7 +260,7 @@ fun ProfileScreen(
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
                     ProfileMenuRow(
-                        icon = AksaIcons.Face,
+                        icon = AksaIcons.face(),
                         iconBg = Color(0xFFE8F2FA),
                         title = "Pindah Profil Anak",
                         onClick = {
@@ -272,7 +271,7 @@ fun ProfileScreen(
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
                     ProfileMenuRow(
-                        icon = AksaIcons.ExitToApp,
+                        icon = AksaIcons.logout(),
                         iconBg = Color(0xFFFFECE6),
                         title = "Keluar",
                         textColor = AksaOrange,
@@ -419,7 +418,7 @@ fun ProfileScreen(
 
 @Composable
 private fun ProfileMenuRow(
-    icon: ImageVector,
+    icon: androidx.compose.ui.graphics.painter.Painter,
     iconBg: Color,
     title: String,
     modifier: Modifier = Modifier,
@@ -442,7 +441,7 @@ private fun ProfileMenuRow(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = icon,
+                painter = icon,
                 contentDescription = null,
                 tint = if (textColor == AksaOrange) AksaOrange else AksaDarkBrown,
                 modifier = Modifier.size(20.dp)
@@ -479,7 +478,7 @@ private fun ProfileMenuRow(
         }
 
         Icon(
-            imageVector = AksaIcons.ChevronRight,
+            painter = AksaIcons.chevronRight(),
             contentDescription = null,
             tint = AksaGrayText,
             modifier = Modifier.size(20.dp)

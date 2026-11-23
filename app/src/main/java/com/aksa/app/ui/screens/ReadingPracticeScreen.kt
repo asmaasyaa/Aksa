@@ -1,6 +1,5 @@
 package com.aksa.app.ui.screens
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -20,14 +19,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -59,7 +56,6 @@ import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
@@ -148,13 +144,11 @@ fun ReadingPracticeScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -165,7 +159,7 @@ fun ReadingPracticeScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -235,7 +229,6 @@ fun ReadingPracticeScreen(
                                     color = AksaOrange
                                 )
 
-                                // Audio narration button
                                 Box(
                                     modifier = Modifier
                                         .clip(PillShape)
@@ -247,7 +240,7 @@ fun ReadingPracticeScreen(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            imageVector = AksaIcons.VolumeUp,
+                                            painter = AksaIcons.volumeUp(),
                                             contentDescription = "Dengarkan",
                                             tint = AksaDarkBrown,
                                             modifier = Modifier.size(16.dp)
@@ -393,7 +386,7 @@ fun ReadingPracticeScreen(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            imageVector = AksaIcons.VolumeUp,
+                                            painter = AksaIcons.volumeUp(),
                                             contentDescription = "Dengarkan",
                                             tint = AksaDarkBrown,
                                             modifier = Modifier.size(16.dp)
@@ -475,7 +468,7 @@ fun ReadingPracticeScreen(
                                             )
                                             if (effectiveIsAnswered && isChoiceCorrect) {
                                                 Icon(
-                                                    imageVector = AksaIcons.Check,
+                                                    painter = AksaIcons.check(),
                                                     contentDescription = null,
                                                     tint = AksaLimeDark,
                                                     modifier = Modifier.size(20.dp)
@@ -488,7 +481,6 @@ fun ReadingPracticeScreen(
 
                             Spacer(modifier = Modifier.height(18.dp))
 
-                            // Feedback Banner
                             AnimatedVisibility(
                                 visible = effectiveIsAnswered,
                                 enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
@@ -512,7 +504,7 @@ fun ReadingPracticeScreen(
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                imageVector = if (effectiveIsCorrect) AksaIcons.Check else AksaIcons.Info,
+                                                painter = if (effectiveIsCorrect) AksaIcons.check() else AksaIcons.info(),
                                                 contentDescription = null,
                                                 tint = feedbackBorder,
                                                 modifier = Modifier.size(20.dp)

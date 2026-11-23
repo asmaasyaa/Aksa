@@ -1,0 +1,78 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Ground Shadow -->
+    <path
+        android:fillColor="#18000000"
+        android:pathData="M50,88 C63.8,88 75,90.7 75,94 C75,97.3 63.8,100 50,100 C36.2,100 25,97.3 25,94 C25,90.7 36.2,88 50,88 Z" />
+
+    <!-- Feet -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,75.5 A8.5,8.5 0 1,0 36.01,75.5 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M64,75.5 A8.5,8.5 0 1,0 64.01,75.5 Z" />
+
+    <!-- Ears -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,13 A11,11 0 1,0 28.01,13 Z" />
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M28,18 A6,6 0 1,0 28.01,18 Z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M72,13 A11,11 0 1,0 72.01,13 Z" />
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M72,18 A6,6 0 1,0 72.01,18 Z" />
+
+    <!-- Body -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,22 C72,22 78,40 78,60 C82,75 70,85 50,85 C30,85 18,75 22,60 C22,40 28,22 50,22 Z" />
+
+    <!-- Cheering Arms (Raised Up) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M23,30.5 A7.5,7.5 0 1,0 23.01,30.5 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M77,30.5 A7.5,7.5 0 1,0 77.01,30.5 Z" />
+
+    <!-- Eyes -->
+    <path
+        android:fillColor="#6B240C"
+        android:pathData="M37.1,44.4 C37.1,42.4 38,40.8 39.2,40.8 C40.4,40.8 41.3,42.4 41.3,44.4 C41.3,46.4 40.4,48 39.2,48 C38,48 37.1,46.4 37.1,44.4 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38.8,40.6 A1.2,1.2 0 1,0 38.81,40.6 Z" />
+
+    <path
+        android:fillColor="#6B240C"
+        android:pathData="M58.7,44.4 C58.7,42.4 59.6,40.8 60.8,40.8 C62,40.8 62.9,42.4 62.9,44.4 C62.9,46.4 62,48 60.8,48 C59.6,48 58.7,46.4 58.7,44.4 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60.4,40.6 A1.2,1.2 0 1,0 60.41,40.6 Z" />
+
+    <!-- Cheeks -->
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M33.8,45.6 A6.6,6.6 0 1,0 33.81,45.6 Z" />
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M66.2,45.6 A6.6,6.6 0 1,0 66.21,45.6 Z" />
+
+    <!-- Cheering Open Mouth -->
+    <path
+        android:fillColor="#6B240C"
+        android:pathData="M45.2,52.8 Q50,59.4 54.8,52.8 Z" />
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M50,54.3 A2.4,2.4 0 1,0 50.01,54.3 Z" />
+</vector>
+

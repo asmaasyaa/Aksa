@@ -89,7 +89,7 @@ fun WeeklyActivityCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = AksaIcons.Calendar,
+                            painter = AksaIcons.calendar(),
                             contentDescription = "Kalender Belajar",
                             tint = AksaOrange,
                             modifier = Modifier.size(18.dp)
@@ -230,7 +230,7 @@ private fun DayColumn(
         ) {
             if (isActive) {
                 Icon(
-                    imageVector = AksaIcons.Check,
+                    painter = AksaIcons.check(),
                     contentDescription = "Selesai",
                     tint = AksaDarkBrown,
                     modifier = Modifier.size(16.dp)
@@ -269,7 +269,7 @@ private fun MiniMilestoneChip(
         horizontalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = if (isEarned) AksaIcons.Star else AksaIcons.Lock,
+            painter = if (isEarned) AksaIcons.star() else AksaIcons.lock(),
             contentDescription = null,
             tint = if (isEarned) AksaYellowDark else AksaGrayText,
             modifier = Modifier.size(12.dp)
