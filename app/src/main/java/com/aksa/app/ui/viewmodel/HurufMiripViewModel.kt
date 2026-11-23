@@ -12,10 +12,11 @@ import com.aksa.app.domain.repository.AchievementRepository
 import com.aksa.app.domain.repository.AuthRepository
 import com.aksa.app.domain.repository.ProfileRepository
 import com.aksa.app.domain.repository.SessionRepository
-import com.aksa.app.domain.usecase.AnalyzeTargetErrorsUseCase
+import com.aksa.app.domain.usecase.AnalyzeErrorPatternsUseCase
 import com.aksa.app.domain.usecase.EvaluateWeeklyMilestonesUseCase
 import com.aksa.app.domain.usecase.GenerateHurufMiripQuestionsUseCase
 import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
+import com.aksa.app.domain.usecase.PairConfusionStat
 import com.aksa.app.ui.state.AksaUserState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +28,8 @@ import java.util.UUID
 
 data class HurufMiripUiState(
     val sessionId: String = "",
+    val isLoading: Boolean = true,
+    val priorityLetters: List<String> = emptyList(),
     val questions: List<HurufMiripQuestion> = emptyList(),
     val currentQuestionIndex: Int = 0,
     val selectedChoice: String? = null,
@@ -37,15 +40,18 @@ data class HurufMiripUiState(
     val incorrectAnswersCount: Int = 0,
     val showCompletionDialog: Boolean = false,
     val sessionResult: SessionResult? = null,
+    val sessionPairStats: List<PairConfusionStat> = emptyList(),
     val newlyAwardedMilestones: List<Int> = emptyList(),
     val isTtsReady: Boolean = false,
     val currentDifficulty: Int = 1,
     val consecutiveCorrect: Int = 0,
-    val consecutiveIncorrect: Int = 0,
-    val weakTargets: List<String> = emptyList()
+    val consecutiveIncorrect: Int = 0
 ) {
     val currentQuestion: HurufMiripQuestion?
         get() = questions.getOrNull(currentQuestionIndex)
+
+    // Backwards-compatible alias for UI components checking weakTargets
+    val weakTargets: List<String> get() = priorityLetters
 }
 
 class HurufMiripViewModel(
@@ -55,33 +61,26 @@ class HurufMiripViewModel(
     private val authRepository: AuthRepository = AksaRepositoryProvider.authRepository,
     private val profileRepository: ProfileRepository = AksaRepositoryProvider.profileRepository,
     private val questionGenerator: GenerateHurufMiripQuestionsUseCase = GenerateHurufMiripQuestionsUseCase(),
+    private val analyzeErrorPatternsUseCase: AnalyzeErrorPatternsUseCase = AnalyzeErrorPatternsUseCase(sessionRepository),
     private val evaluateWeeklyMilestonesUseCase: EvaluateWeeklyMilestonesUseCase = EvaluateWeeklyMilestonesUseCase(achievementRepository),
-    private val getActiveChildIdUseCase: GetActiveChildIdUseCase = GetActiveChildIdUseCase(authRepository, profileRepository),
-    private val analyzeTargetErrorsUseCase: AnalyzeTargetErrorsUseCase = AnalyzeTargetErrorsUseCase(sessionRepository)
+    private val getActiveChildIdUseCase: GetActiveChildIdUseCase = GetActiveChildIdUseCase(authRepository, profileRepository)
 ) : ViewModel() {
 
     private val sessionId = "session_${UUID.randomUUID()}"
     private val startedAtMs = System.currentTimeMillis()
     private var questionDisplayedAtMs: Long = startedAtMs
     private var isSessionCommitted = false
+    private val currentSessionLogs = mutableListOf<AnswerLog>()
 
     private val _uiState = MutableStateFlow(
         HurufMiripUiState(
             sessionId = sessionId,
-            questions = questionGenerator()
+            isLoading = true
         )
     )
     val uiState: StateFlow<HurufMiripUiState> = _uiState.asStateFlow()
 
     init {
-        questionDisplayedAtMs = System.currentTimeMillis()
-        playCurrentQuestionAudio()
-
-        // Load adaptive questions based on past performance
-        viewModelScope.launch {
-            loadAdaptiveQuestions()
-        }
-
         // Observe TTS readiness if speaker provided
         if (audioSpeaker != null) {
             viewModelScope.launch {
@@ -90,28 +89,22 @@ class HurufMiripViewModel(
                 }
             }
         }
-    }
 
-    private suspend fun loadAdaptiveQuestions() {
-        try {
+        // Jalankan analisis pola kesalahan dari 3 sesi terakhir sebelum menyusun soal
+        viewModelScope.launch {
             val childId = getActiveChildId()
-            val report = analyzeTargetErrorsUseCase(childId, moduleId = "pulau_alfabet", activityId = "huruf_mirip")
-            if (report.weakTargets.isNotEmpty()) {
-                val currentState = _uiState.value
-                // Only update questions if the child has not started answering yet
-                if (currentState.currentQuestionIndex == 0 && !currentState.isAnswered) {
-                    val adaptiveQuestions = questionGenerator(report.weakTargets)
-                    _uiState.value = currentState.copy(
-                        questions = adaptiveQuestions,
-                        weakTargets = report.weakTargets
-                    )
-                    playCurrentQuestionAudio()
-                } else {
-                    _uiState.value = currentState.copy(weakTargets = report.weakTargets)
-                }
-            }
-        } catch (_: Exception) {
-            // Silently retain standard question set if loading adaptive targets fails
+            val analysisResult = analyzeErrorPatternsUseCase(childId)
+            val generatedQuestions = questionGenerator(analysisResult.priorityLetters)
+
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                priorityLetters = analysisResult.priorityLetters,
+                questions = generatedQuestions,
+                totalQuestions = generatedQuestions.size
+            )
+
+            questionDisplayedAtMs = System.currentTimeMillis()
+            playCurrentQuestionAudio()
         }
     }
 
@@ -122,7 +115,7 @@ class HurufMiripViewModel(
 
     fun selectChoice(choice: String) {
         val state = _uiState.value
-        if (state.isAnswered) return // Prevent multiple answers on same question
+        if (state.isLoading || state.isAnswered) return // Prevent multiple answers on same question
 
         val question = state.currentQuestion ?: return
         val isCorrect = choice == question.targetLetter
@@ -131,9 +124,7 @@ class HurufMiripViewModel(
         val newCorrectCount = if (isCorrect) state.correctAnswersCount + 1 else state.correctAnswersCount
         val newIncorrectCount = if (!isCorrect) state.incorrectAnswersCount + 1 else state.incorrectAnswersCount
 
-        // Adaptive difficulty progression (matching DeveloperPreviewAndAdaptiveLogicTest specifications)
-        // 3 consecutive correct -> level up by 1 (max 3), reset consecutiveCorrect to 0
-        // 2 consecutive incorrect -> level down by 1 (min 1), reset consecutiveIncorrect to 0
+        // In-game adaptive difficulty progression (matching DeveloperPreviewAndAdaptiveLogicTest)
         val newConsecutiveCorrect: Int
         val newConsecutiveIncorrect: Int
         var newDifficulty = state.currentDifficulty
@@ -169,22 +160,23 @@ class HurufMiripViewModel(
             consecutiveIncorrect = newConsecutiveIncorrect
         )
 
+        val answerLog = AnswerLog(
+            answerId = "ans_${sessionId}_${question.id}",
+            sessionId = sessionId,
+            childId = getActiveChildId(),
+            moduleId = "pulau_alfabet",
+            activityId = "huruf_mirip",
+            questionId = question.id,
+            targetChar = question.targetLetter,
+            chosenChar = choice,
+            isCorrect = isCorrect,
+            responseTimeMs = responseTimeMs,
+            timestamp = System.currentTimeMillis()
+        )
+        currentSessionLogs.add(answerLog)
+
         // Persist AnswerLog idempotently
         viewModelScope.launch {
-            val childId = getActiveChildId()
-            val answerLog = AnswerLog(
-                answerId = "ans_${sessionId}_${question.id}",
-                sessionId = sessionId,
-                childId = childId,
-                moduleId = "pulau_alfabet",
-                activityId = "huruf_mirip",
-                questionId = question.id,
-                targetChar = question.targetLetter,
-                chosenChar = choice,
-                isCorrect = isCorrect,
-                responseTimeMs = responseTimeMs,
-                timestamp = System.currentTimeMillis()
-            )
             sessionRepository.recordAnswer(answerLog)
         }
     }
@@ -218,6 +210,9 @@ class HurufMiripViewModel(
         val correct = state.correctAnswersCount
         val incorrect = state.incorrectAnswersCount
         val accuracy = if (total > 0) correct.toFloat() / total.toFloat() else 0f
+
+        // Hitung breakdown benar & salah per pasangan huruf (b/d dan p/q) untuk sesi ini
+        val sessionAnalysis = analyzeErrorPatternsUseCase.analyzeLogs(currentSessionLogs)
 
         val result = SessionResult(
             sessionId = sessionId,
@@ -260,6 +255,7 @@ class HurufMiripViewModel(
             _uiState.value = _uiState.value.copy(
                 showCompletionDialog = true,
                 sessionResult = result,
+                sessionPairStats = sessionAnalysis.pairStats,
                 newlyAwardedMilestones = awarded
             )
         }
@@ -296,8 +292,8 @@ class HurufMiripViewModel(
         return try {
             getActiveChildIdUseCase.getSync()
         } catch (_: Exception) {
-            if (AksaUserState.currentProfileId.isNotBlank()) {
-                AksaUserState.currentProfileId
+            if (com.aksa.app.ui.state.AksaUserState.currentProfileId.isNotBlank()) {
+                com.aksa.app.ui.state.AksaUserState.currentProfileId
             } else {
                 val guardian = authRepository.currentGuardian.value
                 val guardianUid = guardian?.uid ?: "demo_guardian_default"

@@ -5,6 +5,7 @@ import com.aksa.app.data.repository.demo.DemoAuthRepository
 import com.aksa.app.data.repository.demo.DemoProfileRepository
 import com.aksa.app.data.repository.demo.DemoSessionRepository
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.AnalyzeErrorPatternsUseCase
 import com.aksa.app.domain.usecase.GenerateHurufMiripQuestionsUseCase
 import com.aksa.app.ui.viewmodel.HurufMiripViewModel
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +55,8 @@ class HurufMiripSessionLifecycleTest {
             achievementRepository = achievementRepository,
             authRepository = authRepository,
             profileRepository = profileRepository,
-            questionGenerator = GenerateHurufMiripQuestionsUseCase(Random(77))
+            questionGenerator = GenerateHurufMiripQuestionsUseCase(Random(77)),
+            analyzeErrorPatternsUseCase = AnalyzeErrorPatternsUseCase(sessionRepository)
         )
     }
 
@@ -286,10 +288,12 @@ class HurufMiripSessionLifecycleTest {
         val vm = createViewModel()
         advanceUntilIdle()
 
-        // Verify that weak target 'b' was detected and questions were adaptively generated with 4 'b' questions!
+        // Verify that priority letter 'b' was detected and questions were adaptively generated with 6 'b' questions (60:40 rule)!
         val state = vm.uiState.value
-        assertEquals(listOf("b"), state.weakTargets)
+        assertEquals(listOf("b"), state.priorityLetters)
         val bCount = state.questions.count { it.targetLetter == "b" }
-        assertEquals("Weak letter 'b' must have 4 questions adaptively allocated", 4, bCount)
+        assertEquals("Priority letter 'b' must have 6 questions (60%) allocated", 6, bCount)
+        val otherCount = state.questions.count { it.targetLetter != "b" }
+        assertEquals("Other letters must have 4 questions (40%) allocated", 4, otherCount)
     }
 }

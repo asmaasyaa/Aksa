@@ -5,82 +5,41 @@ import kotlin.random.Random
 
 /**
  * Generates exactly 10 questions for a Huruf Mirip session.
- * Targets are b, d, p, and q.
- *
- * Supports:
- * - Standard balanced distribution: each letter appears 2 or 3 times (3+3+2+2 = 10).
- * - Adaptive distribution based on weakTargets: prioritizes weak letters while ensuring
- *   every letter appears >= 1 time and total questions is exactly 10.
- *
- * Supports an injectable [Random] instance for deterministic testing.
+ * - If [priorityLetters] is empty: balanced distribution (3+3+2+2 = 10).
+ * - If [priorityLetters] is provided (1..3 letters): 60% (6 questions) from priority letters,
+ *   and 40% (4 questions) from the remaining letters.
  */
 class GenerateHurufMiripQuestionsUseCase(
     private val random: Random = Random.Default
 ) {
-    private val validLetters = listOf("b", "d", "p", "q")
+    operator fun invoke(priorityLetters: List<String> = emptyList()): List<HurufMiripQuestion> {
+        val allLetters = listOf("b", "d", "p", "q")
+        val validPriority = priorityLetters
+            .map { it.lowercase() }
+            .distinct()
+            .filter { it in allLetters }
+            .take(3)
 
-    operator fun invoke(): List<HurufMiripQuestion> {
-        return invoke(emptyList())
-    }
-
-    operator fun invoke(weakTargets: List<String>): List<HurufMiripQuestion> {
-        val filteredWeak = weakTargets.distinct().filter { it in validLetters }
-        val targetLetters = mutableListOf<String>()
-
-        when (filteredWeak.size) {
-            0 -> {
-                // Balanced standard: 2 letters get 3, 2 letters get 2 (3+3+2+2 = 10)
-                val letters = validLetters.shuffled(random)
-                targetLetters.addAll(List(3) { letters[0] })
-                targetLetters.addAll(List(3) { letters[1] })
-                targetLetters.addAll(List(2) { letters[2] })
-                targetLetters.addAll(List(2) { letters[3] })
+        val targetLetters = if (validPriority.isEmpty()) {
+            // Distribusi seimbang default (sesi awal / data belum cukup)
+            val shuffled = allLetters.shuffled(random)
+            buildList {
+                addAll(List(3) { shuffled[0] })
+                addAll(List(3) { shuffled[1] })
+                addAll(List(2) { shuffled[2] })
+                addAll(List(2) { shuffled[3] })
             }
-            1 -> {
-                // 1 weak target: weak gets 4 questions, other 3 letters get 2 each (4+2+2+2 = 10)
-                val weak = filteredWeak[0]
-                val others = (validLetters - weak).shuffled(random)
-                targetLetters.addAll(List(4) { weak })
-                others.forEach { letter ->
-                    targetLetters.addAll(List(2) { letter })
-                }
+        } else {
+            val otherLetters = allLetters.filterNot { it in validPriority }
+            val priorityPool = buildBalancedPool(validPriority, totalCount = 6)
+            val nonPriorityPool = if (otherLetters.isNotEmpty()) {
+                buildBalancedPool(otherLetters, totalCount = 4)
+            } else {
+                buildBalancedPool(allLetters, totalCount = 4)
             }
-            2 -> {
-                // 2 weak targets: both weak get 3 each, other 2 letters get 2 each (3+3+2+2 = 10)
-                val weak1 = filteredWeak[0]
-                val weak2 = filteredWeak[1]
-                val others = (validLetters - setOf(weak1, weak2)).shuffled(random)
-                targetLetters.addAll(List(3) { weak1 })
-                targetLetters.addAll(List(3) { weak2 })
-                others.forEach { letter ->
-                    targetLetters.addAll(List(2) { letter })
-                }
-            }
-            3 -> {
-                // 3 weak targets: 1st weak gets 4, 2nd gets 3, 3rd gets 2, remaining letter gets 1 (4+3+2+1 = 10)
-                val weak1 = filteredWeak[0]
-                val weak2 = filteredWeak[1]
-                val weak3 = filteredWeak[2]
-                val remaining = (validLetters - setOf(weak1, weak2, weak3)).first()
-                targetLetters.addAll(List(4) { weak1 })
-                targetLetters.addAll(List(3) { weak2 })
-                targetLetters.addAll(List(2) { weak3 })
-                targetLetters.add(remaining)
-            }
-            else -> {
-                // 4 weak targets: 1st gets 3, 2nd gets 3, 3rd gets 2, 4th gets 2 (3+3+2+2 = 10)
-                val weak1 = filteredWeak[0]
-                val weak2 = filteredWeak[1]
-                val weak3 = filteredWeak[2]
-                val weak4 = filteredWeak[3]
-                targetLetters.addAll(List(3) { weak1 })
-                targetLetters.addAll(List(3) { weak2 })
-                targetLetters.addAll(List(2) { weak3 })
-                targetLetters.addAll(List(2) { weak4 })
-            }
+            priorityPool + nonPriorityPool
         }
 
-        // Shuffle order of questions
         val shuffledTargets = targetLetters.shuffled(random)
 
         return shuffledTargets.mapIndexed { index, target ->
@@ -90,6 +49,18 @@ class GenerateHurufMiripQuestionsUseCase(
                 random = random
             )
         }
+    }
+
+    private fun buildBalancedPool(letters: List<String>, totalCount: Int): List<String> {
+        val pool = mutableListOf<String>()
+        val baseCount = totalCount / letters.size
+        val remainder = totalCount % letters.size
+
+        letters.forEachIndexed { index, letter ->
+            val count = baseCount + if (index < remainder) 1 else 0
+            repeat(count) { pool.add(letter) }
+        }
+        return pool
     }
 
     private fun createQuestion(
