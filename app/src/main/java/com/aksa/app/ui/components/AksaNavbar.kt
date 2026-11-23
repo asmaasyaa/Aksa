@@ -30,7 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -44,7 +44,7 @@ import com.aksa.app.ui.theme.AksaWhite
 import kotlin.math.roundToInt
 
 @Composable
-fun MinimalAksaBottomBar(
+fun AksaNavbar(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -57,8 +57,8 @@ fun MinimalAksaBottomBar(
     val indicatorOffsetPx by animateFloatAsState(
         targetValue = if (selectedTab == 0) 0f else rowWidthPx / 2f,
         animationSpec = spring(
-            dampingRatio = 0.5f, // Semakin kecil semakin memantul (bouncy)
-            stiffness = Spring.StiffnessLow // Kecepatan luncuran
+            dampingRatio = 0.5f, 
+            stiffness = Spring.StiffnessLow 
         ),
         label = "indicatorOffset"
     )
@@ -107,14 +107,14 @@ fun MinimalAksaBottomBar(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             TabIcon(
-                icon = AksaIcons.Map,
+                icon = AksaIcons.map(),
                 isSelected = selectedTab == 0,
                 onClick = { onTabSelected(0) },
                 modifier = Modifier.weight(1f)
             )
 
             TabIcon(
-                icon = AksaIcons.Person,
+                icon = AksaIcons.person(),
                 isSelected = selectedTab == 1,
                 onClick = { onTabSelected(1) },
                 modifier = Modifier.weight(1f)
@@ -125,7 +125,7 @@ fun MinimalAksaBottomBar(
 
 @Composable
 private fun TabIcon(
-    icon: ImageVector,
+    icon: Painter,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -150,10 +150,18 @@ private fun TabIcon(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = icon,
+            painter = icon,
             contentDescription = null,
             tint = contentColor,
             modifier = Modifier.size(24.dp)
         )
     }
 }
+
+@Deprecated("Use AksaNavbar instead", ReplaceWith("AksaNavbar(selectedTab, onTabSelected, modifier)"))
+@Composable
+fun MinimalAksaBottomBar(
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) = AksaNavbar(selectedTab, onTabSelected, modifier)
