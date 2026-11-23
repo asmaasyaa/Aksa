@@ -75,7 +75,6 @@ fun SelectProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Step/Category pill
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(32.dp))
@@ -177,7 +176,6 @@ fun SelectProfileScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Add Child Profile Button
                     AksaButton(
                         text = "+ Tambah Profil Anak",
                         style = AksaButtonStyle.WHITE_CARD,
@@ -266,7 +264,7 @@ fun ChildProfileSelectionCard(
                 }
             } else {
                 Icon(
-                    imageVector = AksaIcons.ChevronRight,
+                    painter = AksaIcons.chevronRight(),
                     contentDescription = "Pilih",
                     tint = AksaGrayText,
                     modifier = Modifier.size(20.dp)

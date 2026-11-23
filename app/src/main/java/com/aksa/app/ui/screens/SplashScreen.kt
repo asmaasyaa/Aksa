@@ -85,17 +85,14 @@ fun SplashScreen(
                 }
             )
     ) {
-        // Subtle floating alphabet pattern in background
         AlphabetBackgroundPattern()
 
-        // Centered AKSA branding
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
                 .scale(pulse),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Big playful badge
             Box(
                 modifier = Modifier
                     .background(AksaWhite.copy(alpha = 0.16f), RoundedCornerShape(32.dp))
@@ -113,7 +110,6 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Large centered text: AKSA
             Text(
                 text = "AKSA",
                 fontFamily = Poppins,
@@ -134,7 +130,6 @@ fun SplashScreen(
             )
         }
 
-        // Mascot peeking from the bottom
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)

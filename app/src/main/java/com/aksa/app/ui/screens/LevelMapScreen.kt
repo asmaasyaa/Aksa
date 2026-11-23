@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -77,7 +76,6 @@ fun LevelMapScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 60.dp)
         ) {
-            // Top Bar Area
             Spacer(modifier = Modifier.height(110.dp))
 
             // Mini-Game & Dev Quick Access Banner
@@ -189,7 +187,6 @@ fun LevelMapScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // White rounded "Kembali" pill button
             Box(
                 modifier = Modifier
                     .shadow(4.dp, PillShape)
@@ -200,7 +197,7 @@ fun LevelMapScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = AksaIcons.ArrowBack,
+                        painter = AksaIcons.arrowBack(),
                         contentDescription = "Kembali",
                         tint = AksaDarkBrown,
                         modifier = Modifier.size(18.dp)
@@ -216,7 +213,6 @@ fun LevelMapScreen(
                 }
             }
 
-            // Title Pill
             Box(
                 modifier = Modifier
                     .clip(PillShape)

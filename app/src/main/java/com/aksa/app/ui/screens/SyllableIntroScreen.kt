@@ -35,9 +35,7 @@ import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
-import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaOrangeLight
 import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
@@ -63,13 +61,11 @@ fun SyllableIntroScreen(
                 .padding(bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -80,7 +76,7 @@ fun SyllableIntroScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -96,7 +92,6 @@ fun SyllableIntroScreen(
                     }
                 }
 
-                // Level Badge
                 Box(
                     modifier = Modifier
                         .clip(PillShape)
@@ -115,7 +110,6 @@ fun SyllableIntroScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Title
             Text(
                 text = "Dunia Suku Kata",
                 fontFamily = Poppins,
@@ -126,7 +120,6 @@ fun SyllableIntroScreen(
 
             Spacer(modifier = Modifier.height(26.dp))
 
-            // Mascot Guide (Learning pose with book)
             MascotLearning(size = 170.dp)
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -144,7 +137,6 @@ fun SyllableIntroScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Mini speaker button
                     Box(
                         modifier = Modifier
                             .align(Alignment.End)
@@ -155,7 +147,7 @@ fun SyllableIntroScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = AksaIcons.VolumeUp,
+                            painter = AksaIcons.volumeUp(),
                             contentDescription = "Bunyikan",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(20.dp)
@@ -186,7 +178,6 @@ fun SyllableIntroScreen(
 
                     Spacer(modifier = Modifier.height(28.dp))
 
-                    // Primary Button: Lanjut
                     AksaButton(
                         text = "Lanjut",
                         style = AksaButtonStyle.PRIMARY_ORANGE,

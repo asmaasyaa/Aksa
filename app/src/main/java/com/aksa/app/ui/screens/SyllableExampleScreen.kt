@@ -2,7 +2,6 @@ package com.aksa.app.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -42,7 +40,6 @@ import com.aksa.app.ui.components.AksaSyllableCard
 import com.aksa.app.ui.components.SyllableCardColor
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
-import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaSoftPeach
@@ -50,7 +47,6 @@ import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
-
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -84,13 +80,11 @@ fun SyllableExampleScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -101,7 +95,7 @@ fun SyllableExampleScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -117,7 +111,6 @@ fun SyllableExampleScreen(
                     }
                 }
 
-                // Badge: Contoh
                 Box(
                     modifier = Modifier
                         .clip(PillShape)
@@ -136,7 +129,6 @@ fun SyllableExampleScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Large White Rounded Illustration Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -149,7 +141,6 @@ fun SyllableExampleScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Illustration of Eyes (Mata)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -173,7 +164,6 @@ fun SyllableExampleScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Green Syllable Tiles: MA and TA
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -201,7 +191,6 @@ fun SyllableExampleScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Combined Word Result: MATA
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -232,7 +221,6 @@ fun SyllableExampleScreen(
                                 )
                             }
 
-                            // Speaker button
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
@@ -244,7 +232,7 @@ fun SyllableExampleScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = AksaIcons.VolumeUp,
+                                    painter = AksaIcons.volumeUp(),
                                     contentDescription = "Bunyikan",
                                     tint = AksaOrange,
                                     modifier = Modifier.size(22.dp)
@@ -255,7 +243,6 @@ fun SyllableExampleScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Primary Button: Coba Sekarang
                     AksaButton(
                         text = "Coba Sekarang",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
