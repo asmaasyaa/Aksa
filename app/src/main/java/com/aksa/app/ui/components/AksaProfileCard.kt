@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
-import com.aksa.app.ui.theme.AksaGrayBackground
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaSoftPeach
@@ -110,7 +108,7 @@ fun AksaProfileCard(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Icon(
-                            imageVector = AksaIcons.Star,
+                            painter = AksaIcons.star(),
                             contentDescription = null,
                             tint = AksaYellowDark,
                             modifier = Modifier.size(12.dp)
@@ -141,7 +139,7 @@ fun AksaProfileCard(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(
-                        imageVector = AksaIcons.Flame,
+                        painter = AksaIcons.flame(),
                         contentDescription = "Streak",
                         tint = AksaOrange,
                         modifier = Modifier.size(18.dp)
