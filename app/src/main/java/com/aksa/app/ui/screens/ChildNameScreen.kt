@@ -37,6 +37,7 @@ import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaTextField
 import com.aksa.app.ui.components.MascotPeeking
 import com.aksa.app.ui.theme.AksaDarkBrown
+import com.aksa.app.ui.theme.AksaErrorText
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaOrange
@@ -146,7 +147,7 @@ fun ChildNameScreen(
                             text = localError!!,
                             fontFamily = Poppins,
                             fontSize = 12.sp,
-                            color = Color(0xFFCC3300),
+                            color = AksaErrorText,
                             textAlign = TextAlign.Center
                         )
                     }
