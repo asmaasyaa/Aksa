@@ -1,5 +1,6 @@
 package com.aksa.app.ui.viewmodel
 
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aksa.app.BuildConfig
@@ -12,11 +13,13 @@ import com.aksa.app.domain.usecase.LevelMapProgress
 import com.aksa.app.ui.components.LevelNodeStatus
 import com.aksa.app.ui.preview.DeveloperPreviewManager
 import com.aksa.app.ui.preview.LevelMapPreviewState
+import com.aksa.app.ui.state.AksaUserState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 data class LockedLevelDetails(
@@ -55,7 +58,13 @@ class LevelMapViewModel(
     private var observeJob: Job? = null
 
     init {
-        startObserving()
+        viewModelScope.launch {
+            snapshotFlow { AksaUserState.currentProfileId }
+                .distinctUntilChanged()
+                .collect {
+                    startObserving()
+                }
+        }
     }
 
     /**

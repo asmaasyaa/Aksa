@@ -296,4 +296,52 @@ class HurufMiripSessionLifecycleTest {
         val otherCount = state.questions.count { it.targetLetter != "b" }
         assertEquals("Other letters must have 4 questions (40%) allocated", 4, otherCount)
     }
+
+    @Test
+    fun sessionChildIdIsPinnedAndAnswerLogsPersistedBeforeCompletion() = runTest {
+        com.aksa.app.ui.state.AksaUserState.currentProfileId = "profile_alpha"
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        // Answer questions 1 through 5
+        for (i in 0 until 5) {
+            val q = vm.uiState.value.currentQuestion!!
+            vm.selectChoice(q.targetLetter)
+            advanceUntilIdle()
+            vm.nextQuestion()
+            advanceUntilIdle()
+        }
+
+        // Simulate concurrent profile switch mid-session
+        com.aksa.app.ui.state.AksaUserState.currentProfileId = "profile_beta"
+
+        // Answer remaining questions 6 through 10
+        for (i in 5 until 9) {
+            val q = vm.uiState.value.currentQuestion!!
+            vm.selectChoice(q.targetLetter)
+            advanceUntilIdle()
+            vm.nextQuestion()
+            advanceUntilIdle()
+        }
+        val q10 = vm.uiState.value.currentQuestion!!
+        vm.selectChoice(q10.targetLetter)
+        advanceUntilIdle()
+        vm.nextQuestion()
+        advanceUntilIdle()
+
+        // Verify session was committed under original pinned profile_alpha
+        val state = vm.uiState.value
+        assertTrue(state.showCompletionDialog)
+        assertNotNull(state.sessionResult)
+        assertEquals("profile_alpha", state.sessionResult?.childId)
+
+        // Verify all 10 answer logs were saved with profile_alpha, no profile_beta leakage
+        val alphaAnswers = sessionRepository.getAnswersForSession(state.sessionId)
+        assertEquals(10, alphaAnswers.size)
+        assertTrue(alphaAnswers.all { it.childId == "profile_alpha" })
+
+        // Clean up
+        com.aksa.app.ui.state.AksaUserState.clearSession()
+    }
 }

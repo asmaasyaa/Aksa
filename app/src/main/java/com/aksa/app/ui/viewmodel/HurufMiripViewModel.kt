@@ -18,9 +18,11 @@ import com.aksa.app.domain.usecase.GenerateHurufMiripQuestionsUseCase
 import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.domain.usecase.PairConfusionStat
 import com.aksa.app.ui.state.AksaUserState
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
@@ -71,6 +73,8 @@ class HurufMiripViewModel(
     private var questionDisplayedAtMs: Long = startedAtMs
     private var isSessionCommitted = false
     private val currentSessionLogs = mutableListOf<AnswerLog>()
+    private val pendingAnswerJobs = mutableListOf<Job>()
+    private val sessionChildId: String = getActiveChildId()
 
     private val _uiState = MutableStateFlow(
         HurufMiripUiState(
@@ -92,8 +96,7 @@ class HurufMiripViewModel(
 
         // Jalankan analisis pola kesalahan dari 3 sesi terakhir sebelum menyusun soal
         viewModelScope.launch {
-            val childId = getActiveChildId()
-            val analysisResult = analyzeErrorPatternsUseCase(childId)
+            val analysisResult = analyzeErrorPatternsUseCase(sessionChildId)
             val generatedQuestions = questionGenerator(analysisResult.priorityLetters)
 
             _uiState.value = _uiState.value.copy(
@@ -163,7 +166,7 @@ class HurufMiripViewModel(
         val answerLog = AnswerLog(
             answerId = "ans_${sessionId}_${question.id}",
             sessionId = sessionId,
-            childId = getActiveChildId(),
+            childId = sessionChildId,
             moduleId = "pulau_alfabet",
             activityId = "huruf_mirip",
             questionId = question.id,
@@ -175,9 +178,12 @@ class HurufMiripViewModel(
         )
         currentSessionLogs.add(answerLog)
 
-        // Persist AnswerLog idempotently
-        viewModelScope.launch {
+        // Persist AnswerLog idempotently and track job
+        val job = viewModelScope.launch {
             sessionRepository.recordAnswer(answerLog)
+        }
+        synchronized(pendingAnswerJobs) {
+            pendingAnswerJobs.add(job)
         }
     }
 
@@ -216,7 +222,7 @@ class HurufMiripViewModel(
 
         val result = SessionResult(
             sessionId = sessionId,
-            childId = getActiveChildId(),
+            childId = sessionChildId,
             moduleId = "pulau_alfabet",
             activityId = "huruf_mirip",
             startedAt = startedAtMs,
@@ -229,12 +235,14 @@ class HurufMiripViewModel(
         )
 
         viewModelScope.launch {
+            val jobsToWait = synchronized(pendingAnswerJobs) { pendingAnswerJobs.toList() }
+            jobsToWait.joinAll()
+
             sessionRepository.saveSessionResult(result)
             AksaUserState.hurufMiripCompleted = true
 
             // Calculate active days in current week and evaluate milestones
-            val childId = getActiveChildId()
-            val completedSessions = sessionRepository.getCompletedSessions(childId)
+            val completedSessions = sessionRepository.getCompletedSessions(sessionChildId)
             val monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
 
             val distinctActiveDaysInWeek = completedSessions
@@ -247,7 +255,7 @@ class HurufMiripViewModel(
                 }.toSet().size
 
             val awarded = evaluateWeeklyMilestonesUseCase(
-                childId = childId,
+                childId = sessionChildId,
                 weekStartDate = monday,
                 activeDaysCount = distinctActiveDaysInWeek
             )
@@ -271,7 +279,7 @@ class HurufMiripViewModel(
         val state = _uiState.value
         val result = SessionResult(
             sessionId = sessionId,
-            childId = getActiveChildId(),
+            childId = sessionChildId,
             moduleId = "pulau_alfabet",
             activityId = "huruf_mirip",
             startedAt = startedAtMs,
@@ -284,6 +292,8 @@ class HurufMiripViewModel(
         )
 
         viewModelScope.launch {
+            val jobsToWait = synchronized(pendingAnswerJobs) { pendingAnswerJobs.toList() }
+            jobsToWait.joinAll()
             sessionRepository.saveSessionResult(result)
         }
     }

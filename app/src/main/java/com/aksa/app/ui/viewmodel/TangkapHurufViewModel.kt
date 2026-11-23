@@ -12,9 +12,11 @@ import com.aksa.app.domain.repository.AuthRepository
 import com.aksa.app.domain.repository.SessionRepository
 import com.aksa.app.domain.usecase.EvaluateWeeklyMilestonesUseCase
 import com.aksa.app.ui.state.AksaUserState
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
@@ -76,6 +78,8 @@ class TangkapHurufViewModel(
     private var sessionId = "session_tg_${UUID.randomUUID()}"
     private var startedAtMs: Long = System.currentTimeMillis()
     private var isSessionCommitted = false
+    private val pendingAnswerJobs = mutableListOf<Job>()
+    private val sessionChildId: String = getActiveChildId()
 
     // Visually similar letter pairs for Level 3 dyslexia adaptation
     private val similarPairs = listOf(
@@ -116,8 +120,7 @@ class TangkapHurufViewModel(
 
     private fun determineInitialDifficulty() {
         viewModelScope.launch {
-            val childId = getActiveChildId()
-            val completedSessions = sessionRepository.getCompletedSessions(childId)
+            val completedSessions = sessionRepository.getCompletedSessions(sessionChildId)
                 .filter { it.activityId == "tangkap_huruf" }
 
             val initialLevel = if (completedSessions.isNotEmpty()) {
@@ -341,12 +344,11 @@ class TangkapHurufViewModel(
             audioSpeaker?.speak("Huruf ${state.targetLetter} terlewat!")
         }
 
-        viewModelScope.launch {
-            val childId = getActiveChildId()
+        val job = viewModelScope.launch {
             val answerLog = AnswerLog(
                 answerId = "ans_${sessionId}_round_${currentRound}",
                 sessionId = sessionId,
-                childId = childId,
+                childId = sessionChildId,
                 moduleId = "pulau_alfabet",
                 activityId = "tangkap_huruf",
                 questionId = "tangkap_${currentRound}_${state.targetLetter}",
@@ -357,6 +359,9 @@ class TangkapHurufViewModel(
                 timestamp = System.currentTimeMillis()
             )
             sessionRepository.recordAnswer(answerLog)
+        }
+        synchronized(pendingAnswerJobs) {
+            pendingAnswerJobs.add(job)
         }
     }
 
@@ -392,7 +397,7 @@ class TangkapHurufViewModel(
         val completedAtMs = System.currentTimeMillis()
         val result = SessionResult(
             sessionId = sessionId,
-            childId = getActiveChildId(),
+            childId = sessionChildId,
             moduleId = "pulau_alfabet",
             activityId = "tangkap_huruf",
             startedAt = startedAtMs,
@@ -405,11 +410,13 @@ class TangkapHurufViewModel(
         )
 
         viewModelScope.launch {
+            val jobsToWait = synchronized(pendingAnswerJobs) { pendingAnswerJobs.toList() }
+            jobsToWait.joinAll()
+
             sessionRepository.saveSessionResult(result)
             AksaUserState.hurufMiripCompleted = true
 
-            val childId = getActiveChildId()
-            val completedSessions = sessionRepository.getCompletedSessions(childId)
+            val completedSessions = sessionRepository.getCompletedSessions(sessionChildId)
             val monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 
             val distinctActiveDaysInWeek = completedSessions
@@ -422,7 +429,7 @@ class TangkapHurufViewModel(
                 }.toSet().size
 
             val awarded = evaluateWeeklyMilestonesUseCase(
-                childId = childId,
+                childId = sessionChildId,
                 weekStartDate = monday,
                 activeDaysCount = distinctActiveDaysInWeek
             )
@@ -448,7 +455,7 @@ class TangkapHurufViewModel(
         val state = _uiState.value
         val result = SessionResult(
             sessionId = sessionId,
-            childId = getActiveChildId(),
+            childId = sessionChildId,
             moduleId = "pulau_alfabet",
             activityId = "tangkap_huruf",
             startedAt = startedAtMs,
@@ -461,6 +468,8 @@ class TangkapHurufViewModel(
         )
 
         viewModelScope.launch {
+            val jobsToWait = synchronized(pendingAnswerJobs) { pendingAnswerJobs.toList() }
+            jobsToWait.joinAll()
             sessionRepository.saveSessionResult(result)
         }
     }
