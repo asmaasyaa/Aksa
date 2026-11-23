@@ -57,8 +57,6 @@ import com.aksa.app.ui.components.AksaProgressBar
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.components.ProgressBarColor
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.PreviewVisualState
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -134,19 +132,10 @@ fun LetterLearningScreen(
     var correctCount by remember { mutableIntStateOf(0) }
     var sessionCommitted by remember { mutableStateOf(false) }
 
-    // Developer Preview overrides
-    val visualState by DeveloperPreviewManager.visualState.collectAsState()
-    val isDevPreview by DeveloperPreviewManager.isPreviewActive.collectAsState()
-
-    val effectiveStep = when {
-        isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED -> LetterLearningStep.COMPLETION
-        isDevPreview && (visualState == PreviewVisualState.CORRECT_FEEDBACK || visualState == PreviewVisualState.INCORRECT_FEEDBACK) -> LetterLearningStep.QUIZ
-        else -> step
-    }
-
-    val effectiveIsAnswered = if (isDevPreview && (visualState == PreviewVisualState.CORRECT_FEEDBACK || visualState == PreviewVisualState.INCORRECT_FEEDBACK)) true else isAnswered
-    val effectiveIsCorrect = if (isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK) true else if (isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK) false else isCorrect
-    val effectiveSelectedChoice = if (isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK) quizQuestions[currentQuizIndex].targetLetter else if (isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK) quizQuestions[currentQuizIndex].choices.firstOrNull { it != quizQuestions[currentQuizIndex].targetLetter } ?: "X" else selectedChoice
+    val effectiveStep = step
+    val effectiveIsAnswered = isAnswered
+    val effectiveIsCorrect = isCorrect
+    val effectiveSelectedChoice = selectedChoice
 
     DisposableEffect(Unit) {
         onDispose {
@@ -539,7 +528,7 @@ fun LetterLearningScreen(
                                             coroutineScope.launch {
                                                 val sessionResult = SessionResult(
                                                     sessionId = "session_letter_${UUID.randomUUID()}",
-                                                    childId = "child_marvin_demo",
+                                                    childId = com.aksa.app.ui.state.AksaUserState.currentProfileId.ifBlank { "child_${AksaRepositoryProvider.authRepository.currentGuardian.value?.uid ?: ""}" },
                                                     moduleId = "pulau_alfabet",
                                                     activityId = "letter_learning",
                                                     startedAt = System.currentTimeMillis() - 60_000,
@@ -599,8 +588,8 @@ fun LetterLearningScreen(
                             Spacer(modifier = Modifier.height(18.dp))
 
                             // Score Badge
-                            val scoreDisplay = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "3 / 3" else "$correctCount / ${quizQuestions.size}"
-                            val accuracyDisplay = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "100%" else "${((correctCount.toFloat() / quizQuestions.size) * 100).toInt()}%"
+                            val scoreDisplay = "$correctCount / ${quizQuestions.size}"
+                            val accuracyDisplay = "${((correctCount.toFloat() / quizQuestions.size) * 100).toInt()}%"
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
