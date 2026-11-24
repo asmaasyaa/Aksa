@@ -70,8 +70,7 @@ fun LevelMapScreen(
     onNavigateToLevel2: () -> Unit,
     onNavigateToLevel3: () -> Unit,
     onNavigateToLevel4: () -> Unit,
-    onNavigateToTangkapHuruf: () -> Unit = {},
-    onNavigateToDeveloperPreview: () -> Unit = {}
+    onNavigateToTangkapHuruf: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -110,7 +109,7 @@ fun LevelMapScreen(
                 // Mini-Game Tangkap Huruf Pill
                 Box(
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(AksaWhite)
                         .clickable { onNavigateToTangkapHuruf() }
@@ -129,44 +128,6 @@ fun LevelMapScreen(
                             color = AksaDarkBrown
                         )
                     }
-                }
-
-                // Dev Preview Quick Access Pill
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(AksaOrange.copy(alpha = 0.15f))
-                        .clickable { onNavigateToDeveloperPreview() }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    Text(
-                        text = "Dev Preview",
-                        fontFamily = Poppins,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = AksaOrange
-                    )
-                }
-            }
-
-            if (uiState.isPreviewActive) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 6.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(AksaYellow.copy(alpha = 0.25f))
-                        .padding(10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Mode Pratinjau Pengembang Aktif: Status level diatur secara manual untuk pengujian UI.",
-                        fontFamily = Poppins,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 11.sp,
-                        color = AksaDarkBrown,
-                        textAlign = TextAlign.Center
-                    )
                 }
             }
 

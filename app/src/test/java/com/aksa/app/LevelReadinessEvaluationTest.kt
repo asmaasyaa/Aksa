@@ -13,8 +13,6 @@ import com.aksa.app.domain.usecase.EvaluateLevelReadinessUseCase
 import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.domain.usecase.GetLevelProgressionUseCase
 import com.aksa.app.ui.components.LevelNodeStatus
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.LevelMapPreviewState
 import com.aksa.app.ui.state.AksaUserState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -47,7 +45,6 @@ class LevelReadinessEvaluationTest {
         levelProgressRepository = DemoLevelProgressRepository()
         evaluateReadinessUseCase = EvaluateLevelReadinessUseCase(sessionRepository, fixedClock, zoneId)
         getProgressionUseCase = GetLevelProgressionUseCase(evaluateReadinessUseCase, levelProgressRepository)
-        DeveloperPreviewManager.enablePreview(false)
     }
 
     private fun timestampForDay(daysAgo: Long, hour: Int = 10, minute: Int = 0): Long {
@@ -467,43 +464,14 @@ class LevelReadinessEvaluationTest {
         assertEquals(LevelNodeStatus.ACTIVE, progress.getNodeStatus(4))
     }
 
-    // 19. Normal mode ignores developer preview overrides.
+    // 19. Progression is strictly driven by real session evaluation and level progress repository.
     @Test
-    fun test19_normalMode_ignoresDeveloperPreviewOverrides() = runTest {
-        DeveloperPreviewManager.setLevelMapState(LevelMapPreviewState.ALL_UNLOCKED)
-        DeveloperPreviewManager.enablePreview(false)
-
+    fun test19_progressionIsStrictlyDrivenByRealSessionEvaluation() = runTest {
         val progress = getProgressionUseCase(childId)
+        assertEquals(LevelNodeStatus.ACTIVE, progress.getNodeStatus(1))
         assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(2))
-    }
-
-    // 20. Debug preview can display all unlocked levels without modifying real data.
-    @Test
-    fun test20_debugPreview_canDisplayAllUnlockedWithoutModifyingRealData() = runTest {
-        DeveloperPreviewManager.setLevelMapState(LevelMapPreviewState.ALL_UNLOCKED)
-        DeveloperPreviewManager.enablePreview(true)
-
-        assertEquals(LevelMapPreviewState.ALL_UNLOCKED, DeveloperPreviewManager.levelMapState.value)
-
-        val realUnlocked = levelProgressRepository.getUnlockedLevels(childId)
-        assertEquals(setOf("pulau_alfabet"), realUnlocked)
-        val sessionsInRepo = sessionRepository.getCompletedSessions(childId)
-        assertTrue(sessionsInRepo.isEmpty())
-
-        DeveloperPreviewManager.enablePreview(false)
-    }
-
-    // 21. Release mode does not allow preview bypass.
-    @Test
-    fun test21_releaseMode_doesNotAllowPreviewBypass() = runTest {
-        val isDebugBuild = false
-        val isPreviewEnabled = true
-        val effectivePreviewActive = isDebugBuild && isPreviewEnabled
-
-        assertFalse(effectivePreviewActive)
-
-        val progress = getProgressionUseCase(childId)
-        assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(2))
+        assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(3))
+        assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(4))
     }
 
     // 22. Session history updates refresh the effective map state.

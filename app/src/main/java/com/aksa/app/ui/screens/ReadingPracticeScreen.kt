@@ -55,8 +55,6 @@ import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.PreviewVisualState
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -133,19 +131,10 @@ fun ReadingPracticeScreen(
 
     val currentQ = questions[currentQuestionIndex]
 
-    // Developer Preview overrides
-    val visualState by DeveloperPreviewManager.visualState.collectAsState()
-    val isDevPreview by DeveloperPreviewManager.isPreviewActive.collectAsState()
-
-    val effectiveStage = when {
-        isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED -> ReadingStage.COMPLETION
-        isDevPreview && (visualState == PreviewVisualState.CORRECT_FEEDBACK || visualState == PreviewVisualState.INCORRECT_FEEDBACK) -> ReadingStage.COMPREHENSION_QUIZ
-        else -> stage
-    }
-
-    val effectiveIsAnswered = if (isDevPreview && (visualState == PreviewVisualState.CORRECT_FEEDBACK || visualState == PreviewVisualState.INCORRECT_FEEDBACK)) true else isAnswered
-    val effectiveIsCorrect = if (isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK) true else if (isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK) false else isCorrect
-    val effectiveSelectedChoice = if (isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK) currentQ.targetAnswer else if (isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK) currentQ.choices.firstOrNull { it != currentQ.targetAnswer } ?: "Lain" else selectedChoice
+    val effectiveStage = stage
+    val effectiveIsAnswered = isAnswered
+    val effectiveIsCorrect = isCorrect
+    val effectiveSelectedChoice = selectedChoice
 
     DisposableEffect(Unit) {
         onDispose {
@@ -654,8 +643,8 @@ fun ReadingPracticeScreen(
 
                             Spacer(modifier = Modifier.height(18.dp))
 
-                            val scoreText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "3 / 3" else "$correctCount / ${questions.size}"
-                            val accuracyText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "100%" else "${((correctCount.toFloat() / questions.size) * 100).toInt()}%"
+                            val scoreText = "$correctCount / ${questions.size}"
+                            val accuracyText = "${((correctCount.toFloat() / questions.size) * 100).toInt()}%"
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),

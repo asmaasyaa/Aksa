@@ -306,8 +306,8 @@ class HurufMiripViewModel(
                 com.aksa.app.ui.state.AksaUserState.currentProfileId
             } else {
                 val guardian = authRepository.currentGuardian.value
-                val guardianUid = guardian?.uid ?: "demo_guardian_default"
-                "child_$guardianUid"
+                val guardianUid = guardian?.uid ?: ""
+                if (guardianUid.isNotBlank()) "child_$guardianUid" else ""
             }
         }
     }

@@ -3,7 +3,6 @@ package com.aksa.app.ui.viewmodel
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.aksa.app.BuildConfig
 import com.aksa.app.data.repository.AksaRepositoryProvider
 import com.aksa.app.domain.repository.LevelProgressRepository
 import com.aksa.app.domain.repository.SessionRepository
@@ -11,8 +10,6 @@ import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.domain.usecase.GetLevelProgressionUseCase
 import com.aksa.app.domain.usecase.LevelMapProgress
 import com.aksa.app.ui.components.LevelNodeStatus
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.LevelMapPreviewState
 import com.aksa.app.ui.state.AksaUserState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,8 +38,7 @@ data class LevelMapUiState(
     val effectiveStatus2: LevelNodeStatus = LevelNodeStatus.LOCKED,
     val effectiveStatus3: LevelNodeStatus = LevelNodeStatus.LOCKED,
     val effectiveStatus4: LevelNodeStatus = LevelNodeStatus.LOCKED,
-    val selectedLockedLevel: LockedLevelDetails? = null,
-    val isPreviewActive: Boolean = false
+    val selectedLockedLevel: LockedLevelDetails? = null
 )
 
 class LevelMapViewModel(
@@ -81,64 +77,39 @@ class LevelMapViewModel(
             val childId = try {
                 getActiveChildIdUseCase()
             } catch (e: Exception) {
-                "child_default"
+                ""
             }
 
             _uiState.value = _uiState.value.copy(childId = childId, isLoading = true)
 
-            // Reactively combine session changes, progression repository, and dev preview state
+            // Reactively combine session changes and progression repository
             combine(
                 sessionRepository.observeCompletedSessions(childId),
-                levelProgressRepository.observeUnlockedLevels(childId),
-                DeveloperPreviewManager.isPreviewActive,
-                DeveloperPreviewManager.levelMapState
-            ) { _, _, isPreviewActive, previewMapState ->
-                updateProgressionState(childId, isPreviewActive, previewMapState)
+                levelProgressRepository.observeUnlockedLevels(childId)
+            ) { _, _ ->
+                updateProgressionState(childId)
             }.collect {}
         }
     }
 
     suspend fun refreshProgression() {
         val childId = _uiState.value.childId.ifEmpty {
-            try { getActiveChildIdUseCase() } catch (e: Exception) { "child_default" }
+            try { getActiveChildIdUseCase() } catch (e: Exception) { "" }
         }
-        val isPreviewActive = DeveloperPreviewManager.isPreviewActive.value
-        val previewMapState = DeveloperPreviewManager.levelMapState.value
-        updateProgressionState(childId, isPreviewActive, previewMapState)
+        updateProgressionState(childId)
     }
 
-    private suspend fun updateProgressionState(
-        childId: String,
-        isPreviewActive: Boolean,
-        previewMapState: LevelMapPreviewState
-    ) {
+    private suspend fun updateProgressionState(childId: String) {
         val realProgress = try {
-            getLevelProgressionUseCase(childId)
+            if (childId.isNotBlank()) getLevelProgressionUseCase(childId) else null
         } catch (e: Exception) {
             null
         }
 
-        val effectiveDebugPreview = BuildConfig.DEBUG && isPreviewActive
-
-        val (s1, s2, s3, s4) = if (effectiveDebugPreview) {
-            when (previewMapState) {
-                LevelMapPreviewState.ALL_UNLOCKED ->
-                    listOf(LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE)
-                LevelMapPreviewState.ALL_COMPLETED ->
-                    listOf(LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED, LevelNodeStatus.COMPLETED)
-                LevelMapPreviewState.ALL_LOCKED_EXCEPT_LEVEL_1 ->
-                    listOf(LevelNodeStatus.ACTIVE, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED)
-                LevelMapPreviewState.DEFAULT_PROGRESSION ->
-                    listOf(LevelNodeStatus.ACTIVE, LevelNodeStatus.ACTIVE, LevelNodeStatus.LOCKED, LevelNodeStatus.LOCKED)
-            }
-        } else {
-            listOf(
-                realProgress?.getNodeStatus(1) ?: LevelNodeStatus.ACTIVE,
-                realProgress?.getNodeStatus(2) ?: LevelNodeStatus.LOCKED,
-                realProgress?.getNodeStatus(3) ?: LevelNodeStatus.LOCKED,
-                realProgress?.getNodeStatus(4) ?: LevelNodeStatus.LOCKED
-            )
-        }
+        val s1 = realProgress?.getNodeStatus(1) ?: LevelNodeStatus.ACTIVE
+        val s2 = realProgress?.getNodeStatus(2) ?: LevelNodeStatus.LOCKED
+        val s3 = realProgress?.getNodeStatus(3) ?: LevelNodeStatus.LOCKED
+        val s4 = realProgress?.getNodeStatus(4) ?: LevelNodeStatus.LOCKED
 
         _uiState.value = _uiState.value.copy(
             isLoading = false,
@@ -147,8 +118,7 @@ class LevelMapViewModel(
             effectiveStatus1 = s1,
             effectiveStatus2 = s2,
             effectiveStatus3 = s3,
-            effectiveStatus4 = s4,
-            isPreviewActive = effectiveDebugPreview
+            effectiveStatus4 = s4
         )
     }
 

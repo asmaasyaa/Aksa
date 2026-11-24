@@ -56,8 +56,6 @@ import com.aksa.app.ui.components.AksaSyllableCard
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.components.SyllableCardColor
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.PreviewVisualState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
@@ -113,25 +111,11 @@ fun SyllableQuizScreen(
 
     val currentQ = quizItems[currentQuestionIndex]
 
-    // Developer Preview overrides
-    val visualState by DeveloperPreviewManager.visualState.collectAsState()
-    val isDevPreview by DeveloperPreviewManager.isPreviewActive.collectAsState()
-
-    val effectiveSlot1 = when {
-        isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK -> currentQ.part1
-        isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK -> currentQ.choices.firstOrNull { it != currentQ.part1 } ?: "SA"
-        else -> slot1
-    }
-
-    val effectiveSlot2 = when {
-        isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK -> currentQ.part2
-        isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK -> currentQ.choices.lastOrNull { it != currentQ.part2 } ?: "LA"
-        else -> slot2
-    }
-
+    val effectiveSlot1 = slot1
+    val effectiveSlot2 = slot2
     val isFilled = effectiveSlot1 != null && effectiveSlot2 != null
     val isCorrect = effectiveSlot1 == currentQ.part1 && effectiveSlot2 == currentQ.part2
-    val effectiveShowCompletion = (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) || showCompletionDialog
+    val effectiveShowCompletion = showCompletionDialog
 
     DisposableEffect(Unit) {
         onDispose {
@@ -538,8 +522,8 @@ fun SyllableQuizScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        val scoreText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "5 / 5" else "$correctCount / ${quizItems.size}"
-                        val accuracyText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "100%" else "${((correctCount.toFloat() / quizItems.size) * 100).toInt()}%"
+                        val scoreText = "$correctCount / ${quizItems.size}"
+                        val accuracyText = "${((correctCount.toFloat() / quizItems.size) * 100).toInt()}%"
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
