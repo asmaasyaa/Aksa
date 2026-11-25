@@ -279,7 +279,7 @@ class TangkapHurufSessionLifecycleTest {
         val letters = vm.uiState.value.fallingLetters
         assertTrue("Round should have at least 2 letters", letters.size >= 2)
 
-        // Verify strictly increasing spawn delays with controlled gap
+        // Verify strictly increasing spawn delays with overlapping gap range (>= 500ms)
         for (i in 0 until letters.size - 1) {
             val current = letters[i]
             val next = letters[i + 1]
@@ -288,8 +288,60 @@ class TangkapHurufSessionLifecycleTest {
                 next.spawnDelayMs > current.spawnDelayMs
             )
             val gap = next.spawnDelayMs - current.spawnDelayMs
-            assertTrue("Gap between letters should be controlled (>= 1500ms), was $gap", gap >= 1500L)
+            assertTrue("Gap between letters should allow overlapping timing (>= 500ms), was $gap", gap >= 500L)
         }
+    }
+
+    @Test
+    fun targetLetterPositionIsRandomizedAcrossRounds() = runTest {
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.startGame()
+        advanceUntilIdle()
+
+        val targetIndices = mutableSetOf<Int>()
+
+        for (round in 1..15) {
+            val letters = vm.uiState.value.fallingLetters
+            val targetIndex = letters.indexOfFirst { it.isTarget }
+            assertTrue("Target index must be valid", targetIndex >= 0)
+            targetIndices.add(targetIndex)
+
+            vm.onLetterCaught(letters[targetIndex], 2000)
+            advanceUntilIdle()
+            vm.nextRoundOrFinish()
+            advanceUntilIdle()
+        }
+
+        // Over 15 rounds, target position should appear in at least 2 distinct positions (e.g., 0, 1, 2)
+        assertTrue("Target position should vary across rounds, found positions: $targetIndices", targetIndices.size >= 2)
+    }
+
+    @Test
+    fun progressiveFallingSpeedIncreasesWithRounds() = runTest {
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.startGame()
+        advanceUntilIdle()
+
+        val round1Duration = vm.uiState.value.fallingLetters.first().fallDurationMs
+
+        // Advance to round 15
+        for (round in 1..14) {
+            val target = vm.uiState.value.fallingLetters.first { it.isTarget }
+            vm.onLetterCaught(target, 2000)
+            advanceUntilIdle()
+            vm.nextRoundOrFinish()
+            advanceUntilIdle()
+        }
+
+        val round15Duration = vm.uiState.value.fallingLetters.first().fallDurationMs
+        assertTrue(
+            "Round 15 fallDurationMs ($round15Duration) should be faster (smaller duration) than Round 1 ($round1Duration)",
+            round15Duration < round1Duration
+        )
     }
 
     @Test
@@ -365,7 +417,7 @@ class TangkapHurufSessionLifecycleTest {
             letters.forEach { item ->
                 assertTrue(item.normX in 0.15f..0.85f)
                 assertTrue(item.spawnDelayMs >= 0L)
-                assertTrue(item.fallDurationMs in 3000L..5000L)
+                assertTrue("fallDurationMs (${item.fallDurationMs}) must be within 2500ms..5000ms", item.fallDurationMs in 2500L..5000L)
             }
 
             val target = letters.first { it.isTarget }
