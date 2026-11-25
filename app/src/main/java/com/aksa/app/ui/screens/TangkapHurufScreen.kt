@@ -643,8 +643,8 @@ fun TangkapHurufScreen(
                                             .size(64.dp)
                                             .shadow(6.dp, CircleShape)
                                             .clip(CircleShape)
-                                            .background(if (item.isTarget) AksaYellow else AksaWhite)
-                                            .border(3.dp, if (item.isTarget) AksaOrange else Color(0xFFCBD5E1), CircleShape),
+                                            .background(AksaWhite)
+                                            .border(3.dp, Color(0xFFCBD5E1), CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(

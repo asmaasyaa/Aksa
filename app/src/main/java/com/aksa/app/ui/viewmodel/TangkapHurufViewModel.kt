@@ -208,16 +208,20 @@ class TangkapHurufViewModel(
             else -> listOf(0.18f, 0.38f, 0.62f, 0.82f).take(itemsCount)
         }.shuffled(random)
 
-        val fallDuration = when (level) {
-            1 -> 4800L
-            2 -> 4000L
-            else -> 3200L
+        // Progressive Falling Speed: gradually increases speed across 15 rounds
+        val roundProgress = ((roundNum - 1).coerceIn(0, 14)).toFloat() / 14f
+        val (startDuration, endDuration) = when (level) {
+            1 -> 4800L to 3600L
+            2 -> 4200L to 3000L
+            else -> 3600L to 2600L
         }
+        val fallDuration = (startDuration - roundProgress * (startDuration - endDuration)).toLong()
 
-        val baseGap = when (level) {
-            1 -> 2400L
-            2 -> 2000L
-            else -> 1700L
+        // Overlapping and Varied Spawn Timing: shorter gaps allow multiple letters on screen simultaneously
+        val (baseMinGap, baseMaxGap) = when (level) {
+            1 -> 900 to 1400
+            2 -> 700 to 1200
+            else -> 500 to 950
         }
 
         val rawList = mutableListOf<Pair<String, Boolean>>()
@@ -226,12 +230,14 @@ class TangkapHurufViewModel(
             rawList.add(dist to false)
         }
 
+        // Shuffle falling order independently every round
         val shuffledList = rawList.shuffled(random)
-        var currentDelay = 400L
+
+        var currentDelay = 300L
         val items = mutableListOf<FallingLetterItem>()
 
         shuffledList.forEachIndexed { index, (char, isTarget) ->
-            val jitter = (random.nextFloat() * 0.08f - 0.04f)
+            val jitter = (random.nextFloat() * 0.06f - 0.03f)
             val normX = (baseLanes[index] + jitter).coerceIn(0.16f, 0.84f)
             val id = if (isTarget) "item_${roundNum}_target" else "item_${roundNum}_dist_$index"
 
@@ -246,8 +252,10 @@ class TangkapHurufViewModel(
                 )
             )
 
-            val gapJitter = if (level == 3) random.nextInt(200) - 100 else random.nextInt(300) - 150
-            currentDelay += (baseGap + gapJitter)
+            if (index < shuffledList.size - 1) {
+                val gap = random.nextInt(baseMinGap, baseMaxGap + 1).toLong()
+                currentDelay += gap
+            }
         }
 
         _uiState.value = _uiState.value.copy(
