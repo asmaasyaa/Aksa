@@ -52,6 +52,7 @@ import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -63,7 +64,9 @@ import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class StoryPanel(
@@ -124,6 +127,7 @@ fun ReadingPracticeScreen(
     var isCorrect by remember { mutableStateOf(false) }
     var correctCount by remember { mutableIntStateOf(0) }
     var sessionCommitted by remember { mutableStateOf(false) }
+    var isSavingSession by remember { mutableStateOf(false) }
 
     val currentQ = questions[currentQuestionIndex]
 
@@ -453,7 +457,8 @@ fun ReadingPracticeScreen(
                                                 isAnswered = true
                                                 val correct = choice == currentQ.targetAnswer
                                                 isCorrect = correct
-                                                val childId = activeChildResolver.getSync()
+                                                val childId = runCatching { activeChildResolver.getSync() }
+                                                    .getOrDefault(AksaUserState.currentProfileId)
                                                 val log = AnswerLog(
                                                     answerId = "ans_${sessionId}_reading_${currentQ.id}",
                                                     sessionId = sessionId,
@@ -569,25 +574,36 @@ fun ReadingPracticeScreen(
                                     } else {
                                         if (!sessionCommitted) {
                                             sessionCommitted = true
+                                            isSavingSession = true
                                             coroutineScope.launch {
-                                                val actualChildId = activeChildResolver()
-                                                for (ans in recordedAnswers) {
-                                                    AksaRepositoryProvider.sessionRepository.recordAnswer(ans.copy(childId = actualChildId))
+                                                try {
+                                                    withContext(NonCancellable) {
+                                                        val actualChildId = activeChildResolver()
+                                                        for (ans in recordedAnswers) {
+                                                            AksaRepositoryProvider.sessionRepository
+                                                                .recordAnswer(ans.copy(childId = actualChildId))
+                                                                .getOrThrow()
+                                                        }
+                                                        val sessionResult = SessionResult(
+                                                            sessionId = sessionId,
+                                                            childId = actualChildId,
+                                                            moduleId = "sungai_cerita",
+                                                            activityId = "reading_comprehension",
+                                                            startedAt = sessionStartedAt,
+                                                            completedAt = System.currentTimeMillis(),
+                                                            totalQuestions = questions.size,
+                                                            correctAnswers = correctCount,
+                                                            incorrectAnswers = questions.size - correctCount,
+                                                            accuracy = correctCount.toFloat() / questions.size.toFloat(),
+                                                            status = SessionStatus.COMPLETED
+                                                        )
+                                                        AksaRepositoryProvider.sessionRepository
+                                                            .saveSessionResult(sessionResult)
+                                                            .getOrThrow()
+                                                    }
+                                                } finally {
+                                                    isSavingSession = false
                                                 }
-                                                val sessionResult = SessionResult(
-                                                    sessionId = sessionId,
-                                                    childId = actualChildId,
-                                                    moduleId = "sungai_cerita",
-                                                    activityId = "reading_comprehension",
-                                                    startedAt = sessionStartedAt,
-                                                    completedAt = System.currentTimeMillis(),
-                                                    totalQuestions = questions.size,
-                                                    correctAnswers = correctCount,
-                                                    incorrectAnswers = questions.size - correctCount,
-                                                    accuracy = correctCount.toFloat() / questions.size.toFloat(),
-                                                    status = SessionStatus.COMPLETED
-                                                )
-                                                AksaRepositoryProvider.sessionRepository.saveSessionResult(sessionResult)
                                             }
                                         }
                                         stage = ReadingStage.COMPLETION
@@ -714,8 +730,9 @@ fun ReadingPracticeScreen(
                             Spacer(modifier = Modifier.height(10.dp))
 
                             AksaButton(
-                                text = "Lihat Peta Petualangan",
+                                text = if (isSavingSession) "Menyimpan progres..." else "Lihat Peta Petualangan",
                                 style = AksaButtonStyle.PRIMARY_ORANGE,
+                                enabled = !isSavingSession,
                                 onClick = onNavigateToLevelMap
                             )
                         }

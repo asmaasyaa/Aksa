@@ -43,7 +43,7 @@ class GetLevelProgressionUseCase(
         val r1 = evaluateReadinessUseCase(childId, "pulau_alfabet")
         val level2Earned = r1.isReadyToUnlock || ("dunia_suku_kata" in persistedUnlocked)
         if (r1.isReadyToUnlock && "dunia_suku_kata" !in persistedUnlocked) {
-            levelProgressRepository.unlockLevel(childId, "dunia_suku_kata")
+            levelProgressRepository.unlockLevel(childId, "dunia_suku_kata").getOrThrow()
         }
 
         // LEVEL 2 — Dunia Suku Kata
@@ -53,7 +53,7 @@ class GetLevelProgressionUseCase(
 
         val level3Earned = (level2Earned && r2?.isReadyToUnlock == true) || ("gunung_kata" in persistedUnlocked)
         if (level2Earned && r2?.isReadyToUnlock == true && "gunung_kata" !in persistedUnlocked) {
-            levelProgressRepository.unlockLevel(childId, "gunung_kata")
+            levelProgressRepository.unlockLevel(childId, "gunung_kata").getOrThrow()
         }
 
         // LEVEL 3 — Gunung Kata
@@ -63,7 +63,7 @@ class GetLevelProgressionUseCase(
 
         val level4Earned = (level3Earned && r3?.isReadyToUnlock == true) || ("sungai_cerita" in persistedUnlocked)
         if (level3Earned && r3?.isReadyToUnlock == true && "sungai_cerita" !in persistedUnlocked) {
-            levelProgressRepository.unlockLevel(childId, "sungai_cerita")
+            levelProgressRepository.unlockLevel(childId, "sungai_cerita").getOrThrow()
         }
 
         // LEVEL 4 — Sungai Cerita

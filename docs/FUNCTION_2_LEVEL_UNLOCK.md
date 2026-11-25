@@ -88,46 +88,41 @@ Sesi valid diurutkan menurun berdasarkan `completedAt` (`sortedByDescending { it
 | Status | Penjelasan | Contoh Pesan / Umpan Balik |
 |---|---|---|
 | `INSUFFICIENT_SESSIONS` | Sesi valid < 3 | *"Selesaikan 2 sesi latihan lagi, yuk!"* |
-| `LOW_ACCURACY` | Rata-rata akurasi 3 sesi terakhir < 80% | *"Ayo latihan lagi supaya hasil akurasimu mencapai 80% atau lebih!"* |
-| `INSUFFICIENT_EVIDENCE` | Log detail jawaban kosong atau ada target dengan percobaan < 3 | *"Kita perlu beberapa jawaban lagi untuk memastikan kamu siap."* |
-| `HIGH_ERROR_RATE` | Ada target dengan error rate > 40% | *"Yuk, latihan lagi membedakan huruf b, d!"* |
+| `LOW_ACCURACY` | Rata-rata akurasi 3 sesi terakhir < 80% | *"Ayo latihan lagi agar kamu semakin siap melanjutkan petualangan!"* |
+| `INSUFFICIENT_EVIDENCE` | Log detail jawaban kosong, ada sesi tanpa log, atau target memiliki percobaan < 3 | *"Yuk, coba beberapa latihan lagi supaya kemampuanmu bisa dinilai!"* |
+| `HIGH_ERROR_RATE` | Ada target dengan error rate > 40% | *"Yuk, latihan lagi membedakan huruf b dan d!"* |
 | `READY_TO_UNLOCK` | Seluruh 4 kondisi terpenuhi | *"Hebat! Petualangan berikutnya sudah terbuka!"* |
 
 ---
 
-## 6. Model Data dan Use Case Baru
+## 6. Model Data, Repository, dan Use Case
 
-### File yang Dibuat:
+### Komponen Inti Fungsi 2:
 1. `domain/model/LevelReadiness.kt`:
-   * `enum class LevelReadinessStatus`
+   * `enum class LevelReadinessStatus` (`INSUFFICIENT_SESSIONS`, `INSUFFICIENT_EVIDENCE`, `LOW_ACCURACY`, `HIGH_ERROR_RATE`, `READY_TO_UNLOCK`) — tidak lagi memiliki `INSUFFICIENT_PRACTICE_DAYS`.
    * `data class TargetPerformance`
-   * `data class LevelReadinessResult`
+   * `data class LevelReadinessResult` (menyimpan `distinctDaysInLast7Days` hanya sebagai statistik informatif, bukan syarat unlock).
 2. `domain/model/LevelProgress.kt`:
-   * `enum class LevelUnlockReason`
+   * `enum class LevelUnlockReason` (`DEFAULT_UNLOCKED`, `PREVIOUS_LEVEL_MASTERED`, `ALREADY_EARNED`, `LOCKED_PREREQUISITE`)
    * `data class LevelItemProgress`
-3. `domain/repository/LevelProgressRepository.kt`:
-   * Kontrak penyimpanan progres level (`getUnlockedLevels`, `unlockLevel`, `observeUnlockedLevels`).
-4. `data/repository/demo/DemoLevelProgressRepository.kt`:
-   * Implementasi in-memory repository progres level untuk Demo Mode.
-5. `domain/usecase/GetActiveChildIdUseCase.kt`:
-   * Helper terpusat untuk me-resolve child ID aktif dari guardian/profil aktif (`child_$guardianUid` atau profil tersimpan), menggantikan hardcode `child_marvin_demo`.
-6. `domain/usecase/EvaluateLevelReadinessUseCase.kt`:
-   * Use case deterministik murni independen dari UI yang mengimplementasikan 4 kondisi evaluasi di atas.
-7. `domain/usecase/GetLevelProgressionUseCase.kt`:
-   * Use case rekonsiliasi progres 4 level, menjamin level yang sudah pernah terbuka tidak akan terkunci kembali.
-8. `ui/viewmodel/LevelMapViewModel.kt`:
-   * ViewModel reaktif yang mengamati perubahan sesi dan progres level secara real-time.
-9. `app/src/test/java/com/aksa/app/LevelReadinessEvaluationTest.kt`:
-   * 24 unit test komprehensif menguji seluruh skenario positif, batas, dan negatif.
+3. `domain/repository/LevelProgressRepository.kt` & `data/repository/FirestoreLevelProgressRepository.kt`:
+   * Kontrak & implementasi Cloud Firestore (`users/{parentUid}/profiles/{profileId}/levelProgress/unlocks`) dengan `FieldValue.arrayUnion(...)` yang bersifat *monotonic* dan *idempotent*.
+4. `domain/usecase/GetActiveChildIdUseCase.kt`:
+   * Helper terpusat untuk me-resolve `profileId` anak aktif dari guardian/profil aktif yang terautentikasi.
+5. `domain/usecase/EvaluateLevelReadinessUseCase.kt`:
+   * Use case deterministik murni independen dari UI yang mengimplementasikan 4 kondisi evaluasi (tanpa syarat jumlah hari belajar) menggunakan `getCompletedSessionsResult(childId)` dan `getAnswersForChildResult(childId)` agar tidak tergantung pada *collectionGroup composite index* serta selalu mempropagasi error pembacaan Firestore.
+6. `domain/usecase/GetLevelProgressionUseCase.kt`:
+   * Use case rekonsiliasi progres 4 level secara berurutan, menjamin level yang sudah pernah terbuka tidak akan terkunci kembali dan kegagalan tulis ke Firestore tidak diabaikan diam-diam.
+7. `ui/viewmodel/LevelMapViewModel.kt`:
+   * ViewModel reaktif mode produksi yang mereset progres profil sebelumnya saat profil anak berganti, memperbarui peta saat kembali dari latihan, dan menampilkan pesan error jujur jika pembacaan Firestore gagal.
+8. `app/src/test/java/com/aksa/app/LevelReadinessEvaluationTest.kt`:
+   * 35 unit test komprehensif menguji seluruh skenario positif, batas, negatif, isolasi multi-profil, dan error handling Firestore.
 
 ### File Bersama yang Diperbarui secara Terisolasi:
-1. `data/repository/AksaRepositoryProvider.kt`: Ditambahkan `levelProgressRepository` & `demoLevelProgressRepository`.
-2. `ui/components/AksaLevelNode.kt`: Diubah agar node berstatus `LOCKED` tetap dapat diklik untuk memunculkan penjelasan ramah anak (tidak pasif/mati).
-3. `ui/screens/LevelMapScreen.kt`: Menggunakan `LevelMapViewModel` dan menampilkan modal penjelasan edukatif saat level terkunci diklik.
-4. `LetterLearningScreen.kt`: Menyimpan `AnswerLog` per butir kuis suara dan menggunakan `activeChildResolver`.
-5. `SyllableQuizScreen.kt`: Menyimpan `AnswerLog` per penyusunan suku kata dan menggunakan `activeChildResolver`.
-6. `WordFormationScreen.kt`: Menyimpan `AnswerLog` per susunan kata dan menggunakan `activeChildResolver`.
-7. `ReadingPracticeScreen.kt`: Menyimpan `AnswerLog` per soal pemahaman membaca dan menggunakan `activeChildResolver`.
+1. `domain/repository/SessionRepository.kt` & `data/repository/FirestoreSessionRepository.kt`: Ditambahkan `getCompletedSessionsResult(childId)` dan `getAnswersForChildResult(childId)` yang mengembalikan `Result` (mempropagasi exception pembacaan Firestore tanpa memengaruhi pemanggil fitur F1/F3/F4).
+2. `ui/components/AksaLevelNode.kt`: Node berstatus `LOCKED` dapat diklik untuk memunculkan penjelasan ramah anak.
+3. `ui/screens/LevelMapScreen.kt`: Menggunakan `LevelMapViewModel` mode produksi, refresh otomatis pada `ON_RESUME`, menampilkan banner error saat Firestore gagal, dan modal penjelasan edukatif tanpa syarat hari belajar.
+4. `LetterLearningScreen.kt`, `SyllableQuizScreen.kt`, `WordFormationScreen.kt`, `ReadingPracticeScreen.kt`: Menyimpan `AnswerLog` + `SessionResult` dalam blok `withContext(NonCancellable)` dengan status `isSavingSession` agar navigasi kembali ke Level Map tidak membatalkan penulisan Firestore.
 
 ---
 
@@ -140,40 +135,26 @@ Level progression dirancang berurutan:
 * Level 4 terbuka jika Level 3 memenuhi kriteria penguasaan.
 
 **Anti-Relocking:**
-Jika seorang anak telah berhasil membuka Level 2, lalu kemudian memainkan Level 1 kembali dan mendapatkan skor rendah (misal akurasi 20%), Level 2 **TETAP TERBUKA**. Progres yang telah diperoleh tersimpan pada `LevelProgressRepository` dan tidak akan dikunci kembali oleh fluktuasi skor sesi berikutnya.
+Jika seorang anak telah berhasil membuka Level 2, lalu kemudian memainkan Level 1 kembali dan mendapatkan skor rendah (misal akurasi 20%), Level 2 **TETAP TERBUKA**. Progres yang telah diperoleh tersimpan permanen di Firestore (`levelProgress/unlocks`) dan tidak akan dikunci kembali oleh fluktuasi skor sesi berikutnya.
 
 ---
 
-## 8. Mode Pengembang (Developer Preview Mode)
-
-Developer Preview Mode (diperkenalkan pada Phase 2 untuk Figma screenshot dan presentasi UI) **tetap dipertahankan 100%**:
-* `ALL_UNLOCKED`: Seluruh level berstatus `ACTIVE` dan dapat diakses.
-* `ALL_COMPLETED`: Seluruh level berstatus `COMPLETED` dan dapat diakses.
-* `ALL_LOCKED_EXCEPT_LEVEL_1`: Level 1 aktif, Level 2-4 terkunci.
-* `DEFAULT_PROGRESSION`: Level 1 & 2 aktif, Level 3 & 4 terkunci.
-
-**Aturan Keamanan Preview:**
-1. Override preview hanya aktif jika `com.aksa.app.BuildConfig.DEBUG == true` **DAN** `DeveloperPreviewManager.isPreviewActive == true`.
-2. Pada mode rilis (`release`), override developer preview diblokir secara mutlak (`BuildConfig.DEBUG == false`), sehingga akses level selalu mengikuti evaluasi performa asli.
-3. Mode preview hanya memengaruhi presentasi UI; tidak ada data palsu yang disimpan ke repository permanen. Menonaktifkan preview akan langsung mengembalikan tampilan ke data performa nyata.
-
----
-
-## 9. Penjelasan Level Terkunci pada UI Level Map
+## 8. Penjelasan Level Terkunci & Error Handling pada UI Level Map
 
 Ketika anak mengetuk node level yang berstatus `LOCKED`:
 1. Navigasi ke dalam level dicegah.
-2. Muncul dialog modal ramah anak (`LockedLevelModal`) dengan maskot Aksa.
-3. Menjelaskan secara transparan mengapa level terkunci (misalnya: *"Selesaikan 2 sesi latihan lagi di Pulau Alfabet, yuk!"*).
-4. Menampilkan daftar checklist syarat (minimal 3 sesi, akurasi >= 80%, error rate <= 40%).
-5. Menyediakan tombol aksi langsung: *"Ayo Latihan di [Level Prasyarat]"* yang langsung mengarahkan anak ke level prasyarat untuk berlatih.
+2. Muncul dialog modal ramah anak (`LockedLevelExplanationDialog`) dengan maskot Aksa.
+3. Menjelaskan secara transparan alasan aktual sesuai hasil evaluasi (misal `INSUFFICIENT_SESSIONS`, `LOW_ACCURACY`, `INSUFFICIENT_EVIDENCE`, atau `HIGH_ERROR_RATE`).
+4. Menampilkan daftar checklist syarat aktual F2 (minimal 3 sesi selesai, akurasi rata-rata >= 80%, error rate materi <= 40% — **tanpa** syarat hari belajar).
+5. Menyediakan tombol aksi langsung: *"Ayo Latihan di [Level Prasyarat]"*.
+6. Jika pembacaan Firestore gagal (offline / *permission denied*), UI menampilkan pesan error pembacaan yang jujur dan tombol muat ulang — **tidak pernah** mendiagnosis anak kurang berlatih secara keliru.
 
 ---
 
-## 10. Contoh Kasus Nyata
+## 9. Contoh Kasus Nyata
 
-### Contoh 1: Lolos Naik Level
-Anak menyelesaikan 3 sesi di Level 1 (Pulau Alfabet):
+### Contoh 1: Lolos Naik Level (Termasuk pada Hari yang Sama)
+Anak menyelesaikan 3 sesi di Level 1 (Pulau Alfabet) pada hari yang sama:
 * Sesi 1: Akurasi 90% (huruf target: 'b' 5x, salah 1x; 'd' 5x, salah 0x)
 * Sesi 2: Akurasi 80% (huruf target: 'b' 5x, salah 1x; 'd' 5x, salah 1x)
 * Sesi 3: Akurasi 100% (huruf target: 'b' 5x, salah 0x; 'd' 5x, salah 0x)
@@ -184,7 +165,8 @@ Anak menyelesaikan 3 sesi di Level 1 (Pulau Alfabet):
 * Bukti target:
   * Huruf 'b': 15 percobaan (>= 3), salah 2 -> Error rate = $2/15 = 13.3\%$ (<= 40%) -> **Lolos**
   * Huruf 'd': 15 percobaan (>= 3), salah 1 -> Error rate = $1/15 = 6.7\%$ (<= 40%) -> **Lolos**
-* **Hasil:** `READY_TO_UNLOCK`. Level 2 (Dunia Suku Kata) terbuka!
+* Syarat hari berbeda: **Tidak disyaratkan**
+* **Hasil:** `READY_TO_UNLOCK`. Level 2 (Dunia Suku Kata) langsung terbuka!
 
 ### Contoh 2: Gagal Karena Tingkat Kesalahan Huruf Tertentu
 Anak menyelesaikan 3 sesi di Level 1:
@@ -195,37 +177,21 @@ Anak menyelesaikan 3 sesi di Level 1:
 
 ---
 
-## 11. Cakupan 24 Unit Test Mandatori
+## 10. Cakupan 35 Unit Test Fungsi 2 (`LevelReadinessEvaluationTest.kt`)
 
-Seluruh 24 kasus uji yang disyaratkan telah diimplementasikan dalam `app/src/test/java/com/aksa/app/LevelReadinessEvaluationTest.kt`:
-1. `test1_level1_unlockedByDefault`: Level 1 terbuka secara default untuk setiap anak.
-2. `test2_level2_lockedForNewChild`: Level 2 terkunci untuk profil anak baru.
-3. `test3_fewerThanThreeSessions_doNotUnlock`: 1 atau 2 sesi tidak membuka level (`INSUFFICIENT_SESSIONS`).
-4. `test4_threeValidSessions_sufficientSessionCount`: 3 sesi valid memenuhi syarat kuantitas sesi.
-5. `test5_exactly80PercentAverageAccuracy_passes`: Rata-rata akurasi tepat 80% (0.80f) lolos evaluasi.
-6. `test6_averageAccuracyBelow80Percent_fails`: Rata-rata akurasi di bawah 80% gagal (`LOW_ACCURACY`).
-7. `test7_exactly40PercentTargetErrorRate_passes`: Error rate target tepat 40% (0.40f) lolos evaluasi.
-8. `test8_targetErrorRateAbove40Percent_fails`: Error rate target di atas 40% gagal (`HIGH_ERROR_RATE`).
-9. `test9_fewerThanThreeAttemptsForTarget_returnsInsufficientEvidence`: Target dengan < 3 percobaan mengembalikan `INSUFFICIENT_EVIDENCE`.
-10. `test10_missingAnswerLog_doesNotCountAsZeroErrors`: Sesi tanpa log jawaban detail tidak dianggap nol kesalahan (`INSUFFICIENT_EVIDENCE`).
-11. `test11_abandonedSessions_doNotCount`: Sesi `ABANDONED` diabaikan dari hitungan sesi valid.
-12. `test12_inProgressSessions_doNotCount`: Sesi `IN_PROGRESS` diabaikan dari hitungan sesi valid.
-13. `test13_sessionsFromDifferentModules_doNotMix`: Sesi dari modul lain tidak bercampur dalam evaluasi level tertentu.
-14. `test14_miniGameSessions_doNotUnlockLearningLevels`: Sesi mini-game (Tangkap Huruf) tidak dihitung dalam penguasaan level modul.
-15. `test15_differentChildAccounts_doNotShareProgress`: Progres belajar antar akun anak terisolasi secara ketat.
-16. `test16_priorUnlockedLevels_remainUnlockedAfterLaterLowScores`: Level yang sudah terbuka tetap terbuka meski skor berikutnya rendah.
-17. `test17_level3_dependsOnLevel2Mastery`: Level 3 hanya terbuka setelah Level 2 berstatus `READY_TO_UNLOCK`.
-18. `test18_level4_dependsOnLevel3Mastery`: Level 4 hanya terbuka setelah Level 3 berstatus `READY_TO_UNLOCK`.
-19. `test19_normalMode_ignoresDeveloperPreviewOverrides`: Mode normal mengabaikan konfigurasi preview manager.
-20. `test20_debugPreview_canDisplayAllUnlockedWithoutModifyingRealData`: Preview mode dapat menampilkan semua level tanpa mengubah repository asli.
-21. `test21_releaseMode_doesNotAllowPreviewBypass`: Build release tidak mengizinkan bypass preview.
-22. `test22_sessionHistoryUpdates_refreshEffectiveMapState`: Penambahan sesi baru secara reaktif memperbarui peta tanpa restart aplikasi.
-23. `test23_duplicateSessions_doNotIncreaseSessionCount`: Record sesi duplikat dideduplikasi dan tidak menambah hitungan sesi.
-24. `test24_noRequirementChecks_numberOfDistinctLearningDays`: Tidak ada validasi yang menghitung jumlah hari belajar yang berbeda.
+Seluruh kasus uji mandatori F2 telah diverifikasi pada `app/src/test/java/com/aksa/app/LevelReadinessEvaluationTest.kt`:
+* `test1`–`test3`: Default Level 1 terbuka, Level 2 terkunci untuk anak baru, dan < 3 sesi mengembalikan `INSUFFICIENT_SESSIONS`.
+* `test4`–`test10`, `test30`: 3 sesi valid, batas akurasi tepat 80% / < 80%, batas error rate tepat 40% / > 40%, bukti target < 3 percobaan, serta ketiadaan `AnswerLog` (penuh maupun parsial) mengembalikan `INSUFFICIENT_EVIDENCE`.
+* `test11`–`test18`, `test23`, `test29`: Sesi `ABANDONED`/`IN_PROGRESS` diabaikan, mini-game diabaikan, modul berbeda terisolasi, akun anak terisolasi, anti-relocking monotonic, ketergantungan berurutan Level 2 → 3 → 4, serta deduplikasi sesi.
+* `test19`, `test22`: Progres murni berbasis data nyata tanpa override preview dan pembaruan peta reaktif saat histori sesi bertambah.
+* `test24`, `test24b`–`test24f`: **3 sesi valid pada hari yang sama berhasil membuka level berikutnya** (`READY_TO_UNLOCK`), 3 sesi pada hari berbeda maupun > 7 hari tetap berhasil membuka level, serta tidak ada status `INSUFFICIENT_PRACTICE_DAYS`.
+* `test25`–`test28`: Isolasi multi-profil di bawah satu wali, pergantian profil aktif, persistensi monotonic `LevelProgressRepository`, dan resolusi `GetActiveChildIdUseCase`.
+* `test31`–`test32`: Propagasi error pembacaan Firestore tanpa diagnosis mastery menyesatkan, pembersihan progres profil lama saat profil anak diganti di `LevelMapViewModel`, dan verifikasi pesan dialog terkunci tanpa teks 2 hari.
 
 ---
 
-## 12. Keterbatasan Demo Mode
+## 11. Persistensi Cloud Firestore & Catatan Deployment
 
-Pada implementasi Demo Mode saat ini (`DemoLevelProgressRepository` & `DemoSessionRepository`), penyimpanan menggunakan `MutableStateFlow` in-memory. Jika aplikasi ditutup paksa (*kill process*), data sesi dan progres level pada memori volatil akan kembali ke kondisi awal (Level 1 aktif, Level 2-4 terkunci). Untuk persistensi permanen lintas sesi proses, modul dapat dengan mudah dialihkan ke Firestore (`FirestorePaths`) sesuai arsitektur `AksaRepositoryProvider`.
+Progres pembukaan level kini disimpan permanen di Cloud Firestore melalui `FirestoreLevelProgressRepository` pada dokumen `users/{parentUid}/profiles/{profileId}/levelProgress/unlocks`. Data bertahan saat aplikasi ditutup, dibuka kembali, atau saat wali mengganti profil anak.
+**Prasyarat Operasional Firebase:** Pastikan `firestore.rules` (khususnya blok aturan `match /levelProgress/{progressId}`) dan `firestore.indexes.json` sudah di-deploy ke project Firebase konsol agar operasi baca/tulis real-device berjalan tanpa `PERMISSION_DENIED`.
 

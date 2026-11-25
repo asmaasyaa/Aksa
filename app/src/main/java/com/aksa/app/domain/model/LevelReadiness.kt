@@ -5,7 +5,6 @@ package com.aksa.app.domain.model
  */
 enum class LevelReadinessStatus {
     INSUFFICIENT_SESSIONS,
-    INSUFFICIENT_PRACTICE_DAYS,
     INSUFFICIENT_EVIDENCE,
     LOW_ACCURACY,
     HIGH_ERROR_RATE,

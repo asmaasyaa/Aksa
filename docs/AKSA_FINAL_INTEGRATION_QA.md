@@ -15,11 +15,11 @@
 This document presents the final integration audit, automated QA results, architecture verification, and release readiness assessment of the AKSA Android application. All core features developed across the team have been synthesized into a unified, conflict-free, and thoroughly tested production codebase:
 
 - **Function 1 (Rafiqi):** Error pattern analysis over the 3 latest completed sessions, 70:30 weighted priority formula (`priorityScore = 0.7 * errorRate + 0.3 * normalizedResponseTime`), 60:40 adaptive question pool allocation, and pair confusion analytics (b/d & p/q).
-- **Function 2 (Syakira):** Level unlock readiness evaluation requiring 3 completed sessions, >=80% average accuracy, <=40% material error rate, practice on at least 2 distinct days within the last 7 days, persistent Firestore level progress, and dynamic Level Map progression (adapted to 100% production-only state and PR #13/#14 vector icon & semantic design system).
+- **Function 2 (Syakira):** Level unlock readiness evaluation requiring 3 completed sessions, >=80% average accuracy, <=40% material error rate, and >=3 attempts per evaluated target (with **NO** distinct learning-days requirement; same-day mastery unlocks immediately), persistent Firestore level progress, and dynamic Level Map progression (100% production-only state with PR #13/#14 vector icon & semantic design system).
 - **Function 3 (Dealova):** Multi-profile management, parent PIN authentication, profile deletion cascade, and the 15-round adaptive Tangkap Huruf mini-game with PR #15 falling letter mechanics and visual fairness improvements.
 - **Function 4 (Diny):** Stars calculation (0.0 to 1.0 accuracy scale), weekly learning calendar (Monday–Sunday aggregation), day streaks, and weekly milestone achievement badges (2-day, 3-day, 7-day).
 
-All **117 unit and integration tests** pass with zero failures and zero skipped tests. The debug APK has been assembled cleanly (`app-debug.apk`, 28 MB).
+All **120 unit and integration tests** pass with zero failures and zero skipped tests. The debug APK has been assembled cleanly (`app-debug.apk`, 28 MB).
 
 ---
 
@@ -28,7 +28,7 @@ All **117 unit and integration tests** pass with zero failures and zero skipped 
 | Feature Module | Lead Developer | Specification Requirements | Implementation Status | Test Coverage |
 | :--- | :--- | :--- | :--- | :--- |
 | **F1: Error Analytics & Adaptive Questions** | Rafiqi | • Analyze latest 3 completed sessions<br>• Priority formula: `0.7 * errorRate + 0.3 * normalizedResponseTime`<br>• 60:40 question distribution (6 priority, 4 non-priority)<br>• Active profile isolation | **VERIFIED & MERGED**<br>Official PR #10 logic merged into `integration/level-unlock` | `AnalyzeErrorPatternsTest`<br>`HurufMiripQuestionGeneratorTest`<br>`HurufMiripSessionLifecycleTest` |
-| **F2: Level Unlock Readiness & Level Map** | Syakira | • 3 completed sessions per level<br>• Average accuracy >= 80%<br>• Material error rate <= 40%<br>• Minimum 2 distinct practice days in last 7 days<br>• Persistent Firestore `levelProgress`<br>• Level Map visual states (ACTIVE, LOCKED, COMPLETED)<br>• Modal explanation for locked nodes<br>• Production-only state (PR #11 preview purge) | **VERIFIED & COMPLETE**<br>Full compliance with 2-day date boundary rules and Firestore persistence | `LevelReadinessEvaluationTest`<br>`FirestoreDataLayerTest` |
+| **F2: Level Unlock Readiness & Level Map** | Syakira | • 3 completed sessions per level (same day allowed; no distinct-day requirement)<br>• Average accuracy >= 80%<br>• >= 3 attempts per target, error rate <= 40%<br>• Persistent Firestore `levelProgress`<br>• Direct `getAnswersForChildResult` & error propagation<br>• Production-only Level Map UI & dynamic locked explanation | **VERIFIED & COMPLETE**<br>Root causes fixed: removed 2-day gate, eliminated `collectionGroup` index dependency & silent read error swallowing, added `NonCancellable` quiz commits | `LevelReadinessEvaluationTest` (35 tests)<br>`FirestoreDataLayerTest` |
 | **F3: Mini-Game & Multi-Profile Auth** | Dealova | • Tangkap Huruf: 15 rounds, 3 dynamic stages<br>• Visual confusable letter pairs (B-D, P-Q, M-N, U-V, E-F, C-G, K-R, W-M, b-d, p-q)<br>• Firebase Auth with Guardian PIN<br>• Multi-profile CRUD and active profile switching | **VERIFIED & COMPLETE**<br>Safe profile sync, PIN verification, round progression | `TangkapHurufSessionLifecycleTest`<br>`ChildProfileManagementTest`<br>`AuthFlowValidationTest` |
 | **F4: Rewards, Streaks & Milestones** | Diny | • Stars calculation normalized to [0.0, 1.0] scale<br>• Weekly calendar tracking Monday to Sunday<br>• Cumulative streak calculation<br>• Milestone badges (2-day, 3-day, 7-day) awarded per week | **VERIFIED & COMPLETE**<br>Merged from PR #8 with active profile isolation | `CalculateSessionStarsUseCaseTest`<br>`CalculateWeeklyProgressUseCaseTest`<br>`WeeklyAchievementMilestonesTest`<br>`WeeklyActivityCalendarTest` |
 
@@ -63,13 +63,13 @@ All **117 unit and integration tests** pass with zero failures and zero skipped 
 
 ### 4.1 Unit & Integration Test Suite (`./gradlew testDebugUnitTest`)
 - **Status:** **PASSED** (100% pass rate)
-- **Total Tests:** 117
+- **Total Tests:** 120
 - **Failures:** 0
 - **Skipped:** 0
-- *Note on Test Count:* Test count transitioned from 115 to 117 with 2 additional Tangkap Huruf tests merged from PR #15 (`TangkapHurufSessionLifecycleTest` 10 → 12 tests).
+- *Note on Test Count:* Test count is 120 after adding 3 new F2 verification tests in `LevelReadinessEvaluationTest` (32 → 35 tests: partial missing `AnswerLog`s, Firestore read failure propagation, and `LevelMapViewModel` profile switch / error handling, while updating same-day practice to unlock).
 
 #### Breakdown by Test Suite:
-1. `LevelReadinessEvaluationTest`: **32 tests** (All F2 readiness criteria, 2-day requirement, date boundaries, abandoned sessions, error thresholds, multi-profile isolation).
+1. `LevelReadinessEvaluationTest`: **35 tests** (All F2 readiness criteria, same-day 3-session unlock, no 2-day gate, error thresholds, missing logs, Firestore read error propagation, `LevelMapViewModel` profile switch & error UI).
 2. `HurufMiripSessionLifecycleTest`: **7 tests** (F1 session lifecycle, 10-question completion, early abandonment, adaptive difficulty, profile pinning & answer log flushing).
 3. `HurufMiripQuestionGeneratorTest`: **10 tests** (60:40 question distribution, priority letter inclusion, audio prompt generation).
 4. `TangkapHurufSessionLifecycleTest`: **12 tests** (15 rounds, falling item speed, visual fairness, difficulty scaling, answer log recording).
@@ -111,12 +111,12 @@ Per project testing constraints, manual end-to-end device execution was audited:
 - [x] Developer Preview & mock fixtures cleanly purged in compliance with PR #11.
 - [x] UI icons and semantic design tokens migrated in compliance with PR #13 & #14.
 - [x] Function 1 (Rafiqi) priority formula (70:30) and adaptive pool (60:40) preserved.
-- [x] Function 2 (Syakira) readiness rules (3 sessions, 80% accuracy, 40% error rate, 2 distinct days in 7 days) verified.
+- [x] Function 2 (Syakira) readiness rules (3 sessions, 80% accuracy, 40% error rate, no distinct-days gate) verified.
 - [x] Function 3 (Dealova) mini-game (PR #15 updates) & profile deletion flow preserved.
 - [x] Function 4 (Diny) star scaling [0.0, 1.0] and milestone badges preserved.
-- [x] Data safety hazards patched: coroutine answer write joining and profile ID pinning.
-- [x] Firestore security rules and index definitions verified.
-- [x] Unit test suite passed: **117 / 117 tests passed**.
+- [x] Data safety hazards patched: coroutine answer write joining, profile ID pinning, `NonCancellable` quiz commits, and Firestore error propagation.
+- [x] Firestore security rules and index definitions verified (note: `firestore.rules` and `firestore.indexes.json` must be deployed to Firebase project for real-device cloud persistence).
+- [x] Unit test suite passed: **120 / 120 tests passed**.
 - [x] Debug APK assembled successfully (**28 MB**).
 - [x] Untracked build artifacts and base repository intact.
 

@@ -9,13 +9,23 @@ import com.aksa.app.domain.model.LevelReadinessStatus
 import com.aksa.app.domain.model.Profile
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.repository.SessionRepository
 import com.aksa.app.domain.usecase.EvaluateLevelReadinessUseCase
 import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.domain.usecase.GetLevelProgressionUseCase
 import com.aksa.app.ui.components.LevelNodeStatus
 import com.aksa.app.ui.state.AksaUserState
+import com.aksa.app.ui.viewmodel.LevelMapViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -501,22 +511,24 @@ class LevelReadinessEvaluationTest {
         assertEquals(2, result.sessionCount)
     }
 
-    // 24. Practicing only on 1 single day fails the 2-day requirement within the last 7 days.
+    // 24. Practicing three valid mastery sessions on the SAME single day MUST unlock the next level (no 2-day rule).
     @Test
-    fun test24_sameDayPractice_failsDistinctDaysRequirement() = runTest {
+    fun test24_sameDayThreeValidSessions_unlocksNextLevel() = runTest {
         val sameDayTime = timestampForDay(0, 10)
         seedStandardSessionWithAnswers("s1_same", time = sameDayTime)
         seedStandardSessionWithAnswers("s2_same", time = sameDayTime + 60_000)
         seedStandardSessionWithAnswers("s3_same", time = sameDayTime + 120_000)
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
-        assertEquals(LevelReadinessStatus.INSUFFICIENT_PRACTICE_DAYS, result.status)
+        assertEquals(LevelReadinessStatus.READY_TO_UNLOCK, result.status)
         assertEquals(3, result.sessionCount)
         assertEquals(1, result.distinctDaysInLast7Days)
-        assertFalse(result.isReadyToUnlock)
+        assertTrue(result.isReadyToUnlock)
 
         val progress = getProgressionUseCase(childId)
-        assertEquals(LevelNodeStatus.LOCKED, progress.getNodeStatus(2))
+        assertTrue(progress.level2.isUnlocked)
+        assertEquals(LevelNodeStatus.ACTIVE, progress.getNodeStatus(2))
+        assertEquals(LevelNodeStatus.COMPLETED, progress.getNodeStatus(1))
     }
 
     // 24B. Practicing across 2 distinct days within the last 7 days passes.
@@ -536,20 +548,21 @@ class LevelReadinessEvaluationTest {
         assertTrue(progress.level2.isUnlocked)
     }
 
-    // 24C. Sessions older than 7 days do not count towards the 7-day practice window.
+    // 24C. Sessions older than 7 days still count towards mastery unlock (calendar days never block F2).
     @Test
-    fun test24c_sessionsOlderThanSevenDays_doNotCountTowardsPracticeDays() = runTest {
-        // 2 sessions from 8 days ago (outside 7-day window)
+    fun test24c_sessionsOlderThanSevenDays_stillCountTowardsMasteryUnlock() = runTest {
+        // 2 sessions from 8 days ago
         seedStandardSessionWithAnswers("s1_old", time = timestampForDay(8, 10))
         seedStandardSessionWithAnswers("s2_old", time = timestampForDay(8, 14))
         // 1 session today
         seedStandardSessionWithAnswers("s3_new", time = timestampForDay(0, 10))
 
         val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
-        assertEquals(LevelReadinessStatus.INSUFFICIENT_PRACTICE_DAYS, result.status)
+        assertEquals(LevelReadinessStatus.READY_TO_UNLOCK, result.status)
         assertEquals(3, result.sessionCount)
         assertEquals(1, result.distinctDaysInLast7Days)
-        assertFalse(result.isReadyToUnlock)
+        assertTrue(result.isReadyToUnlock)
+        assertFalse(LevelReadinessStatus.entries.any { it.name == "INSUFFICIENT_PRACTICE_DAYS" })
     }
 
     // 24D. Exact 7th day boundary (session on today - 6 days counts as valid practice day).
@@ -737,5 +750,154 @@ class LevelReadinessEvaluationTest {
         assertEquals("Only 1 valid session should be counted", 1, result.sessionCount)
         assertEquals(LevelReadinessStatus.INSUFFICIENT_SESSIONS, result.status)
         assertFalse(result.isReadyToUnlock)
+    }
+
+    // 30. Partial missing AnswerLogs (2 of 3 sessions have logs, 1 has none) must NOT unlock.
+    @Test
+    fun test30_partialMissingAnswerLogs_returnsInsufficientEvidence() = runTest {
+        seedStandardSessionWithAnswers("s1_with_logs")
+        seedStandardSessionWithAnswers("s2_with_logs")
+        val s3NoLogs = session("s3_no_logs", total = 5, correct = 5, incorrect = 0, acc = 1.0f)
+        sessionRepository.saveSessionResult(s3NoLogs)
+
+        val result = evaluateReadinessUseCase(childId, "pulau_alfabet")
+        assertEquals(LevelReadinessStatus.INSUFFICIENT_EVIDENCE, result.status)
+        assertFalse(result.isReadyToUnlock)
+    }
+
+    // 31. Firestore read error must propagate rather than producing a misleading mastery diagnosis.
+    @Test
+    fun test31_firestoreReadFailure_propagatesWithoutMisleadingDiagnosis() = runTest {
+        val failingSessionRepo = object : SessionRepository {
+            override suspend fun recordAnswer(answer: AnswerLog) = Result.success(Unit)
+            override suspend fun getAnswersForSession(sessionId: String): List<AnswerLog> = emptyList()
+            override suspend fun getAnswersForChild(childId: String): List<AnswerLog> = emptyList()
+            override suspend fun getAnswersForChildResult(childId: String): Result<List<AnswerLog>> =
+                Result.failure(IllegalStateException("Firestore FAILED_PRECONDITION / offline"))
+            override suspend fun saveSessionResult(result: SessionResult) = Result.success(Unit)
+            override suspend fun getCompletedSessions(childId: String): List<SessionResult> = emptyList()
+            override suspend fun getCompletedSessionsResult(childId: String): Result<List<SessionResult>> =
+                Result.failure(IllegalStateException("Firestore FAILED_PRECONDITION / offline"))
+            override fun observeCompletedSessions(childId: String): Flow<List<SessionResult>> = emptyFlow()
+        }
+
+        val failingEvaluator = EvaluateLevelReadinessUseCase(failingSessionRepo, fixedClock, zoneId)
+        try {
+            failingEvaluator(childId, "pulau_alfabet")
+            org.junit.Assert.fail("Expected exception when Firestore read fails")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("Firestore"))
+        }
+
+        // Also test answer read failure after sessions succeed
+        val answersFailSessionRepo = object : SessionRepository {
+            override suspend fun recordAnswer(answer: AnswerLog) = Result.success(Unit)
+            override suspend fun getAnswersForSession(sessionId: String): List<AnswerLog> = emptyList()
+            override suspend fun getAnswersForChild(childId: String): List<AnswerLog> = emptyList()
+            override suspend fun getAnswersForChildResult(childId: String): Result<List<AnswerLog>> =
+                Result.failure(IllegalStateException("PERMISSION_DENIED reading answerLogs"))
+            override suspend fun saveSessionResult(result: SessionResult) = Result.success(Unit)
+            override suspend fun getCompletedSessions(childId: String): List<SessionResult> = listOf(
+                session("s1"),
+                session("s2"),
+                session("s3")
+            )
+            override fun observeCompletedSessions(childId: String): Flow<List<SessionResult>> = emptyFlow()
+        }
+
+        val answerFailEvaluator = EvaluateLevelReadinessUseCase(answersFailSessionRepo, fixedClock, zoneId)
+        try {
+            answerFailEvaluator(childId, "pulau_alfabet")
+            org.junit.Assert.fail("Expected exception when answerLogs read fails")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("PERMISSION_DENIED"))
+        }
+    }
+
+    // 32. LevelMapViewModel clears previous profile progress on switch, shows dynamic explanations without 2-day text, and surfaces errors.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun test32_levelMapViewModel_profileSwitchAndReadErrorHandling() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        Dispatchers.setMain(testDispatcher)
+        try {
+            val authRepo = DemoAuthRepository()
+            val profileRepo = DemoProfileRepository()
+            authRepo.signIn("ortu@aksa.id", "123456")
+            val parentUid = authRepo.currentGuardian.value!!.uid
+
+            val pA = profileRepo.createProfile(parentUid, "Anak A", "mascot_classic").getOrThrow()
+            val pB = profileRepo.createProfile(parentUid, "Anak B", "cat_orange").getOrThrow()
+
+            // Seed 3 same-day mastery sessions for Anak A
+            val sameDay = timestampForDay(0, 9)
+            seedStandardSessionWithAnswers("s1_vm", cId = pA.profileId, time = sameDay)
+            seedStandardSessionWithAnswers("s2_vm", cId = pA.profileId, time = sameDay + 60_000)
+            seedStandardSessionWithAnswers("s3_vm", cId = pA.profileId, time = sameDay + 120_000)
+
+            AksaUserState.currentProfileId = pA.profileId
+            val activeChildUseCase = GetActiveChildIdUseCase(authRepo, profileRepo)
+            val progressionUseCase = GetLevelProgressionUseCase(evaluateReadinessUseCase, levelProgressRepository)
+
+            val vm = LevelMapViewModel(
+                getActiveChildIdUseCase = activeChildUseCase,
+                getLevelProgressionUseCase = progressionUseCase,
+                sessionRepository = sessionRepository,
+                levelProgressRepository = levelProgressRepository
+            )
+            advanceUntilIdle()
+
+            assertEquals(pA.profileId, vm.uiState.value.childId)
+            assertEquals(LevelNodeStatus.COMPLETED, vm.uiState.value.effectiveStatus1)
+            assertEquals(LevelNodeStatus.ACTIVE, vm.uiState.value.effectiveStatus2)
+
+            // Switch to Anak B (new profile with 0 sessions)
+            AksaUserState.currentProfileId = pB.profileId
+            vm.onProfileChanged()
+            advanceUntilIdle()
+
+            assertEquals(pB.profileId, vm.uiState.value.childId)
+            assertEquals(LevelNodeStatus.ACTIVE, vm.uiState.value.effectiveStatus1)
+            assertEquals(LevelNodeStatus.LOCKED, vm.uiState.value.effectiveStatus2)
+
+            // Click locked Level 2 -> dynamic explanation must NOT mention 2 days
+            vm.onLevelClick(2) {}
+            val lockedDetails = vm.uiState.value.selectedLockedLevel
+            assertEquals("Selesaikan 3 sesi latihan lagi, yuk!", lockedDetails?.explanation)
+            assertFalse(lockedDetails!!.isReadError)
+            assertFalse(lockedDetails.explanation.contains("2 hari", ignoreCase = true))
+            vm.dismissLockedDialog()
+
+            // Verify error handling when repository read fails
+            val failingRepo = object : SessionRepository {
+                override suspend fun recordAnswer(answer: AnswerLog) = Result.success(Unit)
+                override suspend fun getAnswersForSession(sessionId: String): List<AnswerLog> = emptyList()
+                override suspend fun getAnswersForChild(childId: String): List<AnswerLog> = emptyList()
+                override suspend fun saveSessionResult(result: SessionResult) = Result.success(Unit)
+                override suspend fun getCompletedSessions(childId: String): List<SessionResult> = emptyList()
+                override suspend fun getCompletedSessionsResult(childId: String): Result<List<SessionResult>> =
+                    Result.failure(RuntimeException("Koneksi Firestore terputus"))
+                override fun observeCompletedSessions(childId: String): Flow<List<SessionResult>> = emptyFlow()
+            }
+            val failingVm = LevelMapViewModel(
+                getActiveChildIdUseCase = activeChildUseCase,
+                getLevelProgressionUseCase = GetLevelProgressionUseCase(
+                    EvaluateLevelReadinessUseCase(failingRepo, fixedClock, zoneId),
+                    levelProgressRepository
+                ),
+                sessionRepository = failingRepo,
+                levelProgressRepository = levelProgressRepository
+            )
+            advanceUntilIdle()
+            failingVm.refreshProgression()
+            advanceUntilIdle()
+
+            assertTrue(failingVm.uiState.value.errorMessage?.contains("Firestore") == true)
+            failingVm.onLevelClick(2) {}
+            assertTrue(failingVm.uiState.value.selectedLockedLevel?.isReadError == true)
+        } finally {
+            AksaUserState.clearSession()
+            Dispatchers.resetMain()
+        }
     }
 }

@@ -4,7 +4,6 @@ enum class LevelUnlockReason {
     DEFAULT_UNLOCKED,        // Level 1: Pulau Alfabet is unlocked by default
     PREVIOUS_LEVEL_MASTERED, // Unlocked by demonstrating performance mastery on previous level
     ALREADY_EARNED,          // Previously unlocked; retained even if rolling average later drops
-    PREVIEW_OVERRIDE,        // Developer Preview Mode override (debug only)
     LOCKED_PREREQUISITE      // Locked because prerequisite level is not yet mastered
 }
 

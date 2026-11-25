@@ -22,9 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,7 +41,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaLevelNode
@@ -73,10 +78,22 @@ fun LevelMapScreen(
     onNavigateToTangkapHuruf: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
 
-    // Sync LevelMap observation whenever the active child profile changes
-    LaunchedEffect(AksaUserState.currentProfileId) {
-        viewModel.onProfileChanged()
+    // Refresh level progression whenever returning to the Level Map from a learning session
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && !uiState.isLoading) {
+                coroutineScope.launch {
+                    viewModel.refreshProgression()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     val status1 = uiState.effectiveStatus1
@@ -127,6 +144,28 @@ fun LevelMapScreen(
                             color = AksaDarkBrown
                         )
                     }
+                }
+            }
+
+            uiState.errorMessage?.let { errorMsg ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(AksaWhite.copy(alpha = 0.95f))
+                        .clickable { viewModel.onProfileChanged() }
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = "$errorMsg (Ketuk untuk muat ulang)",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 12.sp,
+                        color = AksaOrange,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
@@ -317,7 +356,7 @@ private fun LockedLevelExplanationDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "${locked.title} Terkunci \uD83D\uDD12",
+                    text = if (locked.isReadError) "Gagal Memuat Progres" else "${locked.title} Terkunci \uD83D\uDD12",
                     fontFamily = Poppins,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
@@ -336,96 +375,85 @@ private fun LockedLevelExplanationDialog(
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                if (!locked.isReadError) {
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Requirements checklist card
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(AksaPeachLight.copy(alpha = 0.5f))
-                        .padding(14.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "Syarat Membuka Level:",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = AksaDarkBrown
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painter = AksaIcons.check(),
-                                contentDescription = null,
-                                tint = AksaLimeDark,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
+                    // Requirements checklist card
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(AksaPeachLight.copy(alpha = 0.5f))
+                            .padding(14.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                text = "Minimal 3 sesi selesai di ${locked.prerequisiteTitle}",
+                                text = "Syarat Membuka Level:",
                                 fontFamily = Poppins,
-                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
                                 color = AksaDarkBrown
                             )
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painter = AksaIcons.check(),
-                                contentDescription = null,
-                                tint = AksaLimeDark,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = locked.targetAccuracies,
-                                fontFamily = Poppins,
-                                fontSize = 11.sp,
-                                color = AksaDarkBrown
-                            )
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painter = AksaIcons.check(),
-                                contentDescription = null,
-                                tint = AksaLimeDark,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = locked.targetErrorLimit,
-                                fontFamily = Poppins,
-                                fontSize = 11.sp,
-                                color = AksaDarkBrown
-                            )
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painter = AksaIcons.check(),
-                                contentDescription = null,
-                                tint = AksaLimeDark,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = locked.practiceDaysRequirement,
-                                fontFamily = Poppins,
-                                fontSize = 11.sp,
-                                color = AksaDarkBrown
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = AksaIcons.check(),
+                                    contentDescription = null,
+                                    tint = AksaLimeDark,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Minimal 3 sesi selesai di ${locked.prerequisiteTitle}",
+                                    fontFamily = Poppins,
+                                    fontSize = 11.sp,
+                                    color = AksaDarkBrown
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = AksaIcons.check(),
+                                    contentDescription = null,
+                                    tint = AksaLimeDark,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = locked.targetAccuracies,
+                                    fontFamily = Poppins,
+                                    fontSize = 11.sp,
+                                    color = AksaDarkBrown
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = AksaIcons.check(),
+                                    contentDescription = null,
+                                    tint = AksaLimeDark,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = locked.targetErrorLimit,
+                                    fontFamily = Poppins,
+                                    fontSize = 11.sp,
+                                    color = AksaDarkBrown
+                                )
+                            }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    AksaButton(
+                        text = "Ayo Latihan di ${locked.prerequisiteTitle}",
+                        style = AksaButtonStyle.PRIMARY_ORANGE,
+                        onClick = onPracticePrerequisite
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                } else {
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                AksaButton(
-                    text = "Ayo Latihan di ${locked.prerequisiteTitle}",
-                    style = AksaButtonStyle.PRIMARY_ORANGE,
-                    onClick = onPracticePrerequisite
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
 
                 AksaButton(
                     text = "Tutup",

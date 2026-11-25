@@ -54,6 +54,7 @@ import com.aksa.app.ui.components.AksaSyllableCard
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.components.SyllableCardColor
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
@@ -64,7 +65,9 @@ import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class SyllableQuizItem(
@@ -105,6 +108,7 @@ fun SyllableQuizScreen(
     var correctCount by remember { mutableIntStateOf(0) }
     var showCompletionDialog by remember { mutableStateOf(false) }
     var sessionCommitted by remember { mutableStateOf(false) }
+    var isSavingSession by remember { mutableStateOf(false) }
 
     val currentQ = quizItems[currentQuestionIndex]
 
@@ -411,7 +415,8 @@ fun SyllableQuizScreen(
                         style = if (isFilled) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
                         enabled = isFilled,
                         onClick = {
-                            val childId = activeChildResolver.getSync()
+                            val childId = runCatching { activeChildResolver.getSync() }
+                                .getOrDefault(AksaUserState.currentProfileId)
                             val log = AnswerLog(
                                 answerId = "ans_${sessionId}_syl_${currentQ.id}",
                                 sessionId = sessionId,
@@ -436,25 +441,36 @@ fun SyllableQuizScreen(
                                 // Finalize session
                                 if (!sessionCommitted) {
                                     sessionCommitted = true
+                                    isSavingSession = true
                                     coroutineScope.launch {
-                                        val actualChildId = activeChildResolver()
-                                        for (ans in recordedAnswers) {
-                                            AksaRepositoryProvider.sessionRepository.recordAnswer(ans.copy(childId = actualChildId))
+                                        try {
+                                            withContext(NonCancellable) {
+                                                val actualChildId = activeChildResolver()
+                                                for (ans in recordedAnswers) {
+                                                    AksaRepositoryProvider.sessionRepository
+                                                        .recordAnswer(ans.copy(childId = actualChildId))
+                                                        .getOrThrow()
+                                                }
+                                                val sessionResult = SessionResult(
+                                                    sessionId = sessionId,
+                                                    childId = actualChildId,
+                                                    moduleId = "dunia_suku_kata",
+                                                    activityId = "syllable_quiz",
+                                                    startedAt = sessionStartedAt,
+                                                    completedAt = System.currentTimeMillis(),
+                                                    totalQuestions = quizItems.size,
+                                                    correctAnswers = correctCount,
+                                                    incorrectAnswers = quizItems.size - correctCount,
+                                                    accuracy = correctCount.toFloat() / quizItems.size.toFloat(),
+                                                    status = SessionStatus.COMPLETED
+                                                )
+                                                AksaRepositoryProvider.sessionRepository
+                                                    .saveSessionResult(sessionResult)
+                                                    .getOrThrow()
+                                            }
+                                        } finally {
+                                            isSavingSession = false
                                         }
-                                        val sessionResult = SessionResult(
-                                            sessionId = sessionId,
-                                            childId = actualChildId,
-                                            moduleId = "dunia_suku_kata",
-                                            activityId = "syllable_quiz",
-                                            startedAt = sessionStartedAt,
-                                            completedAt = System.currentTimeMillis(),
-                                            totalQuestions = quizItems.size,
-                                            correctAnswers = correctCount,
-                                            incorrectAnswers = quizItems.size - correctCount,
-                                            accuracy = correctCount.toFloat() / quizItems.size.toFloat(),
-                                            status = SessionStatus.COMPLETED
-                                        )
-                                        AksaRepositoryProvider.sessionRepository.saveSessionResult(sessionResult)
                                     }
                                 }
                                 showCompletionDialog = true
@@ -589,8 +605,9 @@ fun SyllableQuizScreen(
                         Spacer(modifier = Modifier.height(10.dp))
 
                         AksaButton(
-                            text = "Lihat Peta Petualangan",
+                            text = if (isSavingSession) "Menyimpan progres..." else "Lihat Peta Petualangan",
                             style = AksaButtonStyle.PRIMARY_ORANGE,
+                            enabled = !isSavingSession,
                             onClick = onNavigateToLevelMap
                         )
                     }
