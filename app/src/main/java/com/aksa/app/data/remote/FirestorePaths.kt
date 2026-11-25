@@ -22,6 +22,9 @@ object FirestorePaths {
     fun sessionResultDoc(parentUid: String, profileId: String, sessionId: String) =
         "${sessionResultsCollection(parentUid, profileId)}/$sessionId"
 
+    fun levelProgressDoc(parentUid: String, profileId: String) =
+        "${profileDoc(parentUid, profileId)}/levelProgress/unlocks"
+
     fun badgesCollection(parentUid: String, profileId: String) =
         "${profileDoc(parentUid, profileId)}/$BADGES"
     fun badgeDoc(parentUid: String, profileId: String, badgeId: String) =

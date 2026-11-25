@@ -173,10 +173,11 @@ class FirestoreProfileRepository(
                 return Result.failure(SecurityException("Tidak memiliki izin untuk menghapus profil akun lain"))
             }
 
-            // Delete associated learning subcollections (answerLogs, sessionResults, badges)
+            // Delete associated learning subcollections (answerLogs, sessionResults, badges, levelProgress)
             deleteSubcollection(FirestorePaths.answerLogsCollection(userId, profileId))
             deleteSubcollection(FirestorePaths.sessionResultsCollection(userId, profileId))
             deleteSubcollection(FirestorePaths.badgesCollection(userId, profileId))
+            deleteSubcollection("${FirestorePaths.profileDoc(userId, profileId)}/levelProgress")
 
             // Delete the parent child profile document itself
             docRef.delete().await()

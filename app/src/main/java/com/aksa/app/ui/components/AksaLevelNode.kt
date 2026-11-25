@@ -97,7 +97,7 @@ fun AksaLevelNode(
         Box(
             modifier = Modifier
                 .size(size * pulseScale)
-                .clickable(enabled = status != LevelNodeStatus.LOCKED, onClick = onClick),
+                .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
             // Bottom 3D bevel

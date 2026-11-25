@@ -32,6 +32,7 @@ class FirestoreSessionRepository(
 
     override suspend fun recordAnswer(answer: AnswerLog): Result<Unit> {
         return try {
+            require(answer.childId.isNotBlank()) { "childId must not be blank" }
             val parentUid = getParentUid()
             val dto = AnswerLogDto.fromDomain(answer, parentUid)
             firestore.document(
@@ -56,8 +57,29 @@ class FirestoreSessionRepository(
         }
     }
 
+    override suspend fun getAnswersForChildResult(childId: String): Result<List<AnswerLog>> {
+        return try {
+            require(childId.isNotBlank()) { "childId must not be blank" }
+            val parentUid = getParentUid()
+            val snapshot = firestore.collection(FirestorePaths.answerLogsCollection(parentUid, childId))
+                .get()
+                .await()
+
+            Result.success(
+                snapshot.documents.mapNotNull { it.toObject(AnswerLogDto::class.java)?.toDomain() }
+            )
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getAnswersForChild(childId: String): List<AnswerLog> {
+        return getAnswersForChildResult(childId).getOrDefault(emptyList())
+    }
+
     override suspend fun saveSessionResult(result: SessionResult): Result<Unit> {
         return try {
+            require(result.childId.isNotBlank()) { "childId must not be blank" }
             val parentUid = getParentUid()
             val dto = SessionResultDto.fromDomain(result, parentUid)
             firestore.document(
@@ -69,18 +91,25 @@ class FirestoreSessionRepository(
         }
     }
 
-    override suspend fun getCompletedSessions(childId: String): List<SessionResult> {
+    override suspend fun getCompletedSessionsResult(childId: String): Result<List<SessionResult>> {
         return try {
+            require(childId.isNotBlank()) { "childId must not be blank" }
             val parentUid = getParentUid()
             val snapshot = firestore.collection(FirestorePaths.sessionResultsCollection(parentUid, childId))
                 .whereEqualTo("status", SessionStatus.COMPLETED.name)
                 .get()
                 .await()
 
-            snapshot.documents.mapNotNull { it.toObject(SessionResultDto::class.java)?.toDomain() }
+            Result.success(
+                snapshot.documents.mapNotNull { it.toObject(SessionResultDto::class.java)?.toDomain() }
+            )
         } catch (e: Exception) {
-            emptyList()
+            Result.failure(e)
         }
+    }
+
+    override suspend fun getCompletedSessions(childId: String): List<SessionResult> {
+        return getCompletedSessionsResult(childId).getOrDefault(emptyList())
     }
 
     override fun observeCompletedSessions(childId: String): Flow<List<SessionResult>> = callbackFlow {
