@@ -1,9 +1,9 @@
 package com.aksa.app
 
 import com.aksa.app.data.repository.demo.DemoAuthRepository
-import com.aksa.app.data.repository.demo.DemoLevelProgressRepository
 import com.aksa.app.data.repository.demo.DemoProfileRepository
 import com.aksa.app.data.repository.demo.DemoSessionRepository
+import com.aksa.app.fake.FakeLevelProgressRepository
 import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.LevelReadinessStatus
 import com.aksa.app.domain.model.Profile
@@ -43,7 +43,7 @@ class LevelReadinessEvaluationTest {
     private val fixedClock = Clock.fixed(baseDate.atStartOfDay(zoneId).toInstant(), zoneId)
 
     private lateinit var sessionRepository: DemoSessionRepository
-    private lateinit var levelProgressRepository: DemoLevelProgressRepository
+    private lateinit var levelProgressRepository: FakeLevelProgressRepository
     private lateinit var evaluateReadinessUseCase: EvaluateLevelReadinessUseCase
     private lateinit var getProgressionUseCase: GetLevelProgressionUseCase
 
@@ -52,7 +52,7 @@ class LevelReadinessEvaluationTest {
     @Before
     fun setUp() {
         sessionRepository = DemoSessionRepository()
-        levelProgressRepository = DemoLevelProgressRepository()
+        levelProgressRepository = FakeLevelProgressRepository()
         evaluateReadinessUseCase = EvaluateLevelReadinessUseCase(sessionRepository, fixedClock, zoneId)
         getProgressionUseCase = GetLevelProgressionUseCase(evaluateReadinessUseCase, levelProgressRepository)
     }
@@ -663,7 +663,7 @@ class LevelReadinessEvaluationTest {
     // 27. LevelProgressRepository preserves default level, set operations, and anti-relocking.
     @Test
     fun test27_levelProgressRepository_monotonicAndAntiRelocking() = runTest {
-        val repo = DemoLevelProgressRepository()
+        val repo = FakeLevelProgressRepository()
         val testChild = "child_test_repo_fallback"
 
         val initialLevels = repo.getUnlockedLevels(testChild)

@@ -1,4 +1,4 @@
-package com.aksa.app.data.repository.demo
+package com.aksa.app.fake
 
 import com.aksa.app.domain.repository.LevelProgressRepository
 import kotlinx.coroutines.flow.Flow
@@ -6,11 +6,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 
 /**
- * In-memory level progression repository for demo/offline usage and test isolation.
+ * In-memory fake [LevelProgressRepository] for unit testing isolation.
  * Level 1 ("pulau_alfabet") is always unlocked by default for any child.
- * Unlocked levels persist in-memory across the session and never relock on subsequent low scores.
+ * Unlocked levels persist in-memory during a test and never relock on subsequent low scores.
  */
-class DemoLevelProgressRepository : LevelProgressRepository {
+class FakeLevelProgressRepository : LevelProgressRepository {
 
     companion object {
         const val DEFAULT_LEVEL = "pulau_alfabet"
