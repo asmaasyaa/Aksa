@@ -3,6 +3,7 @@ package com.aksa.app.data.repository
 import android.content.Context
 import com.aksa.app.domain.repository.AchievementRepository
 import com.aksa.app.domain.repository.AuthRepository
+import com.aksa.app.domain.repository.LevelProgressRepository
 import com.aksa.app.domain.repository.ProfileRepository
 import com.aksa.app.domain.repository.SessionRepository
 import com.google.firebase.FirebaseApp
@@ -21,6 +22,9 @@ object AksaRepositoryProvider {
     }
     val firestoreAchievementRepository: FirestoreAchievementRepository by lazy {
         FirestoreAchievementRepository(firebaseAuthRepository)
+    }
+    val firestoreLevelProgressRepository: FirestoreLevelProgressRepository by lazy {
+        FirestoreLevelProgressRepository(firebaseAuthRepository)
     }
 
     /**
@@ -47,4 +51,7 @@ object AksaRepositoryProvider {
 
     val achievementRepository: AchievementRepository
         get() = firestoreAchievementRepository
+
+    val levelProgressRepository: LevelProgressRepository
+        get() = firestoreLevelProgressRepository
 }

@@ -42,14 +42,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.mutableStateListOf
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaError
@@ -66,7 +70,9 @@ import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class LetterIntroData(
@@ -121,6 +127,11 @@ fun LetterLearningScreen(
         )
     }
 
+    val sessionId = remember { "session_letter_${UUID.randomUUID()}" }
+    val sessionStartedAt = remember { System.currentTimeMillis() }
+    val recordedAnswers = remember { mutableStateListOf<AnswerLog>() }
+    val activeChildResolver = remember { GetActiveChildIdUseCase() }
+
     var step by remember { mutableStateOf(LetterLearningStep.INTRODUCTION) }
     var currentIntroIndex by remember { mutableIntStateOf(0) }
     var currentQuizIndex by remember { mutableIntStateOf(0) }
@@ -129,6 +140,7 @@ fun LetterLearningScreen(
     var isCorrect by remember { mutableStateOf(false) }
     var correctCount by remember { mutableIntStateOf(0) }
     var sessionCommitted by remember { mutableStateOf(false) }
+    var isSavingSession by remember { mutableStateOf(false) }
 
     val effectiveStep = step
     val effectiveIsAnswered = isAnswered
@@ -437,6 +449,22 @@ fun LetterLearningScreen(
                                                 isAnswered = true
                                                 val correct = choice == currentQ.targetLetter
                                                 isCorrect = correct
+                                                val childId = runCatching { activeChildResolver.getSync() }
+                                                    .getOrDefault(AksaUserState.currentProfileId)
+                                                val log = AnswerLog(
+                                                    answerId = "ans_${sessionId}_letter_${currentQuizIndex}",
+                                                    sessionId = sessionId,
+                                                    childId = childId,
+                                                    moduleId = "pulau_alfabet",
+                                                    activityId = "letter_learning",
+                                                    questionId = "letter_q_${currentQ.targetLetter}_$currentQuizIndex",
+                                                    targetChar = currentQ.targetLetter,
+                                                    chosenChar = choice,
+                                                    isCorrect = correct,
+                                                    responseTimeMs = 1000L,
+                                                    timestamp = System.currentTimeMillis()
+                                                )
+                                                recordedAnswers.add(log)
                                                 if (correct) {
                                                     correctCount++
                                                     tts.speak("Benar! Ini huruf $choice.")
@@ -521,21 +549,36 @@ fun LetterLearningScreen(
                                         // Commit session
                                         if (!sessionCommitted) {
                                             sessionCommitted = true
+                                            isSavingSession = true
                                             coroutineScope.launch {
-                                                val sessionResult = SessionResult(
-                                                    sessionId = "session_letter_${UUID.randomUUID()}",
-                                                    childId = com.aksa.app.ui.state.AksaUserState.currentProfileId.ifBlank { "child_${AksaRepositoryProvider.authRepository.currentGuardian.value?.uid ?: ""}" },
-                                                    moduleId = "pulau_alfabet",
-                                                    activityId = "letter_learning",
-                                                    startedAt = System.currentTimeMillis() - 60_000,
-                                                    completedAt = System.currentTimeMillis(),
-                                                    totalQuestions = quizQuestions.size,
-                                                    correctAnswers = correctCount,
-                                                    incorrectAnswers = quizQuestions.size - correctCount,
-                                                    accuracy = correctCount.toFloat() / quizQuestions.size.toFloat(),
-                                                    status = SessionStatus.COMPLETED
-                                                )
-                                                AksaRepositoryProvider.sessionRepository.saveSessionResult(sessionResult)
+                                                try {
+                                                    withContext(NonCancellable) {
+                                                        val childId = activeChildResolver()
+                                                        for (ans in recordedAnswers) {
+                                                            AksaRepositoryProvider.sessionRepository
+                                                                .recordAnswer(ans.copy(childId = childId))
+                                                                .getOrThrow()
+                                                        }
+                                                        val sessionResult = SessionResult(
+                                                            sessionId = sessionId,
+                                                            childId = childId,
+                                                            moduleId = "pulau_alfabet",
+                                                            activityId = "letter_learning",
+                                                            startedAt = sessionStartedAt,
+                                                            completedAt = System.currentTimeMillis(),
+                                                            totalQuestions = quizQuestions.size,
+                                                            correctAnswers = correctCount,
+                                                            incorrectAnswers = quizQuestions.size - correctCount,
+                                                            accuracy = correctCount.toFloat() / quizQuestions.size.toFloat(),
+                                                            status = SessionStatus.COMPLETED
+                                                        )
+                                                        AksaRepositoryProvider.sessionRepository
+                                                            .saveSessionResult(sessionResult)
+                                                            .getOrThrow()
+                                                    }
+                                                } finally {
+                                                    isSavingSession = false
+                                                }
                                             }
                                         }
                                         step = LetterLearningStep.COMPLETION
@@ -653,8 +696,9 @@ fun LetterLearningScreen(
                             Spacer(modifier = Modifier.height(10.dp))
 
                             AksaButton(
-                                text = "Lihat Peta Petualangan",
+                                text = if (isSavingSession) "Menyimpan progres..." else "Lihat Peta Petualangan",
                                 style = AksaButtonStyle.PRIMARY_ORANGE,
+                                enabled = !isSavingSession,
                                 onClick = onNavigateToLevelMap
                             )
                         }

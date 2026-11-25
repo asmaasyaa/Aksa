@@ -49,12 +49,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
@@ -66,7 +69,9 @@ import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class WordQuestion(
@@ -97,6 +102,11 @@ fun WordFormationScreen(
         )
     }
 
+    var sessionId by remember { mutableStateOf("session_word_${UUID.randomUUID()}") }
+    var sessionStartedAt by remember { mutableStateOf(System.currentTimeMillis()) }
+    val recordedAnswers = remember { mutableStateListOf<AnswerLog>() }
+    val activeChildResolver = remember { GetActiveChildIdUseCase() }
+
     var currentQuestionIndex by remember { mutableIntStateOf(0) }
     val currentQ = questions[currentQuestionIndex]
     val selectedIndices = remember { mutableStateListOf<Int>() }
@@ -104,6 +114,7 @@ fun WordFormationScreen(
     var correctCount by remember { mutableIntStateOf(0) }
     var showCompletionDialog by remember { mutableStateOf(false) }
     var sessionCommitted by remember { mutableStateOf(false) }
+    var isSavingSession by remember { mutableStateOf(false) }
 
     val currentLetters = selectedIndices.map { currentQ.shuffled[it] }
     val isComplete = selectedIndices.size == currentQ.letters.size
@@ -380,6 +391,23 @@ fun WordFormationScreen(
                         style = if (effectiveIsComplete) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
                         enabled = effectiveIsComplete,
                         onClick = {
+                            val childId = runCatching { activeChildResolver.getSync() }
+                                .getOrDefault(AksaUserState.currentProfileId)
+                            val log = AnswerLog(
+                                answerId = "ans_${sessionId}_word_${currentQ.id}",
+                                sessionId = sessionId,
+                                childId = childId,
+                                moduleId = "gunung_kata",
+                                activityId = "word_formation",
+                                questionId = currentQ.id,
+                                targetChar = currentQ.word,
+                                chosenChar = currentLetters.joinToString(""),
+                                isCorrect = isCorrect,
+                                responseTimeMs = 2000L,
+                                timestamp = System.currentTimeMillis()
+                            )
+                            recordedAnswers.add(log)
+
                             if (currentQuestionIndex < questions.size - 1) {
                                 currentQuestionIndex++
                                 selectedIndices.clear()
@@ -387,21 +415,36 @@ fun WordFormationScreen(
                             } else {
                                 if (!sessionCommitted) {
                                     sessionCommitted = true
+                                    isSavingSession = true
                                     coroutineScope.launch {
-                                        val sessionResult = SessionResult(
-                                            sessionId = "session_word_${UUID.randomUUID()}",
-                                            childId = com.aksa.app.ui.state.AksaUserState.currentProfileId.ifBlank { "child_${AksaRepositoryProvider.authRepository.currentGuardian.value?.uid ?: ""}" },
-                                            moduleId = "gunung_kata",
-                                            activityId = "word_formation",
-                                            startedAt = System.currentTimeMillis() - 120_000,
-                                            completedAt = System.currentTimeMillis(),
-                                            totalQuestions = questions.size,
-                                            correctAnswers = correctCount,
-                                            incorrectAnswers = questions.size - correctCount,
-                                            accuracy = correctCount.toFloat() / questions.size.toFloat(),
-                                            status = SessionStatus.COMPLETED
-                                        )
-                                        AksaRepositoryProvider.sessionRepository.saveSessionResult(sessionResult)
+                                        try {
+                                            withContext(NonCancellable) {
+                                                val actualChildId = activeChildResolver()
+                                                for (ans in recordedAnswers) {
+                                                    AksaRepositoryProvider.sessionRepository
+                                                        .recordAnswer(ans.copy(childId = actualChildId))
+                                                        .getOrThrow()
+                                                }
+                                                val sessionResult = SessionResult(
+                                                    sessionId = sessionId,
+                                                    childId = actualChildId,
+                                                    moduleId = "gunung_kata",
+                                                    activityId = "word_formation",
+                                                    startedAt = sessionStartedAt,
+                                                    completedAt = System.currentTimeMillis(),
+                                                    totalQuestions = questions.size,
+                                                    correctAnswers = correctCount,
+                                                    incorrectAnswers = questions.size - correctCount,
+                                                    accuracy = correctCount.toFloat() / questions.size.toFloat(),
+                                                    status = SessionStatus.COMPLETED
+                                                )
+                                                AksaRepositoryProvider.sessionRepository
+                                                    .saveSessionResult(sessionResult)
+                                                    .getOrThrow()
+                                            }
+                                        } finally {
+                                            isSavingSession = false
+                                        }
                                     }
                                 }
                                 showCompletionDialog = true
@@ -526,14 +569,18 @@ fun WordFormationScreen(
                                 selectedIndices.clear()
                                 correctCount = 0
                                 sessionCommitted = false
+                                sessionId = "session_word_${UUID.randomUUID()}"
+                                sessionStartedAt = System.currentTimeMillis()
+                                recordedAnswers.clear()
                             }
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
 
                         AksaButton(
-                            text = "Lihat Peta Petualangan",
+                            text = if (isSavingSession) "Menyimpan progres..." else "Lihat Peta Petualangan",
                             style = AksaButtonStyle.PRIMARY_ORANGE,
+                            enabled = !isSavingSession,
                             onClick = onNavigateToLevelMap
                         )
                     }

@@ -64,6 +64,14 @@ service cloud.firestore {
           allow create, update: if isOwner(parentUid) && isValidSessionResult(parentUid);
         }
 
+        match /levelProgress/{progressId} {
+          allow read, delete: if isOwner(parentUid);
+          allow create, update: if isOwner(parentUid)
+            && request.resource.data.userId == parentUid
+            && request.resource.data.profileId == profileId
+            && request.resource.data.unlockedLevels is list;
+        }
+
         match /badges/{badgeId} {
           allow read, delete: if isOwner(parentUid);
           allow create, update: if isOwner(parentUid) && isValidBadge(parentUid);
