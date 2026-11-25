@@ -31,6 +31,7 @@ import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotPeeking
 import com.aksa.app.ui.theme.AksaDarkBrown
+import com.aksa.app.ui.theme.AksaErrorText
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaWhite
@@ -106,7 +107,6 @@ fun ChildAvatarScreen(
                         modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
                     )
 
-                    // Real drawn Aksa Avatars using AksaAvatarSelector
                     AksaAvatarSelector(
                         selectedAvatarId = uiState.avatarId,
                         onAvatarSelected = { viewModel.setAvatarId(it) },
@@ -119,7 +119,7 @@ fun ChildAvatarScreen(
                             text = uiState.errorMessage!!,
                             fontFamily = Poppins,
                             fontSize = 12.sp,
-                            color = Color(0xFFCC3300),
+                            color = AksaErrorText,
                             textAlign = TextAlign.Center
                         )
                     }

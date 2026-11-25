@@ -1,6 +1,5 @@
 package com.aksa.app.ui.screens
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -28,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -41,10 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -67,7 +63,6 @@ import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
@@ -145,13 +140,11 @@ fun WordFormationScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -162,7 +155,7 @@ fun WordFormationScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -178,7 +171,6 @@ fun WordFormationScreen(
                     }
                 }
 
-                // Question Counter Pill
                 Box(
                     modifier = Modifier
                         .clip(PillShape)
@@ -227,7 +219,6 @@ fun WordFormationScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Illustration Header Box with Audio
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -247,7 +238,6 @@ fun WordFormationScreen(
                             }
                         }
 
-                        // Audio button in top-right of illustration box
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
@@ -261,7 +251,7 @@ fun WordFormationScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = AksaIcons.VolumeUp,
+                                painter = AksaIcons.volumeUp(),
                                 contentDescription = "Dengarkan",
                                 tint = AksaOrange,
                                 modifier = Modifier.size(20.dp)
@@ -282,7 +272,6 @@ fun WordFormationScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // TARGET WORD SLOTS
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -302,7 +291,6 @@ fun WordFormationScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // FEEDBACK BANNER
                     AnimatedVisibility(
                         visible = effectiveIsComplete,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
@@ -326,7 +314,7 @@ fun WordFormationScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = if (effectiveIsCorrect) AksaIcons.Check else AksaIcons.Info,
+                                        painter = if (effectiveIsCorrect) AksaIcons.check() else AksaIcons.info(),
                                         contentDescription = null,
                                         tint = feedbackBorder,
                                         modifier = Modifier.size(20.dp)

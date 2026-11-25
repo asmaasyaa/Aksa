@@ -6,10 +6,6 @@ enum class SessionStatus {
     ABANDONED
 }
 
-/**
- * Summary result of an educational activity session.
- * Associated with a specific child profile (profileId / childId) and parent account (userId).
- */
 data class SessionResult(
     val sessionId: String,
     val childId: String,

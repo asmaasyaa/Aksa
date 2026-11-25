@@ -41,16 +41,12 @@ import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotPeeking
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
-import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaOrangeDark
 import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
-import com.aksa.app.ui.theme.AksaYellowDark
 import com.aksa.app.ui.theme.Poppins
 import com.aksa.app.ui.viewmodel.CreateProfileViewModel
 
@@ -245,7 +241,7 @@ private fun AgeSelectionCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = AksaIcons.Star,
+                    painter = AksaIcons.star(),
                     contentDescription = null,
                     tint = AksaWhite,
                     modifier = Modifier.size(12.dp)

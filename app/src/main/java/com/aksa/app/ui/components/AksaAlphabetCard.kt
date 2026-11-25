@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -26,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
-import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaGrayDisabled
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaOrange
@@ -110,7 +107,7 @@ fun AksaAlphabetCard(
 
             if (status == AlphabetCardStatus.LOCKED) {
                 Icon(
-                    imageVector = AksaIcons.Lock,
+                    painter = AksaIcons.lock(),
                     contentDescription = "Terkunci",
                     tint = AksaGrayText,
                     modifier = Modifier
@@ -119,7 +116,7 @@ fun AksaAlphabetCard(
                 )
             } else if (status == AlphabetCardStatus.ACTIVE) {
                 Icon(
-                    imageVector = AksaIcons.VolumeUp,
+                    painter = AksaIcons.volumeUp(),
                     contentDescription = "Bunyikan",
                     tint = AksaYellow,
                     modifier = Modifier

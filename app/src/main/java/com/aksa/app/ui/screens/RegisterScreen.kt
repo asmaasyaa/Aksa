@@ -90,7 +90,6 @@ fun RegisterScreen(
         }
     }
 
-    // Clear error when user edits credentials
     LaunchedEffect(email, password) {
         if (uiState.errorMessage != null) {
             viewModel.clearError()
@@ -114,7 +113,6 @@ fun RegisterScreen(
                 }
             } catch (e: ApiException) {
                 if (e.statusCode == CommonStatusCodes.CANCELED || e.statusCode == 12501) {
-                    // User cancelled account selection
                     viewModel.clearLoading()
                 } else if (e.statusCode == CommonStatusCodes.NETWORK_ERROR || e.statusCode == 7) {
                     viewModel.setError("Koneksi internet bermasalah. Periksa jaringan Anda.")
@@ -223,7 +221,7 @@ fun RegisterScreen(
                         },
                         label = "Email Orang Tua / Wali",
                         placeholder = "Masukkan email akun orang tua",
-                        leadingIcon = AksaIcons.Email,
+                        leadingIconPainter = AksaIcons.email(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
@@ -237,7 +235,7 @@ fun RegisterScreen(
                         },
                         label = "Kata Sandi",
                         placeholder = "Minimal 6 karakter",
-                        leadingIcon = AksaIcons.Lock,
+                        leadingIconPainter = AksaIcons.lock(),
                         isPassword = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
@@ -336,7 +334,6 @@ fun RegisterScreen(
             )
         }
 
-        // Success Dialog Overlay
         if (showSuccessDialog) {
             val dialogShape = RoundedCornerShape(32.dp)
             Box(
@@ -381,7 +378,7 @@ fun RegisterScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = AksaIcons.Check,
+                                    painter = AksaIcons.check(),
                                     contentDescription = "Berhasil",
                                     tint = AksaWhite,
                                     modifier = Modifier.size(16.dp)

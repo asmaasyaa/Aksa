@@ -1,0 +1,75 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="100dp"
+    android:viewportWidth="160"
+    android:viewportHeight="100">
+    <!-- Ears -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36.2,1.5 A19.5,19.5 0 1,0 36.21,1.5 Z" />
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M36.2,10.2 A10.7,10.7 0 1,0 36.21,10.2 Z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M123.8,1.5 A19.5,19.5 0 1,0 123.81,1.5 Z" />
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M123.8,10.2 A10.7,10.7 0 1,0 123.81,10.2 Z" />
+
+    <!-- Head (Puff shape) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M76.9,14.9 C108.9,14.9 140.8,40.7 140.8,72.6 L140.8,100 L19.2,100 L19.2,72.6 C19.2,40.7 51.1,14.9 76.9,14.9 Z" />
+
+    <!-- Eyes (Dark Brown Oval) -->
+    <path
+        android:fillColor="#6B240C"
+        android:pathData="M53.9,62.3 C53.9,58.3 55.8,55 58.1,55 C60.4,55 62.4,58.3 62.4,62.3 C62.4,66.3 60.4,69.6 58.1,69.6 C55.8,69.6 53.9,66.3 53.9,62.3 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M57.2,54.6 A2.4,2.4 0 1,0 57.21,54.6 Z" />
+
+    <path
+        android:fillColor="#6B240C"
+        android:pathData="M97.6,62.3 C97.6,58.3 99.5,55 101.9,55 C104.2,55 106.1,58.3 106.1,62.3 C106.1,66.3 104.2,69.6 101.9,69.6 C99.5,69.6 97.6,66.3 97.6,62.3 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M101,54.6 A2.4,2.4 0 1,0 101.01,54.6 Z" />
+
+    <!-- Cheeks (Soft Peach) -->
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M47.2,64.7 A13.4,13.4 0 1,0 47.21,64.7 Z" />
+    <path
+        android:fillColor="#FFE5D0"
+        android:pathData="M112.8,64.7 A13.4,13.4 0 1,0 112.81,64.7 Z" />
+
+    <!-- Smile -->
+    <path
+        android:strokeColor="#6B240C"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M72.7,79.3 Q80,85.4 87.3,79.3" />
+
+    <!-- Paws Peeking over bottom edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40.5,79.9 A13.4,13.4 0 1,0 40.51,79.9 Z" />
+    <path
+        android:strokeColor="#FFCBA4"
+        android:strokeWidth="1.5"
+        android:strokeAlpha="0.5"
+        android:pathData="M27.1,93.3 A13.4,13.4 0 0,1 53.9,93.3" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M119.5,79.9 A13.4,13.4 0 1,0 119.51,79.9 Z" />
+    <path
+        android:strokeColor="#FFCBA4"
+        android:strokeWidth="1.5"
+        android:strokeAlpha="0.5"
+        android:pathData="M106.1,93.3 A13.4,13.4 0 0,1 132.9,93.3" />
+</vector>
+

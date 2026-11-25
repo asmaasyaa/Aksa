@@ -1,6 +1,5 @@
 package com.aksa.app.ui.screens
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -26,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -62,7 +60,6 @@ import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
@@ -137,13 +134,11 @@ fun SyllableQuizScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -154,7 +149,7 @@ fun SyllableQuizScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -170,7 +165,6 @@ fun SyllableQuizScreen(
                     }
                 }
 
-                // Question progress pill
                 Box(
                     modifier = Modifier
                         .clip(PillShape)
@@ -189,7 +183,6 @@ fun SyllableQuizScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Large White Rounded Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -215,7 +208,6 @@ fun SyllableQuizScreen(
                             color = AksaOrange
                         )
 
-                        // TTS Audio Button
                         Box(
                             modifier = Modifier
                                 .clip(PillShape)
@@ -227,7 +219,7 @@ fun SyllableQuizScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = AksaIcons.VolumeUp,
+                                    painter = AksaIcons.volumeUp(),
                                     contentDescription = "Dengarkan",
                                     tint = AksaDarkBrown,
                                     modifier = Modifier.size(16.dp)
@@ -256,12 +248,10 @@ fun SyllableQuizScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // TARGET SLOTS ROW
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Slot 1
                         SyllableTargetSlot(
                             syllable = effectiveSlot1,
                             onClear = {
@@ -277,7 +267,6 @@ fun SyllableQuizScreen(
                             color = AksaDarkBrown
                         )
 
-                        // Slot 2
                         SyllableTargetSlot(
                             syllable = effectiveSlot2,
                             onClear = {
@@ -288,7 +277,6 @@ fun SyllableQuizScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // FEEDBACK BANNER & MASCOT
                     AnimatedVisibility(
                         visible = isFilled,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
@@ -312,7 +300,7 @@ fun SyllableQuizScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = if (isCorrect) AksaIcons.Check else AksaIcons.Info,
+                                        painter = if (isCorrect) AksaIcons.check() else AksaIcons.info(),
                                         contentDescription = null,
                                         tint = feedbackBorder,
                                         modifier = Modifier.size(20.dp)
@@ -633,7 +621,7 @@ private fun SyllableTargetSlot(
     ) {
         if (isOccupied) {
             Text(
-                text = syllable ?: "",
+                text = syllable,
                 fontFamily = Poppins,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,

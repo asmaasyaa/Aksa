@@ -96,7 +96,6 @@ fun LevelMapScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 60.dp)
         ) {
-            // Top Bar Area
             Spacer(modifier = Modifier.height(110.dp))
 
             // Mini-Game & Dev Quick Access Banner
@@ -238,7 +237,7 @@ fun LevelMapScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = AksaIcons.ArrowBack,
+                        painter = AksaIcons.arrowBack(),
                         contentDescription = "Kembali",
                         tint = AksaDarkBrown,
                         modifier = Modifier.size(24.dp)
@@ -357,7 +356,7 @@ private fun LockedLevelExplanationDialog(
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = AksaIcons.Check,
+                                painter = AksaIcons.check(),
                                 contentDescription = null,
                                 tint = AksaLimeDark,
                                 modifier = Modifier.size(16.dp)
@@ -372,7 +371,7 @@ private fun LockedLevelExplanationDialog(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = AksaIcons.Check,
+                                painter = AksaIcons.check(),
                                 contentDescription = null,
                                 tint = AksaLimeDark,
                                 modifier = Modifier.size(16.dp)
@@ -387,7 +386,7 @@ private fun LockedLevelExplanationDialog(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = AksaIcons.Check,
+                                painter = AksaIcons.check(),
                                 contentDescription = null,
                                 tint = AksaLimeDark,
                                 modifier = Modifier.size(16.dp)
@@ -402,7 +401,7 @@ private fun LockedLevelExplanationDialog(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = AksaIcons.Check,
+                                painter = AksaIcons.check(),
                                 contentDescription = null,
                                 tint = AksaLimeDark,
                                 modifier = Modifier.size(16.dp)

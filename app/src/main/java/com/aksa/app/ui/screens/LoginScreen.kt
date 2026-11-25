@@ -208,7 +208,7 @@ fun LoginScreen(
                         },
                         label = "Email Orang Tua / Wali",
                         placeholder = "Masukkan email akun orang tua",
-                        leadingIcon = AksaIcons.Email,
+                        leadingIconPainter = AksaIcons.email(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
@@ -222,7 +222,7 @@ fun LoginScreen(
                         },
                         label = "Kata Sandi",
                         placeholder = "Masukkan kata sandi",
-                        leadingIcon = AksaIcons.Lock,
+                        leadingIconPainter = AksaIcons.lock(),
                         isPassword = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )

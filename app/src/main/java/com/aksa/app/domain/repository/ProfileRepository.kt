@@ -28,7 +28,6 @@ interface ProfileRepository {
         profileId: String
     ): Result<Unit>
 
-
     suspend fun getActiveChildProfile(guardianUid: String, activeProfileId: String? = null): Profile?
 
     suspend fun saveChildProfile(profile: Profile): Result<Unit>

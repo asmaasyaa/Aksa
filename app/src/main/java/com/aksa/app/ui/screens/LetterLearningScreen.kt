@@ -1,6 +1,5 @@
 package com.aksa.app.ui.screens
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -23,14 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -56,17 +51,20 @@ import com.aksa.app.domain.model.SessionStatus
 import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
-import com.aksa.app.ui.components.AksaProgressBar
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
-import com.aksa.app.ui.components.ProgressBarColor
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
+import com.aksa.app.ui.theme.AksaError
+import com.aksa.app.ui.theme.AksaErrorLight
+import com.aksa.app.ui.theme.AksaErrorText
+import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
+import com.aksa.app.ui.theme.AksaSuccessLight
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
@@ -165,7 +163,6 @@ fun LetterLearningScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // TOP BAR
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -181,7 +178,7 @@ fun LetterLearningScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -299,7 +296,7 @@ fun LetterLearningScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AksaIcons.VolumeUp,
+                                        painter = AksaIcons.volumeUp(),
                                         contentDescription = "Dengarkan",
                                         tint = AksaDarkBrown,
                                         modifier = Modifier.size(22.dp)
@@ -388,7 +385,7 @@ fun LetterLearningScreen(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            imageVector = AksaIcons.VolumeUp,
+                                            painter = AksaIcons.volumeUp(),
                                             contentDescription = "Dengarkan",
                                             tint = AksaDarkBrown,
                                             modifier = Modifier.size(16.dp)
@@ -428,11 +425,11 @@ fun LetterLearningScreen(
                                     val isChoiceTarget = choice == currentQ.targetLetter
 
                                     val (bgColor, borderColor) = when {
-                                        !effectiveIsAnswered -> Pair(AksaWhite, Color(0xFFE2E8F0))
-                                        isSelected && effectiveIsCorrect -> Pair(Color(0xFFE8F5E9), AksaLimeDark)
-                                        isSelected && !effectiveIsCorrect -> Pair(Color(0xFFFFEBEE), Color(0xFFE53935))
-                                        effectiveIsAnswered && isChoiceTarget -> Pair(Color(0xFFE8F5E9), AksaLimeDark)
-                                        else -> Pair(AksaWhite, Color(0xFFE2E8F0))
+                                        !effectiveIsAnswered -> Pair(AksaWhite, AksaGrayBorder)
+                                        isSelected && effectiveIsCorrect -> Pair(AksaSuccessLight, AksaLimeDark)
+                                        isSelected && !effectiveIsCorrect -> Pair(AksaErrorLight, AksaError)
+                                        effectiveIsAnswered && isChoiceTarget -> Pair(AksaSuccessLight, AksaLimeDark)
+                                        else -> Pair(AksaWhite, AksaGrayBorder)
                                     }
 
                                     Box(
@@ -485,14 +482,13 @@ fun LetterLearningScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // Feedback Banner
                             AnimatedVisibility(
                                 visible = effectiveIsAnswered,
                                 enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    val bannerBg = if (effectiveIsCorrect) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                                    val bannerBorder = if (effectiveIsCorrect) AksaLimeDark else Color(0xFFE53935)
+                                    val bannerBg = if (effectiveIsCorrect) AksaSuccessLight else AksaErrorLight
+                                    val bannerBorder = if (effectiveIsCorrect) AksaLimeDark else AksaError
                                     val bannerText = if (effectiveIsCorrect) "Benar! Pintar sekali!" else "Belum tepat. Jawaban benar adalah huruf ${currentQ.targetLetter}."
 
                                     Box(
@@ -505,7 +501,7 @@ fun LetterLearningScreen(
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                imageVector = if (effectiveIsCorrect) AksaIcons.Check else AksaIcons.Info,
+                                                painter = if (effectiveIsCorrect) AksaIcons.check() else AksaIcons.info(),
                                                 contentDescription = null,
                                                 tint = bannerBorder,
                                                 modifier = Modifier.size(20.dp)
@@ -516,7 +512,7 @@ fun LetterLearningScreen(
                                                 fontFamily = Poppins,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 13.sp,
-                                                color = if (effectiveIsCorrect) AksaDarkBrown else Color(0xFFC62828)
+                                                color = if (effectiveIsCorrect) AksaDarkBrown else AksaErrorText
                                             )
                                         }
                                     }

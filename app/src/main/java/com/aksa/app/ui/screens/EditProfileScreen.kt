@@ -50,6 +50,8 @@ import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaTextField
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
+import com.aksa.app.ui.theme.AksaError
+import com.aksa.app.ui.theme.AksaErrorText
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaOrange
@@ -75,7 +77,6 @@ fun EditProfileScreen(
     var selectedAvatarId by remember { mutableStateOf(activeProfile?.avatarId ?: AksaUserState.avatarId) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
 
-    // Sync initial state when active profile loads
     LaunchedEffect(activeProfile) {
         if (activeProfile != null) {
             name = activeProfile.name
@@ -100,7 +101,6 @@ fun EditProfileScreen(
                 .padding(bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -113,7 +113,7 @@ fun EditProfileScreen(
                         .background(AksaWhite.copy(alpha = 0.25f))
                 ) {
                     Icon(
-                        imageVector = AksaIcons.ArrowBack,
+                        painter = AksaIcons.arrowBack(),
                         contentDescription = "Kembali",
                         tint = AksaWhite
                     )
@@ -172,7 +172,7 @@ fun EditProfileScreen(
                         },
                         label = "Nama Anak",
                         placeholder = "Masukkan nama anak",
-                        leadingIcon = AksaIcons.Face,
+                        leadingIconPainter = AksaIcons.face(),
                         height = 58.dp,
                         cornerRadius = 20.dp
                     )
@@ -237,7 +237,7 @@ fun EditProfileScreen(
                             text = uiState.errorMessage!!,
                             fontFamily = Poppins,
                             fontSize = 12.sp,
-                            color = Color(0xFFCC3300),
+                            color = AksaErrorText,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -268,7 +268,6 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Visually separated Delete Child Profile section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -285,7 +284,7 @@ fun EditProfileScreen(
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        color = Color(0xFFE53935)
+                        color = AksaError
                     )
 
                     Text(
@@ -300,7 +299,7 @@ fun EditProfileScreen(
                     AksaButton(
                         text = "Hapus Profil Anak",
                         style = AksaButtonStyle.DESTRUCTIVE_RED,
-                        icon = AksaIcons.Delete,
+                        iconPainter = AksaIcons.delete(),
                         onClick = { showDeleteConfirmationDialog = true }
                     )
                 }
@@ -345,7 +344,7 @@ fun EditProfileScreen(
                             fontFamily = Poppins,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 13.sp,
-                            color = Color(0xFFE53935),
+                            color = AksaError,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -355,7 +354,7 @@ fun EditProfileScreen(
                                 text = uiState.errorMessage!!,
                                 fontFamily = Poppins,
                                 fontSize = 12.sp,
-                                color = Color(0xFFCC3300)
+                                color = AksaErrorText
                             )
                         }
                     }
@@ -363,7 +362,7 @@ fun EditProfileScreen(
                 confirmButton = {
                     if (uiState.isDeleting) {
                         CircularProgressIndicator(
-                            color = Color(0xFFE53935),
+                            color = AksaError,
                             modifier = Modifier
                                 .size(36.dp)
                                 .padding(end = 12.dp)

@@ -45,13 +45,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aksa.app.audio.AndroidTextToSpeechHelper
-import com.aksa.app.domain.model.HurufMiripQuestion
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
+import com.aksa.app.ui.theme.AksaError
+import com.aksa.app.ui.theme.AksaErrorLight
+import com.aksa.app.ui.theme.AksaErrorText
+import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
@@ -92,7 +95,6 @@ fun HurufMiripScreen(
     val uiState by vm.uiState.collectAsState()
     val currentQuestion = uiState.currentQuestion
 
-    // Handle back button safely: abandon session if exiting early
     val handleExit = {
         if (!uiState.showCompletionDialog && uiState.currentQuestionIndex < uiState.totalQuestions) {
             vm.abandonSession()
@@ -116,13 +118,11 @@ fun HurufMiripScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar (Kembali + Progress Pill)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill button
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -133,7 +133,7 @@ fun HurufMiripScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -149,7 +149,6 @@ fun HurufMiripScreen(
                     }
                 }
 
-                // Progress Badge: Soal X dari 10
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -229,7 +228,6 @@ fun HurufMiripScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // VISUAL EXPLANATION / EDUCATIONAL HINT CARD
             if (currentQuestion != null) {
                 val hintCardShape = RoundedCornerShape(24.dp)
                 Box(
@@ -254,7 +252,7 @@ fun HurufMiripScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = AksaIcons.AutoAwesome,
+                                        painter = AksaIcons.autoAwesome(),
                                         contentDescription = null,
                                         tint = AksaDarkBrown,
                                         modifier = Modifier.size(16.dp)
@@ -281,8 +279,7 @@ fun HurufMiripScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Visual Side-by-Side Comparison Cards
-                        Row(
+                            Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
@@ -305,7 +302,6 @@ fun HurufMiripScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // MAIN QUESTION CARD
             if (currentQuestion != null) {
                 val cardShape = RoundedCornerShape(32.dp)
                 Box(
@@ -332,7 +328,6 @@ fun HurufMiripScreen(
                                 color = AksaOrange
                             )
 
-                            // Replayable Audio Speaker Button
                             Box(
                                 modifier = Modifier
                                     .clip(PillShape)
@@ -342,7 +337,7 @@ fun HurufMiripScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AksaIcons.VolumeUp,
+                                        painter = AksaIcons.volumeUp(),
                                         contentDescription = "Dengarkan Suara",
                                         tint = AksaDarkBrown,
                                         modifier = Modifier.size(16.dp)
@@ -372,7 +367,6 @@ fun HurufMiripScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // TWO LARGE WHITE ROUNDED LETTER CHOICE CARDS
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(18.dp)
@@ -394,7 +388,6 @@ fun HurufMiripScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // FEEDBACK SECTION & MASCOT
                         AnimatedVisibility(
                             visible = uiState.isAnswered,
                             enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
@@ -404,9 +397,9 @@ fun HurufMiripScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 val isCorrect = uiState.isCorrect
-                                val feedbackBgColor = if (isCorrect) AksaLime.copy(alpha = 0.25f) else Color(0xFFFFEBEE)
-                                val feedbackBorderColor = if (isCorrect) AksaLimeDark else Color(0xFFE53935)
-                                val feedbackTextColor = if (isCorrect) AksaDarkBrown else Color(0xFFC62828)
+                                val feedbackBgColor = if (isCorrect) AksaLime.copy(alpha = 0.25f) else AksaErrorLight
+                                val feedbackBorderColor = if (isCorrect) AksaLimeDark else AksaError
+                                val feedbackTextColor = if (isCorrect) AksaDarkBrown else AksaErrorText
 
                                 Box(
                                     modifier = Modifier
@@ -421,7 +414,7 @@ fun HurufMiripScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Icon(
-                                            imageVector = if (isCorrect) AksaIcons.Check else AksaIcons.Info,
+                                            painter = if (isCorrect) AksaIcons.check() else AksaIcons.info(),
                                             contentDescription = null,
                                             tint = feedbackBorderColor,
                                             modifier = Modifier.size(24.dp)
@@ -453,7 +446,6 @@ fun HurufMiripScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // BUTTON: SELANJUTNYA / SELESAI
                         AksaButton(
                             text = if (uiState.currentQuestionIndex == uiState.totalQuestions - 1) "Selesai" else "Selanjutnya",
                             style = if (uiState.isAnswered) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
@@ -465,7 +457,6 @@ fun HurufMiripScreen(
             }
         }
 
-        // COMPLETION CELEBRATION MODAL
         if (uiState.showCompletionDialog) {
             val result = uiState.sessionResult
             val correct = result?.correctAnswers ?: uiState.correctAnswersCount
@@ -476,7 +467,7 @@ fun HurufMiripScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x88000000))
-                    .clickable { /* Block clicks behind */ }
+                    .clickable { }
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -514,7 +505,6 @@ fun HurufMiripScreen(
                             modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
                         )
 
-                        // Score & Accuracy Box
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -567,7 +557,6 @@ fun HurufMiripScreen(
                             }
                         }
 
-                        // Milestone notice if awarded
                         if (uiState.newlyAwardedMilestones.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Box(
@@ -580,7 +569,7 @@ fun HurufMiripScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AksaIcons.Star,
+                                        painter = AksaIcons.star(),
                                         contentDescription = null,
                                         tint = AksaYellowDark,
                                         modifier = Modifier.size(18.dp)
@@ -619,9 +608,6 @@ fun HurufMiripScreen(
     }
 }
 
-/**
- * Visual Educational Hint Pill Card
- */
 @Composable
 private fun VisualHintPill(
     letter: String,
@@ -671,9 +657,6 @@ private fun VisualHintPill(
     }
 }
 
-/**
- * Large Interactive Letter Card
- */
 @Composable
 private fun LetterChoiceCard(
     letter: String,
@@ -701,9 +684,9 @@ private fun LetterChoiceCard(
 
     val borderColor = when {
         isChosen && isChoiceCorrect -> AksaLimeDark
-        isChosen && !isChoiceCorrect -> Color(0xFFE53935)
+        isChosen && !isChoiceCorrect -> AksaError
         isChosen -> AksaOrange
-        else -> Color(0xFFE0E0E0)
+        else -> AksaGrayBorder
     }
 
     Box(

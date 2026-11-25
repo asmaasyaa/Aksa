@@ -2,7 +2,6 @@ package com.aksa.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,8 +39,6 @@ import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.ProgressBarColor
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
-import com.aksa.app.ui.theme.AksaGrayBorder
-import com.aksa.app.ui.theme.AksaGrayDisabled
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
@@ -80,7 +76,6 @@ fun ProgressAchievementsScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -94,7 +89,7 @@ fun ProgressAchievementsScreen(
                         .background(AksaWhite.copy(alpha = 0.25f))
                 ) {
                     Icon(
-                        imageVector = AksaIcons.ArrowBack,
+                        painter = AksaIcons.arrowBack(),
                         contentDescription = "Kembali",
                         tint = AksaWhite
                     )
@@ -134,7 +129,7 @@ fun ProgressAchievementsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = AksaIcons.Flame,
+                            painter = AksaIcons.flame(),
                             contentDescription = null,
                             tint = AksaOrange,
                             modifier = Modifier.size(32.dp)
@@ -324,10 +319,10 @@ private fun WeeklyBadgeItemRow(badge: MilestoneBadgeInfo) {
     val shape = RoundedCornerShape(18.dp)
 
     val icon = when (badge.milestoneDays) {
-        2 -> AksaIcons.Star
-        3 -> AksaIcons.Flame
-        7 -> AksaIcons.EmojiEvents
-        else -> AksaIcons.Star
+        2 -> AksaIcons.star()
+        3 -> AksaIcons.flame()
+        7 -> AksaIcons.emojiEvents()
+        else -> AksaIcons.star()
     }
 
     val iconBg = when {
@@ -358,7 +353,7 @@ private fun WeeklyBadgeItemRow(badge: MilestoneBadgeInfo) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = if (isEarned) icon else AksaIcons.Lock,
+                painter = if (isEarned) icon else AksaIcons.lock(),
                 contentDescription = null,
                 tint = if (isEarned) AksaDarkBrown else AksaGrayText,
                 modifier = Modifier.size(22.dp)

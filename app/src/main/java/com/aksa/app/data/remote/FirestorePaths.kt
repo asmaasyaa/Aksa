@@ -1,14 +1,5 @@
 package com.aksa.app.data.remote
 
-/**
- * Standard Firestore paths for Aksa multi-profile architecture.
- *
- * Hierarchy:
- * users/{parentUid}/profiles/{profileId}
- * users/{parentUid}/profiles/{profileId}/answerLogs/{logId}
- * users/{parentUid}/profiles/{profileId}/sessionResults/{sessionId}
- * users/{parentUid}/profiles/{profileId}/badges/{badgeId}
- */
 object FirestorePaths {
     const val USERS = "users"
     const val PROFILES = "profiles"
@@ -39,3 +30,4 @@ object FirestorePaths {
     fun badgeDoc(parentUid: String, profileId: String, badgeId: String) =
         "${badgesCollection(parentUid, profileId)}/$badgeId"
 }
+

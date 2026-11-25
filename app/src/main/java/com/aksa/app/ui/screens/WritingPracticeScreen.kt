@@ -51,9 +51,7 @@ import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
-import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaIcons
-import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaSoftPeach
@@ -68,7 +66,6 @@ fun WritingPracticeScreen(
     onNavigateToLevelMap: () -> Unit,
     onNavigateToHurufMirip: () -> Unit = {}
 ) {
-    // List of stroke paths (each stroke is a list of Offset points)
     val strokes = remember { mutableStateListOf<List<Offset>>() }
     var currentStroke by remember { mutableStateOf<List<Offset>>(emptyList()) }
     var isSubmitted by remember { mutableStateOf(false) }
@@ -87,13 +84,11 @@ fun WritingPracticeScreen(
                 .padding(bottom = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar (Kembali + Progress)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -104,7 +99,7 @@ fun WritingPracticeScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -120,7 +115,6 @@ fun WritingPracticeScreen(
                     }
                 }
 
-                // Progress Badge
                 Box(
                     modifier = Modifier
                         .clip(PillShape)
@@ -139,7 +133,6 @@ fun WritingPracticeScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Instruction Text
             Text(
                 text = "Gambar Huruf Di Kotak",
                 fontFamily = Poppins,
@@ -157,7 +150,6 @@ fun WritingPracticeScreen(
                 modifier = Modifier.padding(top = 4.dp, bottom = 18.dp)
             )
 
-            // Large White Rounded Drawing Canvas
             val canvasShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -168,7 +160,6 @@ fun WritingPracticeScreen(
                     .background(AksaWhite)
                     .border(2.dp, AksaSoftPeach, canvasShape)
             ) {
-                // Interactive Drawing Canvas
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
@@ -195,7 +186,6 @@ fun WritingPracticeScreen(
                     val w = size.width
                     val h = size.height
 
-                    // 1. Faint Dashed Letter 'A' outline in background
                     val dashedEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 14f), 0f)
                     val letterPath = Path().apply {
                         val top = Offset(w * 0.5f, h * 0.20f)
@@ -297,7 +287,7 @@ fun WritingPracticeScreen(
                     AksaButton(
                         text = "Ulangi",
                         style = AksaButtonStyle.WHITE_CARD,
-                        icon = AksaIcons.Refresh,
+                        iconPainter = AksaIcons.refresh(),
                         onClick = {
                             strokes.clear()
                             currentStroke = emptyList()
@@ -310,7 +300,7 @@ fun WritingPracticeScreen(
                     AksaButton(
                         text = "Submit",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
-                        icon = AksaIcons.Check,
+                        iconPainter = AksaIcons.check(),
                         onClick = {
                             isSubmitted = true
                         }
@@ -319,7 +309,6 @@ fun WritingPracticeScreen(
             }
         }
 
-        // Success Dialog Overlay after Submit
         AnimatedVisibility(
             visible = isSubmitted,
             enter = fadeIn() + scaleIn(),
@@ -367,7 +356,6 @@ fun WritingPracticeScreen(
                             modifier = Modifier.padding(top = 6.dp, bottom = 24.dp)
                         )
 
-                        // Primary Button: Lanjut ke Huruf Mirip
                         AksaButton(
                             text = "Lanjut ke Huruf Mirip",
                             style = AksaButtonStyle.PRIMARY_ORANGE,

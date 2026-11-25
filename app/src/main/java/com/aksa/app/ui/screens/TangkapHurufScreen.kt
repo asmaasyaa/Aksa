@@ -2,9 +2,6 @@ package com.aksa.app.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Canvas
@@ -233,13 +230,11 @@ fun TangkapHurufScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // TOP BAR
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -250,7 +245,7 @@ fun TangkapHurufScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -433,7 +428,7 @@ fun TangkapHurufScreen(
                                 }
                             ) {
                                 Icon(
-                                    imageVector = AksaIcons.VolumeUp,
+                                    painter = AksaIcons.volumeUp(),
                                     contentDescription = "Dengarkan",
                                     tint = AksaOrange,
                                     modifier = Modifier.size(22.dp)
@@ -648,8 +643,8 @@ fun TangkapHurufScreen(
                                             .size(64.dp)
                                             .shadow(6.dp, CircleShape)
                                             .clip(CircleShape)
-                                            .background(if (item.isTarget) AksaYellow else AksaWhite)
-                                            .border(3.dp, if (item.isTarget) AksaOrange else Color(0xFFCBD5E1), CircleShape),
+                                            .background(AksaWhite)
+                                            .border(3.dp, Color(0xFFCBD5E1), CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
@@ -699,7 +694,7 @@ fun TangkapHurufScreen(
                                         .padding(horizontal = 14.dp, vertical = 6.dp)
                                 ) {
                                     Text(
-                                        text = "👈 Geser Aksa untuk menangkap 👉",
+                                        text = "Geser Aksa untuk menangkap",
                                         fontFamily = Poppins,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
