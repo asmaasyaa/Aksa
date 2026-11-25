@@ -196,9 +196,29 @@ fun ProgressAchievementsScreen(
                     // Total bintang aksa
                     StatRow(
                         label = "Total Bintang Diraih",
-                        value = "⭐{uiState.totalStarsEarned} Bintang",
+                        value = "⭐ ${uiState.totalStarsEarned} Bintang",
                         highlightColor = AksaYellowDark
                     )
+
+                    if (uiState.isLoading) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Memuat data progress...",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp,
+                            color = AksaGrayText
+                        )
+                    } else if (uiState.errorMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.errorMessage ?: "Gagal memuat data progress",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp,
+                            color = AksaOrange
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
