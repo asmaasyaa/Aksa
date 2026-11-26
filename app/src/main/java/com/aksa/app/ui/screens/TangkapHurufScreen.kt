@@ -199,8 +199,8 @@ fun TangkapHurufScreen(
     )
 
     val uiState by vm.uiState.collectAsState()
-
     val effectiveStage = uiState.stage
+    var showExitConfirmation by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -208,15 +208,21 @@ fun TangkapHurufScreen(
         }
     }
 
-    // Exit back handling: abandon session if exiting while playing
-    val handleExit = {
+    val requestExit = {
         if (uiState.stage == MiniGameStage.PLAYING) {
-            vm.abandonSession()
+            showExitConfirmation = true
+        } else {
+            onNavigateBack()
         }
-        onNavigateBack()
     }
 
-    BackHandler(onBack = handleExit)
+    BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -240,7 +246,7 @@ fun TangkapHurufScreen(
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = handleExit)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -784,13 +790,15 @@ fun TangkapHurufScreen(
                                 // Stars Rating
                                 val starsCount = uiState.starRating
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     repeat(3) { index ->
-                                        Text(
-                                            text = if (index < starsCount) "⭐" else "☆",
-                                            fontSize = 32.sp
+                                        Icon(
+                                            painter = AksaIcons.star(),
+                                            contentDescription = null,
+                                            tint = if (index < starsCount) AksaYellow else Color(0xFFD6D6DE),
+                                            modifier = Modifier.size(34.dp)
                                         )
                                     }
                                 }
@@ -903,6 +911,18 @@ fun TangkapHurufScreen(
                     }
                 }
             }
+        }
+
+        if (showExitConfirmation) {
+            com.aksa.app.ui.components.AksaExitConfirmationDialog(
+                isMiniGame = true,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    vm.abandonSession()
+                    onNavigateBack()
+                }
+            )
         }
     }
 }
