@@ -475,14 +475,28 @@ private fun LockedLevelExplanationDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Text(
-                    text = if (locked.isReadError) "Gagal Memuat Progres" else "${locked.title} Terkunci 🔒",
-                    fontFamily = Poppins,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 19.sp,
-                    color = AksaDarkBrown,
-                    textAlign = TextAlign.Center
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = if (locked.isReadError) "Gagal Memuat Progres" else "${locked.title} Terkunci",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 19.sp,
+                        color = AksaDarkBrown,
+                        textAlign = TextAlign.Center
+                    )
+                    if (!locked.isReadError) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            painter = AksaIcons.lock(),
+                            contentDescription = "Terkunci",
+                            tint = AksaOrange,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(6.dp))
 
@@ -561,14 +575,26 @@ private fun LockedLevelExplanationDialog(
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Ayo Latihan di ${locked.prerequisiteTitle} 🔒",
-                                fontFamily = Poppins,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = Color(0xFF757575),
-                                textAlign = TextAlign.Center
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Ayo Latihan di ${locked.prerequisiteTitle}",
+                                    fontFamily = Poppins,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF757575),
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    painter = AksaIcons.lock(),
+                                    contentDescription = null,
+                                    tint = Color(0xFF757575),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -580,15 +606,27 @@ private fun LockedLevelExplanationDialog(
                                 .background(Color(0xFFF5F5F5))
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Text(
-                                text = "💡 ${locked.prerequisiteLockedHint}",
-                                fontFamily = Poppins,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 11.sp,
-                                color = Color(0xFF616161),
-                                textAlign = TextAlign.Center,
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
-                            )
+                            ) {
+                                Icon(
+                                    painter = AksaIcons.info(),
+                                    contentDescription = null,
+                                    tint = Color(0xFF616161),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = locked.prerequisiteLockedHint,
+                                    fontFamily = Poppins,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF616161),
+                                    textAlign = TextAlign.Start,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
                     }
 

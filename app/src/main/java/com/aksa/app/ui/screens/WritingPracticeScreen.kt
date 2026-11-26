@@ -77,6 +77,23 @@ fun WritingPracticeScreen(
     var isSubmitted by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf<String?>(null) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    var showExitConfirmation by remember { mutableStateOf(false) }
+
+    val requestExit = {
+        if (!isSubmitted) {
+            showExitConfirmation = true
+        } else {
+            onNavigateBack()
+        }
+    }
+
+    androidx.activity.compose.BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -102,7 +119,7 @@ fun WritingPracticeScreen(
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -278,15 +295,24 @@ fun WritingPracticeScreen(
                             .padding(bottom = 14.dp)
                             .clip(PillShape)
                             .background(AksaPeachLight)
-                            .padding(horizontal = 14.dp, vertical = 4.dp)
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
                     ) {
-                        Text(
-                            text = "✍️ Sentuh & usap untuk menulis",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp,
-                            color = AksaDarkBrown.copy(alpha = 0.7f)
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = AksaIcons.edit(),
+                                contentDescription = null,
+                                tint = AksaDarkBrown.copy(alpha = 0.7f),
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Sentuh & usap untuk menulis",
+                                fontFamily = Poppins,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp,
+                                color = AksaDarkBrown.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
             }
@@ -425,15 +451,26 @@ fun WritingPracticeScreen(
                 }
             }
         }
+
+        if (showExitConfirmation) {
+            com.aksa.app.ui.components.AksaExitConfirmationDialog(
+                isMiniGame = false,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    onNavigateBack()
+                }
+            )
+        }
     }
 }
 
-private data class StrokeValidationResult(
+internal data class StrokeValidationResult(
     val isValid: Boolean,
     val feedback: String
 )
 
-private fun getNormalizedLetterSegments(letter: Char): List<Pair<Offset, Offset>> {
+internal fun getNormalizedLetterSegments(letter: Char): List<Pair<Offset, Offset>> {
     val left = 0.28f
     val right = 0.72f
     val midX = 0.50f
@@ -607,62 +644,296 @@ private fun buildLetterGuidePath(letter: Char, w: Float, h: Float): Path {
     }
 }
 
-private fun validateLetterStrokes(
+private data class OrientedPoint(
+    val position: Offset,
+    val dirX: Float,
+    val dirY: Float
+)
+
+private data class GuideSegment(
+    val start: Offset,
+    val end: Offset,
+    val dirX: Float,
+    val dirY: Float,
+    val samples: List<Offset>
+)
+
+private data class StrokeFitScore(
+    val overallCoverage: Float,
+    val minSegmentCoverage: Float,
+    val precisionRatio: Float
+)
+
+internal fun validateLetterStrokes(
     targetLetter: Char,
     strokes: List<List<Offset>>,
     canvasWidth: Float,
     canvasHeight: Float
 ): StrokeValidationResult {
-    val userPoints = strokes.flatten()
-    if (userPoints.size < 6) {
+    if (canvasWidth <= 0f || canvasHeight <= 0f) {
+        return StrokeValidationResult(
+            isValid = false,
+            feedback = "Kanvas belum siap. Coba lagi ya!"
+        )
+    }
+
+    val nonEmptyStrokes = strokes.filter { it.isNotEmpty() }
+    val rawPoints = nonEmptyStrokes.flatten()
+    val baseDim = minOf(canvasWidth, canvasHeight)
+    val totalUserLength = nonEmptyStrokes.sumOf { polylineLength(it).toDouble() }.toFloat()
+
+    if (rawPoints.size < 8 || totalUserLength < baseDim * 0.28f) {
         return StrokeValidationResult(
             isValid = false,
             feedback = "Yuk tulis huruf $targetLetter mengikuti garis putus-putus dulu!"
         )
     }
 
-    if (canvasWidth <= 0f || canvasHeight <= 0f) {
-        return StrokeValidationResult(isValid = true, feedback = "")
-    }
-
-    val segments = getNormalizedLetterSegments(targetLetter)
-    val guideSamples = mutableListOf<Offset>()
-    segments.forEach { (normStart, normEnd) ->
-        val p1 = Offset(normStart.x * canvasWidth, normStart.y * canvasHeight)
-        val p2 = Offset(normEnd.x * canvasWidth, normEnd.y * canvasHeight)
-        val steps = 12
-        for (i in 0..steps) {
-            val t = i.toFloat() / steps
-            guideSamples.add(
-                Offset(
-                    x = p1.x + (p2.x - p1.x) * t,
-                    y = p1.y + (p2.y - p1.y) * t
-                )
-            )
-        }
-    }
-
-    val tolerancePx = minOf(canvasWidth, canvasHeight) * 0.22f
-
-    val coveredGuideCount = guideSamples.count { guidePt ->
-        userPoints.any { userPt -> hypot(userPt.x - guidePt.x, userPt.y - guidePt.y) <= tolerancePx }
-    }
-    val coverageRatio = coveredGuideCount.toFloat() / guideSamples.size
-
-    val onTrackUserCount = userPoints.count { userPt ->
-        guideSamples.any { guidePt -> hypot(userPt.x - guidePt.x, userPt.y - guidePt.y) <= tolerancePx * 1.35f }
-    }
-    val precisionRatio = onTrackUserCount.toFloat() / userPoints.size
-
-    return when {
-        coverageRatio < 0.45f -> StrokeValidationResult(
-            isValid = false,
-            feedback = "Huruf $targetLetter belum lengkap. Ikuti semua garis putus-putusnya ya!"
+    val sampleStepPx = (baseDim * 0.025f).coerceAtLeast(2f)
+    val guideSegments = getNormalizedLetterSegments(targetLetter).map { (normStart, normEnd) ->
+        val start = Offset(normStart.x * canvasWidth, normStart.y * canvasHeight)
+        val end = Offset(normEnd.x * canvasWidth, normEnd.y * canvasHeight)
+        val dx = end.x - start.x
+        val dy = end.y - start.y
+        val len = hypot(dx, dy).coerceAtLeast(1f)
+        GuideSegment(
+            start = start,
+            end = end,
+            dirX = dx / len,
+            dirY = dy / len,
+            samples = sampleSegmentUniformly(start, end, sampleStepPx)
         )
-        precisionRatio < 0.45f -> StrokeValidationResult(
+    }
+
+    val expectedGuideLength = guideSegments.sumOf { seg ->
+        hypot((seg.end.x - seg.start.x).toDouble(), (seg.end.y - seg.start.y).toDouble())
+    }.toFloat().coerceAtLeast(1f)
+
+    val lengthRatio = totalUserLength / expectedGuideLength
+    if (lengthRatio > 2.0f) {
+        return StrokeValidationResult(
             isValid = false,
             feedback = "Goresan masih keluar jalur. Coba tekan Ulangi dan ikuti garis putus-putus."
         )
+    }
+
+    val orientedUserPoints = nonEmptyStrokes.flatMap { stroke ->
+        toOrientedPoints(resamplePolyline(stroke, sampleStepPx))
+    }
+    if (orientedUserPoints.isEmpty() || guideSegments.isEmpty()) {
+        return StrokeValidationResult(
+            isValid = false,
+            feedback = "Yuk tulis huruf $targetLetter mengikuti garis putus-putus dulu!"
+        )
+    }
+
+    val tolerancePx = baseDim * 0.095f
+    val rawFit = evaluateOrientedFit(orientedUserPoints, guideSegments, tolerancePx)
+
+    val alignedFit = evaluateBoundedAlignedFit(
+        userPoints = orientedUserPoints,
+        guideSegments = guideSegments,
+        baseDim = baseDim,
+        tolerancePx = baseDim * 0.10f
+    )
+
+    val bestFit = if (
+        alignedFit != null &&
+        minOf(alignedFit.overallCoverage, alignedFit.precisionRatio) >
+        minOf(rawFit.overallCoverage, rawFit.precisionRatio)
+    ) {
+        alignedFit
+    } else {
+        rawFit
+    }
+
+    return when {
+        bestFit.precisionRatio < 0.68f -> StrokeValidationResult(
+            isValid = false,
+            feedback = "Goresan masih keluar jalur. Coba tekan Ulangi dan ikuti garis putus-putus."
+        )
+        lengthRatio < 0.55f || bestFit.overallCoverage < 0.65f || bestFit.minSegmentCoverage < 0.25f -> StrokeValidationResult(
+            isValid = false,
+            feedback = "Huruf $targetLetter belum lengkap. Ikuti semua garis putus-putusnya ya!"
+        )
         else -> StrokeValidationResult(isValid = true, feedback = "")
     }
+}
+
+private fun evaluateBoundedAlignedFit(
+    userPoints: List<OrientedPoint>,
+    guideSegments: List<GuideSegment>,
+    baseDim: Float,
+    tolerancePx: Float
+): StrokeFitScore? {
+    val guideSamples = guideSegments.flatMap { it.samples }
+    if (guideSamples.isEmpty()) return null
+
+    val uMinX = userPoints.minOf { it.position.x }
+    val uMaxX = userPoints.maxOf { it.position.x }
+    val uMinY = userPoints.minOf { it.position.y }
+    val uMaxY = userPoints.maxOf { it.position.y }
+    val uW = (uMaxX - uMinX).coerceAtLeast(1f)
+    val uH = (uMaxY - uMinY).coerceAtLeast(1f)
+
+    val gMinX = guideSamples.minOf { it.x }
+    val gMaxX = guideSamples.maxOf { it.x }
+    val gMinY = guideSamples.minOf { it.y }
+    val gMaxY = guideSamples.maxOf { it.y }
+    val gW = (gMaxX - gMinX).coerceAtLeast(1f)
+    val gH = (gMaxY - gMinY).coerceAtLeast(1f)
+
+    val scaleX = gW / uW
+    val scaleY = gH / uH
+    val aspectDistortion = maxOf(scaleX / scaleY, scaleY / scaleX)
+    val uniformScale = minOf(scaleX, scaleY)
+
+    val uCenter = Offset((uMinX + uMaxX) / 2f, (uMinY + uMaxY) / 2f)
+    val gCenter = Offset((gMinX + gMaxX) / 2f, (gMinY + gMaxY) / 2f)
+    val centerShift = hypot(uCenter.x - gCenter.x, uCenter.y - gCenter.y)
+
+    if (centerShift > baseDim * 0.20f || uniformScale !in 0.65f..1.45f || aspectDistortion > 1.65f) {
+        return null
+    }
+
+    val alignedPoints = userPoints.map { pt ->
+        pt.copy(
+            position = Offset(
+                x = gCenter.x + (pt.position.x - uCenter.x) * uniformScale,
+                y = gCenter.y + (pt.position.y - uCenter.y) * uniformScale
+            )
+        )
+    }
+    return evaluateOrientedFit(alignedPoints, guideSegments, tolerancePx)
+}
+
+private fun evaluateOrientedFit(
+    userPoints: List<OrientedPoint>,
+    guideSegments: List<GuideSegment>,
+    tolerancePx: Float
+): StrokeFitScore {
+    val minCosAlignment = 0.50f
+    var totalGuideSamples = 0
+    var totalCoveredSamples = 0
+    var minSegmentCoverage = 1f
+
+    guideSegments.forEach { seg ->
+        val coveredInSeg = seg.samples.count { guidePt ->
+            userPoints.any { userPt ->
+                val dist = hypot(userPt.position.x - guidePt.x, userPt.position.y - guidePt.y)
+                val cosAlign = kotlin.math.abs(userPt.dirX * seg.dirX + userPt.dirY * seg.dirY)
+                dist <= tolerancePx && cosAlign >= minCosAlignment
+            }
+        }
+        val segCoverage = coveredInSeg.toFloat() / seg.samples.size.coerceAtLeast(1)
+        if (segCoverage < minSegmentCoverage) {
+            minSegmentCoverage = segCoverage
+        }
+        totalGuideSamples += seg.samples.size
+        totalCoveredSamples += coveredInSeg
+    }
+
+    val overallCoverage = totalCoveredSamples.toFloat() / totalGuideSamples.coerceAtLeast(1)
+
+    val precisionTolerance = tolerancePx * 1.15f
+    val onTrackUserCount = userPoints.count { userPt ->
+        guideSegments.any { seg ->
+            val dist = distancePointToSegment(userPt.position, seg.start, seg.end)
+            val cosAlign = kotlin.math.abs(userPt.dirX * seg.dirX + userPt.dirY * seg.dirY)
+            dist <= precisionTolerance && cosAlign >= minCosAlignment
+        }
+    }
+    val precisionRatio = onTrackUserCount.toFloat() / userPoints.size
+
+    return StrokeFitScore(
+        overallCoverage = overallCoverage,
+        minSegmentCoverage = minSegmentCoverage,
+        precisionRatio = precisionRatio
+    )
+}
+
+private fun toOrientedPoints(points: List<Offset>): List<OrientedPoint> {
+    if (points.size < 2) return emptyList()
+    return points.indices.map { i ->
+        val prev = points[(i - 1).coerceAtLeast(0)]
+        val next = points[(i + 1).coerceAtMost(points.lastIndex)]
+        val dx = next.x - prev.x
+        val dy = next.y - prev.y
+        val len = hypot(dx, dy).coerceAtLeast(1e-4f)
+        OrientedPoint(
+            position = points[i],
+            dirX = dx / len,
+            dirY = dy / len
+        )
+    }
+}
+
+private fun polylineLength(points: List<Offset>): Float {
+    var total = 0f
+    for (i in 1 until points.size) {
+        total += hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y)
+    }
+    return total
+}
+
+private fun resamplePolyline(points: List<Offset>, stepPx: Float): List<Offset> {
+    if (points.isEmpty()) return emptyList()
+    if (points.size == 1) return points
+
+    val result = mutableListOf(points.first())
+    var accumulated = 0f
+    var prev = points.first()
+
+    for (i in 1 until points.size) {
+        val curr = points[i]
+        var segLen = hypot(curr.x - prev.x, curr.y - prev.y)
+        while (accumulated + segLen >= stepPx && segLen > 0f) {
+            val remain = stepPx - accumulated
+            val t = remain / segLen
+            val interp = Offset(
+                x = prev.x + (curr.x - prev.x) * t,
+                y = prev.y + (curr.y - prev.y) * t
+            )
+            result.add(interp)
+            prev = interp
+            segLen = hypot(curr.x - prev.x, curr.y - prev.y)
+            accumulated = 0f
+        }
+        accumulated += segLen
+        prev = curr
+    }
+
+    if (result.last() != points.last()) {
+        result.add(points.last())
+    }
+    return result
+}
+
+private fun sampleSegmentUniformly(
+    p1: Offset,
+    p2: Offset,
+    stepPx: Float
+): List<Offset> {
+    val segLen = hypot(p2.x - p1.x, p2.y - p1.y)
+    val steps = maxOf(6, (segLen / stepPx).toInt())
+    return (0..steps).map { i ->
+        val t = i.toFloat() / steps
+        Offset(
+            x = p1.x + (p2.x - p1.x) * t,
+            y = p1.y + (p2.y - p1.y) * t
+        )
+    }
+}
+
+private fun distancePointToSegment(p: Offset, a: Offset, b: Offset): Float {
+    val abX = b.x - a.x
+    val abY = b.y - a.y
+    val lenSq = abX * abX + abY * abY
+    if (lenSq <= 1e-6f) {
+        return hypot(p.x - a.x, p.y - a.y)
+    }
+    val t = (((p.x - a.x) * abX + (p.y - a.y) * abY) / lenSq).coerceIn(0f, 1f)
+    val projX = a.x + t * abX
+    val projY = a.y + t * abY
+    return hypot(p.x - projX, p.y - projY)
 }

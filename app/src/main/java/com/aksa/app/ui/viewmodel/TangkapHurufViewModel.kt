@@ -320,7 +320,7 @@ class TangkapHurufViewModel(
         }
 
         val feedbackMsg = when {
-            isCorrect && isFast -> "Super Cepat! +$roundScore Point 🌟"
+            isCorrect && isFast -> "Super Cepat! +$roundScore Point"
             isCorrect -> "Hebat! +$roundScore Point"
             chosenChar.isNotEmpty() -> "Itu huruf $chosenChar. Cari ${state.targetLetter}!"
             else -> "Huruf ${state.targetLetter} terlewat!"

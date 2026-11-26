@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,9 +73,10 @@ fun ProgressAchievementsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
-                .padding(bottom = 36.dp),
+                .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -196,8 +199,9 @@ fun ProgressAchievementsScreen(
                     // Total bintang aksa
                     StatRow(
                         label = "Total Bintang Diraih",
-                        value = "⭐ ${uiState.totalStarsEarned} Bintang",
-                        highlightColor = AksaYellowDark
+                        value = "${uiState.totalStarsEarned} Bintang",
+                        highlightColor = AksaYellowDark,
+                        iconPainter = AksaIcons.star()
                     )
 
                     if (uiState.isLoading) {
@@ -290,14 +294,14 @@ fun ProgressAchievementsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                    // Cheering Mascot at bottom of achievements
+                    // Compact Cheering Mascot at bottom of achievements so it won't get cropped
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        MascotCheering(size = 130.dp)
+                        MascotCheering(size = 64.dp)
                     }
                 }
             }
@@ -309,7 +313,8 @@ fun ProgressAchievementsScreen(
 private fun StatRow(
     label: String,
     value: String,
-    highlightColor: Color
+    highlightColor: Color,
+    iconPainter: Painter? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -323,13 +328,24 @@ private fun StatRow(
             fontSize = 14.sp,
             color = AksaDarkBrown
         )
-        Text(
-            text = value,
-            fontFamily = Poppins,
-            fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
-            color = highlightColor
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (iconPainter != null) {
+                Icon(
+                    painter = iconPainter,
+                    contentDescription = null,
+                    tint = highlightColor,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            Text(
+                text = value,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = highlightColor
+            )
+        }
     }
 }
 

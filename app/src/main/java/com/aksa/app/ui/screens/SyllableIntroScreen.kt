@@ -23,7 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +58,19 @@ fun SyllableIntroScreen(
     val context = LocalContext.current
     val tts = remember { AndroidTextToSpeechHelper(context) }
     val welcomeSpeech = "Selamat datang di Dunia Suku Kata! Mari belajar membentuk kata dari gabungan suku kata yang menyenangkan!"
+    var showExitConfirmation by remember { mutableStateOf(false) }
+
+    val requestExit = {
+        showExitConfirmation = true
+    }
+
+    androidx.activity.compose.BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
 
     LaunchedEffect(Unit) {
         tts.speak(welcomeSpeech)
@@ -90,7 +106,7 @@ fun SyllableIntroScreen(
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -206,6 +222,17 @@ fun SyllableIntroScreen(
                     )
                 }
             }
+        }
+
+        if (showExitConfirmation) {
+            com.aksa.app.ui.components.AksaExitConfirmationDialog(
+                isMiniGame = false,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    onNavigateBack()
+                }
+            )
         }
     }
 }
