@@ -100,12 +100,11 @@ fun ReadingPracticeScreen(
 
     val storyPanels = remember {
         listOf(
-            StoryPanel("Kancil dan Kebun Buah", "Kancil berjalan riang ke kebun buah di dekat sungai yang jernih.", "🦊🌊"),
+            StoryPanel("Kancil dan Kebun Buah", "Kancil berjalan riang ke kebun buah di dekat sungai yang jernih.", "🦌🌊"),
             StoryPanel("Apel Merah yang Manis", "Di kebun, Kancil memetik buah apel merah yang matang dan manis rasanya.", "🍎🧺"),
             StoryPanel("Berbagi Bersama Sahabat", "Kancil membagikan buah apel kepada burung pipit dan kelinci sahabatnya.", "🐦🐰")
         )
     }
-
     val questions = remember {
         listOf(
             ComprehensionQuestion("cq_1", "Siapa yang pergi ke kebun buah di dekat sungai?", "Kancil", listOf("Kancil", "Gajah", "Kucing")),

@@ -16,21 +16,21 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,8 +64,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaLevelNode
+import com.aksa.app.ui.components.LevelNodeStatus
 import com.aksa.app.ui.components.MascotLearning
-import com.aksa.app.ui.components.MascotPeeking
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -122,20 +122,62 @@ fun LevelMapScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 48.dp)
+                .statusBarsPadding()
+                .navigationBarsPadding()
         ) {
-            Spacer(modifier = Modifier.height(84.dp))
+            // Top App Bar
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .shadow(4.dp, PillShape)
+                        .clip(PillShape)
+                        .background(AksaWhite)
+                        .clickable { onNavigateBack() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = AksaIcons.arrowBack(),
+                        contentDescription = "Kembali",
+                        tint = AksaDarkBrown,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .shadow(4.dp, RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(AksaWhite)
+                        .padding(horizontal = 20.dp, vertical = 9.dp)
+                ) {
+                    Text(
+                        text = "Peta Petualangan",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        color = AksaDarkBrown
+                    )
+                }
+
+                Spacer(modifier = Modifier.size(46.dp))
+            }
 
             uiState.errorMessage?.let { errorMsg ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 6.dp)
+                        .padding(horizontal = 20.dp, vertical = 4.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(AksaWhite.copy(alpha = 0.95f))
                         .clickable { viewModel.onProfileChanged() }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = "$errorMsg (Ketuk untuk muat ulang)",
@@ -149,26 +191,35 @@ fun LevelMapScreen(
                 }
             }
 
-            Box(
+            // Area Peta Proporsional mengikuti sisa tinggi layar (tanpa perlu scroll)
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(820.dp)
+                    .weight(1f)
             ) {
+                val mapH = maxHeight
+                val y4 = mapH * 0.03f
+                val y3 = mapH * 0.26f
+                val y2 = mapH * 0.50f
+                val y1 = mapH * 0.74f
+
                 AdventureMapCanvas(modifier = Modifier.fillMaxSize())
 
+                // Maskot Full Body di pojok kiri bawah
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .offset(x = 24.dp, y = (-50).dp)
+                        .padding(start = 18.dp, bottom = 10.dp)
                 ) {
-                    MascotPeeking(width = 90.dp, height = 60.dp)
+                    MascotLearning(size = 76.dp, animated = true)
                 }
 
+                // LEVEL 4 — Sungai Cerita (diberi latar lembut saat terkunci agar tulisan tidak nabrak warna gunung)
                 // LEVEL 4 — Sungai Cerita
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = 60.dp, y = 40.dp)
+                        .offset(x = 60.dp, y = y4)
                 ) {
                     AksaLevelNode(
                         levelNumber = 4,
@@ -184,7 +235,7 @@ fun LevelMapScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = (-80).dp, y = 230.dp)
+                        .offset(x = (-80).dp, y = y3)
                 ) {
                     AksaLevelNode(
                         levelNumber = 3,
@@ -200,7 +251,7 @@ fun LevelMapScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = 80.dp, y = 430.dp)
+                        .offset(x = 80.dp, y = y2)
                 ) {
                     AksaLevelNode(
                         levelNumber = 2,
@@ -216,7 +267,7 @@ fun LevelMapScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = (-40).dp, y = 630.dp)
+                        .offset(x = (-36).dp, y = y1)
                 ) {
                     AksaLevelNode(
                         levelNumber = 1,
@@ -229,60 +280,11 @@ fun LevelMapScreen(
                 }
             }
 
-            // Kartu Tangkap Huruf di bagian bawah
+            // Kartu Tangkap Huruf tepat di bagian bawah layar (langsung terlihat penuh)
             TangkapHurufActionCard(
                 onClick = onNavigateToTangkapHuruf,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
             )
-        }
-
-        // Fixed Top Floating App Bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .shadow(4.dp, PillShape)
-                        .clip(PillShape)
-                        .background(AksaWhite)
-                        .clickable { onNavigateBack() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = AksaIcons.arrowBack(),
-                        contentDescription = "Kembali",
-                        tint = AksaDarkBrown,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .shadow(4.dp, RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(AksaWhite)
-                        .padding(horizontal = 20.dp, vertical = 10.dp)
-                ) {
-                    Text(
-                        text = "Peta Petualangan",
-                        fontFamily = Poppins,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = AksaDarkBrown
-                    )
-                }
-
-                Spacer(modifier = Modifier.size(48.dp))
-            }
         }
 
         // Friendly Explanation Modal for Locked Levels
@@ -290,12 +292,13 @@ fun LevelMapScreen(
             LockedLevelExplanationDialog(
                 locked = locked,
                 onPracticePrerequisite = {
+                    val prereqLvl = locked.prerequisiteNumber
                     viewModel.dismissLockedDialog()
-                    when (locked.recommendedLevelNumber) {
-                        1 -> onNavigateToLevel1()
-                        2 -> onNavigateToLevel2()
-                        3 -> onNavigateToLevel3()
-                        else -> onNavigateToLevel1()
+                    when (prereqLvl) {
+                        1 -> viewModel.onLevelClick(1, onNavigateToLevel1)
+                        2 -> viewModel.onLevelClick(2, onNavigateToLevel2)
+                        3 -> viewModel.onLevelClick(3, onNavigateToLevel3)
+                        else -> viewModel.onLevelClick(1, onNavigateToLevel1)
                     }
                 },
                 onDismiss = {
@@ -320,7 +323,6 @@ private fun TangkapHurufActionCard(
 
     val infiniteTransition = rememberInfiniteTransition(label = "TangkapHurufWiggle")
 
-    // Getaran halus berkala agar kartu terlihat bisa ditekan
     val cardShakeRotation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 0f,
@@ -369,7 +371,7 @@ private fun TangkapHurufActionCard(
                 indication = null,
                 onClick = onClick
             )
-            .padding(14.dp)
+            .padding(12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -377,8 +379,8 @@ private fun TangkapHurufActionCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(AksaPeachLight),
                 contentAlignment = Alignment.Center
             ) {
@@ -387,7 +389,7 @@ private fun TangkapHurufActionCard(
                     contentDescription = "Ikon Tangkap Huruf",
                     tint = AksaOrange,
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(26.dp)
                         .graphicsLayer { translationY = iconBounceY }
                 )
             }
@@ -399,7 +401,7 @@ private fun TangkapHurufActionCard(
                     text = "Tangkap Huruf",
                     fontFamily = Poppins,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     color = AksaDarkBrown
                 )
                 Text(
@@ -417,7 +419,7 @@ private fun TangkapHurufActionCard(
                 modifier = Modifier
                     .clip(PillShape)
                     .background(AksaOrange)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .padding(horizontal = 15.dp, vertical = 9.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -425,7 +427,7 @@ private fun TangkapHurufActionCard(
                         painter = AksaIcons.arrowForward(),
                         contentDescription = "Main",
                         tint = AksaWhite,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
@@ -540,11 +542,55 @@ private fun LockedLevelExplanationDialog(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    AksaButton(
-                        text = "Ayo Latihan di ${locked.prerequisiteTitle}",
-                        style = AksaButtonStyle.PRIMARY_ORANGE,
-                        onClick = onPracticePrerequisite
-                    )
+                    if (locked.isPrerequisiteUnlocked) {
+                        AksaButton(
+                            text = "Ayo Latihan di ${locked.prerequisiteTitle}",
+                            style = AksaButtonStyle.PRIMARY_ORANGE,
+                            onClick = onPracticePrerequisite
+                        )
+                    } else {
+                        // Tombol dibuat abu-abu + petunjuk jika level prasyaratnya juga masih terkunci
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(54.dp)
+                                .clip(PillShape)
+                                .background(Color(0xFFE0E0E0))
+                                .border(1.5.dp, Color(0xFFBDBDBD), PillShape)
+                                .clickable(onClick = onPracticePrerequisite)
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Ayo Latihan di ${locked.prerequisiteTitle} 🔒",
+                                fontFamily = Poppins,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color(0xFF757575),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFF5F5F5))
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "💡 ${locked.prerequisiteLockedHint}",
+                                fontFamily = Poppins,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 11.sp,
+                                color = Color(0xFF616161),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(10.dp))
                 } else {
@@ -623,17 +669,17 @@ private fun AdventureMapCanvas(modifier: Modifier = Modifier) {
         val w = size.width
         val h = size.height
 
-        drawMountain(base = Offset(w * 0.2f, 180.dp.toPx()), size = 110.dp.toPx(), color = Color(0xFF81B828))
-        drawMountain(base = Offset(w * 0.45f, 150.dp.toPx()), size = 140.dp.toPx(), color = Color(0xFF6E9F20))
-        drawMountain(base = Offset(w * 0.8f, 190.dp.toPx()), size = 120.dp.toPx(), color = Color(0xFF81B828))
+        drawMountain(base = Offset(w * 0.2f, h * 0.21f), size = 95.dp.toPx(), color = Color(0xFF81B828))
+        drawMountain(base = Offset(w * 0.45f, h * 0.18f), size = 120.dp.toPx(), color = Color(0xFF6E9F20))
+        drawMountain(base = Offset(w * 0.8f, h * 0.22f), size = 105.dp.toPx(), color = Color(0xFF81B828))
 
         val riverPath = Path().apply {
             moveTo(w * 0.45f, 0f)
-            cubicTo(w * 0.65f, 60.dp.toPx(), w * 0.35f, 120.dp.toPx(), w * 0.55f, 190.dp.toPx())
-            cubicTo(w * 0.75f, 260.dp.toPx(), w * 0.95f, 250.dp.toPx(), w, 280.dp.toPx())
-            lineTo(w, 240.dp.toPx())
-            cubicTo(w * 0.92f, 220.dp.toPx(), w * 0.72f, 220.dp.toPx(), w * 0.55f, 160.dp.toPx())
-            cubicTo(w * 0.38f, 100.dp.toPx(), w * 0.62f, 50.dp.toPx(), w * 0.45f, 0f)
+            cubicTo(w * 0.65f, h * 0.07f, w * 0.35f, h * 0.14f, w * 0.55f, h * 0.22f)
+            cubicTo(w * 0.75f, h * 0.30f, w * 0.95f, h * 0.29f, w, h * 0.33f)
+            lineTo(w, h * 0.28f)
+            cubicTo(w * 0.92f, h * 0.26f, w * 0.72f, h * 0.26f, w * 0.55f, h * 0.19f)
+            cubicTo(w * 0.38f, h * 0.12f, w * 0.62f, h * 0.06f, w * 0.45f, 0f)
             close()
         }
         drawPath(riverPath, color = AksaBlue)
@@ -654,26 +700,27 @@ private fun AdventureMapCanvas(modifier: Modifier = Modifier) {
         )
 
         val path = Path().apply {
-            val p1 = Offset(w * 0.5f - 40.dp.toPx(), 660.dp.toPx())
-            val p2 = Offset(w * 0.5f + 80.dp.toPx(), 460.dp.toPx())
-            val p3 = Offset(w * 0.5f - 80.dp.toPx(), 260.dp.toPx())
-            val p4 = Offset(w * 0.5f + 60.dp.toPx(), 70.dp.toPx())
+            val nodeCenterOffset = 34.dp.toPx()
+            val p1 = Offset(w * 0.5f - 36.dp.toPx(), h * 0.74f + nodeCenterOffset)
+            val p2 = Offset(w * 0.5f + 80.dp.toPx(), h * 0.50f + nodeCenterOffset)
+            val p3 = Offset(w * 0.5f - 80.dp.toPx(), h * 0.26f + nodeCenterOffset)
+            val p4 = Offset(w * 0.5f + 60.dp.toPx(), h * 0.03f + nodeCenterOffset)
 
             moveTo(p1.x, p1.y)
-            cubicTo(w * 0.2f, 560.dp.toPx(), w * 0.85f, 560.dp.toPx(), p2.x, p2.y)
-            cubicTo(w * 0.9f, 360.dp.toPx(), w * 0.15f, 360.dp.toPx(), p3.x, p3.y)
-            cubicTo(w * 0.1f, 160.dp.toPx(), w * 0.75f, 160.dp.toPx(), p4.x, p4.y)
+            cubicTo(w * 0.2f, (p1.y + p2.y) / 2f, w * 0.85f, (p1.y + p2.y) / 2f, p2.x, p2.y)
+            cubicTo(w * 0.9f, (p2.y + p3.y) / 2f, w * 0.15f, (p2.y + p3.y) / 2f, p3.x, p3.y)
+            cubicTo(w * 0.1f, (p3.y + p4.y) / 2f, w * 0.75f, (p3.y + p4.y) / 2f, p4.x, p4.y)
         }
 
         drawPath(
             path = path,
             color = Color(0x33441100),
-            style = Stroke(width = 46f, cap = StrokeCap.Round)
+            style = Stroke(width = 44f, cap = StrokeCap.Round)
         )
         drawPath(
             path = path,
             color = AksaWhite,
-            style = Stroke(width = 38f, cap = StrokeCap.Round)
+            style = Stroke(width = 36f, cap = StrokeCap.Round)
         )
         drawPath(
             path = path,
@@ -685,19 +732,19 @@ private fun AdventureMapCanvas(modifier: Modifier = Modifier) {
             )
         )
 
-        drawMapTree(Offset(w * 0.78f, h * 0.72f), 22f)
-        drawMapTree(Offset(w * 0.86f, h * 0.76f), 18f)
-        drawMapTree(Offset(w * 0.18f, h * 0.78f), 24f)
-        drawMapTree(Offset(w * 0.72f, h * 0.48f), 20f)
-        drawMapTree(Offset(w * 0.35f, h * 0.26f), 22f)
-        drawMapTree(Offset(w * 0.88f, h * 0.24f), 26f)
+        drawMapTree(Offset(w * 0.78f, h * 0.72f), 20f)
+        drawMapTree(Offset(w * 0.86f, h * 0.76f), 16f)
+        drawMapTree(Offset(w * 0.26f, h * 0.74f), 20f)
+        drawMapTree(Offset(w * 0.72f, h * 0.48f), 18f)
+        drawMapTree(Offset(w * 0.35f, h * 0.26f), 20f)
+        drawMapTree(Offset(w * 0.88f, h * 0.24f), 22f)
 
-        drawSmallHouse(Offset(w * 0.82f, h * 0.58f), 28f)
-        drawSmallHouse(Offset(w * 0.22f, h * 0.20f), 24f)
+        drawSmallHouse(Offset(w * 0.82f, h * 0.58f), 26f)
+        drawSmallHouse(Offset(w * 0.22f, h * 0.20f), 22f)
 
-        drawBush(Offset(w * 0.65f, h * 0.80f), 14f)
-        drawBush(Offset(w * 0.30f, h * 0.62f), 16f)
-        drawBush(Offset(w * 0.80f, h * 0.36f), 15f)
+        drawBush(Offset(w * 0.65f, h * 0.80f), 13f)
+        drawBush(Offset(w * 0.30f, h * 0.62f), 14f)
+        drawBush(Offset(w * 0.80f, h * 0.36f), 14f)
     }
 }
 
