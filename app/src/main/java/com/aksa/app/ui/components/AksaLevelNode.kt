@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
@@ -37,6 +38,7 @@ import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
+import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
 
 enum class LevelNodeStatus {
@@ -157,13 +159,24 @@ fun AksaLevelNode(
 
         if (!title.isNullOrEmpty()) {
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = title,
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = if (status == LevelNodeStatus.LOCKED) AksaGrayText else AksaDarkBrown
-            )
+            Box(
+                modifier = Modifier
+                    .clip(PillShape)
+                    .background(AksaWhite.copy(alpha = 0.85f))
+                    .padding(horizontal = 10.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontFamily = Poppins,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = if (status == LevelNodeStatus.LOCKED) {
+                        AksaDarkBrown.copy(alpha = 0.72f)
+                    } else {
+                        AksaDarkBrown
+                    }
+                )
+            }
         }
     }
 }

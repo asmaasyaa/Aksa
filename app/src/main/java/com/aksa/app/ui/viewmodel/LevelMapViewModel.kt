@@ -25,7 +25,10 @@ import kotlinx.coroutines.launch
 data class LockedLevelDetails(
     val levelNumber: Int,
     val title: String,
+    val prerequisiteNumber: Int = (levelNumber - 1).coerceAtLeast(1),
     val prerequisiteTitle: String,
+    val isPrerequisiteUnlocked: Boolean = true,
+    val prerequisiteLockedHint: String = "",
     val explanation: String,
     val currentSessions: Int = 0,
     val requiredSessions: Int = 3,
@@ -62,7 +65,7 @@ class LevelMapViewModel(
     private val _uiState = MutableStateFlow(LevelMapUiState(isLoading = true))
     val uiState: StateFlow<LevelMapUiState> = _uiState.asStateFlow()
 
-    private var observeJob: Job? = null
+    private var observeJob: Job?= null
 
     init {
         viewModelScope.launch {
@@ -188,17 +191,11 @@ class LevelMapViewModel(
         val state = _uiState.value
         if (state.isLoading) return
 
-        val status = when (levelNumber) {
-            1 -> state.effectiveStatus1
-            2 -> state.effectiveStatus2
-            3 -> state.effectiveStatus3
-            4 -> state.effectiveStatus4
-            else -> LevelNodeStatus.LOCKED
-        }
+        val status = statusOf(levelNumber, state)
 
         if (status == LevelNodeStatus.LOCKED) {
             _uiState.value = state.copy(
-                selectedLockedLevel = buildLockedLevelDetails(levelNumber, state.progress, state.errorMessage)
+                selectedLockedLevel = buildLockedLevelDetails(levelNumber, state)
             )
         } else {
             onNavigate()
@@ -209,11 +206,41 @@ class LevelMapViewModel(
         _uiState.value = _uiState.value.copy(selectedLockedLevel = null)
     }
 
+    private fun statusOf(levelNumber: Int, state: LevelMapUiState): LevelNodeStatus = when (levelNumber) {
+        1 -> state.effectiveStatus1
+        2 -> state.effectiveStatus2
+        3 -> state.effectiveStatus3
+        4 -> state.effectiveStatus4
+        else -> LevelNodeStatus.LOCKED
+    }
+
+    private fun levelTitle(levelNumber: Int): String = when (levelNumber) {
+        1 -> "Pulau Alfabet"
+        2 -> "Dunia Suku Kata"
+        3 -> "Gunung Kata"
+        4 -> "Sungai Cerita"
+        else -> "Pulau Alfabet"
+    }
+
+    private fun resolveHighestUnlockedLevelBefore(
+        targetLevel: Int,
+        state: LevelMapUiState
+    ): Int {
+        for (lvl in (targetLevel - 1) downTo 1) {
+            if (statusOf(lvl, state) != LevelNodeStatus.LOCKED) {
+                return lvl
+            }
+        }
+        return 1
+    }
+
     private fun buildLockedLevelDetails(
         levelNumber: Int,
-        progress: LevelMapProgress?,
-        errorMessage: String?
+        state: LevelMapUiState
     ): LockedLevelDetails {
+        val progress = state.progress
+        val errorMessage = state.errorMessage
+
         val (title, prereqNumber, prereqTitle) = when (levelNumber) {
             2 -> Triple("Dunia Suku Kata", 1, "Pulau Alfabet")
             3 -> Triple("Gunung Kata", 2, "Dunia Suku Kata")
@@ -221,13 +248,26 @@ class LevelMapViewModel(
             else -> Triple("Level $levelNumber", 1, "Pulau Alfabet")
         }
 
+        val isPrereqUnlocked = statusOf(prereqNumber, state) != LevelNodeStatus.LOCKED
+        val highestUnlockedLvl = resolveHighestUnlockedLevelBefore(levelNumber, state)
+        val highestUnlockedTitle = levelTitle(highestUnlockedLvl)
+
+        val prereqLockedHint = if (!isPrereqUnlocked) {
+            "$prereqTitle juga masih terkunci. Selesaikan latihan di $highestUnlockedTitle terlebih dahulu untuk membukanya!"
+        } else {
+            ""
+        }
+
         if (errorMessage != null) {
             return LockedLevelDetails(
                 levelNumber = levelNumber,
                 title = title,
+                prerequisiteNumber = prereqNumber,
                 prerequisiteTitle = prereqTitle,
+                isPrerequisiteUnlocked = isPrereqUnlocked,
+                prerequisiteLockedHint = prereqLockedHint,
                 explanation = errorMessage,
-                recommendedLevelNumber = prereqNumber,
+                recommendedLevelNumber = highestUnlockedLvl,
                 isReadError = true
             )
         }
@@ -282,7 +322,10 @@ class LevelMapViewModel(
         return LockedLevelDetails(
             levelNumber = levelNumber,
             title = title,
+            prerequisiteNumber = prereqNumber,
             prerequisiteTitle = prereqTitle,
+            isPrerequisiteUnlocked = isPrereqUnlocked,
+            prerequisiteLockedHint = prereqLockedHint,
             explanation = explanation,
             currentSessions = currentSessions,
             requiredSessions = 3,
@@ -291,7 +334,7 @@ class LevelMapViewModel(
             hasLetterErrorRateCheck = hasLetterCheck,
             isErrorRateMet = isErrorRateMet,
             errorRateSummary = errorRateSummary,
-            recommendedLevelNumber = prereqNumber,
+            recommendedLevelNumber = highestUnlockedLvl,
             isReadError = false
         )
     }
