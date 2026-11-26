@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -43,12 +44,15 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
+import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -58,6 +62,7 @@ import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import kotlin.math.hypot
 
 @Composable
 fun WritingPracticeScreen(
@@ -66,9 +71,12 @@ fun WritingPracticeScreen(
     onNavigateToLevelMap: () -> Unit,
     onNavigateToHurufMirip: () -> Unit = {}
 ) {
+    val targetChar = letter.trim().uppercase().firstOrNull() ?: 'A'
     val strokes = remember { mutableStateListOf<List<Offset>>() }
     var currentStroke by remember { mutableStateOf<List<Offset>>(emptyList()) }
     var isSubmitted by remember { mutableStateOf(false) }
+    var validationMessage by remember { mutableStateOf<String?>(null) }
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
     Box(
         modifier = Modifier
@@ -134,7 +142,7 @@ fun WritingPracticeScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "Gambar Huruf Di Kotak",
+                text = "Gambar Huruf $targetChar",
                 fontFamily = Poppins,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
@@ -158,15 +166,21 @@ fun WritingPracticeScreen(
                     .shadow(10.dp, canvasShape, spotColor = Color(0x33003366))
                     .clip(canvasShape)
                     .background(AksaWhite)
-                    .border(2.dp, AksaSoftPeach, canvasShape)
+                    .border(
+                        width = 2.dp,
+                        color = if (validationMessage != null) Color(0xFFE53935) else AksaSoftPeach,
+                        shape = canvasShape
+                    )
             ) {
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
+                        .onSizeChanged { canvasSize = it }
                         .pointerInput(isSubmitted) {
                             if (!isSubmitted) {
                                 detectDragGestures(
                                     onDragStart = { offset ->
+                                        validationMessage = null
                                         currentStroke = listOf(offset)
                                     },
                                     onDrag = { change, _ ->
@@ -186,21 +200,9 @@ fun WritingPracticeScreen(
                     val w = size.width
                     val h = size.height
 
+                    // 1. Dynamic Dashed Letter Guide
                     val dashedEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 14f), 0f)
-                    val letterPath = Path().apply {
-                        val top = Offset(w * 0.5f, h * 0.20f)
-                        val bLeft = Offset(w * 0.24f, h * 0.82f)
-                        val bRight = Offset(w * 0.76f, h * 0.82f)
-                        val crossLeft = Offset(w * 0.35f, h * 0.58f)
-                        val crossRight = Offset(w * 0.65f, h * 0.58f)
-
-                        moveTo(bLeft.x, bLeft.y)
-                        lineTo(top.x, top.y)
-                        lineTo(bRight.x, bRight.y)
-
-                        moveTo(crossLeft.x, crossLeft.y)
-                        lineTo(crossRight.x, crossRight.y)
-                    }
+                    val letterPath = buildLetterGuidePath(targetChar, w, h)
 
                     drawPath(
                         path = letterPath,
@@ -275,6 +277,26 @@ fun WritingPracticeScreen(
                 }
             }
 
+            if (validationMessage != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFFFEBEE))
+                        .border(1.dp, Color(0xFFE53935), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = validationMessage!!,
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = Color(0xFFC62828)
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             // Action Buttons: Ulangi & Submit
@@ -291,18 +313,30 @@ fun WritingPracticeScreen(
                         onClick = {
                             strokes.clear()
                             currentStroke = emptyList()
+                            validationMessage = null
                         }
                     )
                 }
 
-                // "Submit" Button
+                // "Submit" Button with Stroke Validation
                 Box(modifier = Modifier.weight(1f)) {
                     AksaButton(
                         text = "Submit",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
                         iconPainter = AksaIcons.check(),
                         onClick = {
-                            isSubmitted = true
+                            val result = validateLetterStrokes(
+                                targetLetter = targetChar,
+                                strokes = strokes.toList(),
+                                canvasWidth = canvasSize.width.toFloat(),
+                                canvasHeight = canvasSize.height.toFloat()
+                            )
+                            if (result.isValid) {
+                                validationMessage = null
+                                isSubmitted = true
+                            } else {
+                                validationMessage = result.feedback
+                            }
                         }
                     )
                 }
@@ -334,7 +368,6 @@ fun WritingPracticeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Cheering Mascot
                         MascotCheering(size = 140.dp)
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -348,7 +381,7 @@ fun WritingPracticeScreen(
                         )
 
                         Text(
-                            text = "Kamu berhasil menulis huruf $letter.",
+                            text = "Kamu berhasil menulis huruf $targetChar.",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Normal,
                             fontSize = 14.sp,
@@ -364,7 +397,6 @@ fun WritingPracticeScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Secondary Button: Selesai ke Peta
                         AksaButton(
                             text = "Selesai ke Peta",
                             style = AksaButtonStyle.SECONDARY_LIME,
@@ -374,5 +406,255 @@ fun WritingPracticeScreen(
                 }
             }
         }
+    }
+}
+
+private data class StrokeValidationResult(
+    val isValid: Boolean,
+    val feedback: String
+)
+
+/**
+ * Mengembalikan daftar segmen garis target (dalam koordinat ternormalisasi 0f..1f)
+ * untuk tiap huruf A-Z agar rendering garis putus-putus dan validasi goresan sinkron.
+ */
+private fun getNormalizedLetterSegments(letter: Char): List<Pair<Offset, Offset>> {
+    val left = 0.28f
+    val right = 0.72f
+    val midX = 0.50f
+    val top = 0.20f
+    val midY = 0.51f
+    val bottom = 0.82f
+
+    return when (letter.uppercaseChar()) {
+        'A' -> listOf(
+            Offset(0.24f, bottom) to Offset(midX, top),
+            Offset(midX, top) to Offset(0.76f, bottom),
+            Offset(0.35f, 0.58f) to Offset(0.65f, 0.58f)
+        )
+        'B' -> listOf(
+            Offset(left, top) to Offset(left, bottom),
+            Offset(left, top) to Offset(0.66f, top),
+            Offset(0.66f, top) to Offset(0.66f, midY),
+            Offset(0.66f, midY) to Offset(left, midY),
+            Offset(left, midY) to Offset(right, midY),
+            Offset(right, midY) to Offset(right, bottom),
+            Offset(right, bottom) to Offset(left, bottom)
+        )
+        'C' -> listOf(
+            Offset(right, top) to Offset(left, top),
+            Offset(left, top) to Offset(left, bottom),
+            Offset(left, bottom) to Offset(right, bottom)
+        )
+        'D' -> listOf(
+            Offset(left, top) to Offset(left, bottom),
+            Offset(left, top) to Offset(0.62f, top),
+            Offset(0.62f, top) to Offset(right, 0.34f),
+            Offset(right, 0.34f) to Offset(right, 0.68f),
+            Offset(right, 0.68f) to Offset(0.62f, bottom),
+            Offset(0.62f, bottom) to Offset(left, bottom)
+        )
+        'E' -> listOf(
+            Offset(left, top) to Offset(left, bottom),
+            Offset(left, top) to Offset(right, top),
+            Offset(left, midY) to Offset(0.66f, midY),
+            Offset(left, bottom) to Offset(right, bottom)
+        )
+        'F' -> listOf(
+            Offset(left, top) to Offset(left, bottom),
+            Offset(left, top) to Offset(right, top),
+            Offset(left, midY) to Offset(0.66f, midY)
+        )
+        'G' -> listOf(
+            Offset(right, top) to Offset(left, top),
+            Offset(left, top) to Offset(left, bottom),
+            Offset(left, bottom) to Offset(right, bottom),
+            Offset(right, bottom) to Offset(right, midY),
+            Offset(right, midY) to Offset(midX, midY)
+        )
+        'H' -> listOf(
+            Offset(left, top) to Offset(left, bottom),
+            Offset(right, top) to Offset(right, bottom),
+            Offset(left, midY) to Offset(right, midY)
+        )
+        'I' -> listOf(
+            Offset(0.36f, top) to Offset(0.64f, top),
+            Offset(midX, top) to Offset(midX, bottom),
+            Offset(0.36f, bottom) to Offset(0.64f, bottom)
+        )
+        'J' -> listOf(
+            Offset(0.34f, top) to Offset(right, top),
+            Offset(0.62f, top) to Offset(0.62f, bottom),
+            Offset(0.62f, bottom) to Offset(0.32f, bottom),
+            Offset(0.32f, bottom) to Offset(0.32f, 0.66f)
+        )
+        'K' -> listOf(
+            Offset(left, top) to Offset(left, bottom),
+            Offset(right, top) to Offset(left, midY),
+            Offset(left, midY) to Offset(right, bottom)
+        )
+        'L' -> listOf(
+            Offset(left, top) to Offset(left, bottom),
+            Offset(left, bottom) to Offset(right, bottom)
+        )
+        'M' -> listOf(
+            Offset(0.22f, bottom) to Offset(0.22f, top),
+            Offset(0.22f, top) to Offset(midX, 0.58f),
+            Offset(midX, 0.58f) to Offset(0.78f, top),
+            Offset(0.78f, top) to Offset(0.78f, bottom)
+        )
+        'N' -> listOf(
+            Offset(left, bottom) to Offset(left, top),
+            Offset(left, top) to Offset(right, bottom),
+            Offset(right, bottom) to Offset(right, top)
+        )
+        'O' -> listOf(
+            Offset(left, top) to Offset(right, top),
+            Offset(right, top) to Offset(right, bottom),
+            Offset(right, bottom) to Offset(left, bottom),
+            Offset(left, bottom) to Offset(left, top)
+        )
+        'P' -> listOf(
+            Offset(left, bottom) to Offset(left, top),
+            Offset(left, top) to Offset(right, top),
+            Offset(right, top) to Offset(right, midY),
+            Offset(right, midY) to Offset(left, midY)
+        )
+        'Q' -> listOf(
+            Offset(left, top) to Offset(right, top),
+            Offset(right, top) to Offset(right, bottom),
+            Offset(right, bottom) to Offset(left, bottom),
+            Offset(left, bottom) to Offset(left, top),
+            Offset(0.56f, 0.66f) to Offset(0.78f, 0.86f)
+        )
+        'R' -> listOf(
+            Offset(left, bottom) to Offset(left, top),
+            Offset(left, top) to Offset(right, top),
+            Offset(right, top) to Offset(right, midY),
+            Offset(right, midY) to Offset(left, midY),
+            Offset(0.48f, midY) to Offset(right, bottom)
+        )
+        'S' -> listOf(
+            Offset(right, top) to Offset(left, top),
+            Offset(left, top) to Offset(left, midY),
+            Offset(left, midY) to Offset(right, midY),
+            Offset(right, midY) to Offset(right, bottom),
+            Offset(right, bottom) to Offset(left, bottom)
+        )
+        'T' -> listOf(
+            Offset(0.24f, top) to Offset(0.76f, top),
+            Offset(midX, top) to Offset(midX, bottom)
+        )
+        'U' -> listOf(
+            Offset(left, top) to Offset(left, bottom),
+            Offset(left, bottom) to Offset(right, bottom),
+            Offset(right, bottom) to Offset(right, top)
+        )
+        'V' -> listOf(
+            Offset(0.24f, top) to Offset(midX, bottom),
+            Offset(midX, bottom) to Offset(0.76f, top)
+        )
+        'W' -> listOf(
+            Offset(0.20f, top) to Offset(0.35f, bottom),
+            Offset(0.35f, bottom) to Offset(midX, 0.48f),
+            Offset(midX, 0.48f) to Offset(0.65f, bottom),
+            Offset(0.65f, bottom) to Offset(0.80f, top)
+        )
+        'X' -> listOf(
+            Offset(left, top) to Offset(right, bottom),
+            Offset(right, top) to Offset(left, bottom)
+        )
+        'Y' -> listOf(
+            Offset(0.24f, top) to Offset(midX, midY),
+            Offset(0.76f, top) to Offset(midX, midY),
+            Offset(midX, midY) to Offset(midX, bottom)
+        )
+        'Z' -> listOf(
+            Offset(left, top) to Offset(right, top),
+            Offset(right, top) to Offset(left, bottom),
+            Offset(left, bottom) to Offset(right, bottom)
+        )
+        else -> listOf(
+            Offset(0.24f, bottom) to Offset(midX, top),
+            Offset(midX, top) to Offset(0.76f, bottom),
+            Offset(0.35f, 0.58f) to Offset(0.65f, 0.58f)
+        )
+    }
+}
+
+private fun buildLetterGuidePath(letter: Char, w: Float, h: Float): Path {
+    val segments = getNormalizedLetterSegments(letter)
+    return Path().apply {
+        segments.forEach { (start, end) ->
+            moveTo(start.x * w, start.y * h)
+            lineTo(end.x * w, end.y * h)
+        }
+    }
+}
+
+/**
+ * Memvalidasi apakah goresan jari di kanvas benar-benar mengikuti bentuk huruf [targetLetter]
+ * dan bukan kanvas kosong atau coretan acak.
+ */
+private fun validateLetterStrokes(
+    targetLetter: Char,
+    strokes: List<List<Offset>>,
+    canvasWidth: Float,
+    canvasHeight: Float
+): StrokeValidationResult {
+    val userPoints = strokes.flatten()
+    if (userPoints.size < 10) {
+        return StrokeValidationResult(
+            isValid = false,
+            feedback = "Yuk tulis huruf $targetLetter mengikuti garis putus-putus dulu!"
+        )
+    }
+
+    if (canvasWidth <= 0f || canvasHeight <= 0f) {
+        return StrokeValidationResult(isValid = true, feedback = "")
+    }
+
+    // Sampling titik-titik target di sepanjang segmen huruf
+    val segments = getNormalizedLetterSegments(targetLetter)
+    val guideSamples = mutableListOf<Offset>()
+    segments.forEach { (normStart, normEnd) ->
+        val p1 = Offset(normStart.x * canvasWidth, normStart.y * canvasHeight)
+        val p2 = Offset(normEnd.x * canvasWidth, normEnd.y * canvasHeight)
+        val steps = 16
+        for (i in 0..steps) {
+            val t = i.toFloat() / steps
+            guideSamples.add(
+                Offset(
+                    x = p1.x + (p2.x - p1.x) * t,
+                    y = p1.y + (p2.y - p1.y) * t
+                )
+            )
+        }
+    }
+
+    val tolerancePx = minOf(canvasWidth, canvasHeight) * 0.16f
+
+    // 1. Cek seberapa banyak bagian huruf target yang berhasil dilewati goresan user (coverage)
+    val coveredGuideCount = guideSamples.count { guidePt ->
+        userPoints.any { userPt -> hypot(userPt.x - guidePt.x, userPt.y - guidePt.y) <= tolerancePx }
+    }
+    val coverageRatio = coveredGuideCount.toFloat() / guideSamples.size
+
+    // 2. Cek seberapa banyak goresan user yang benar-benar berada di jalur huruf (precision)
+    val onTrackUserCount = userPoints.count { userPt ->
+        guideSamples.any { guidePt -> hypot(userPt.x - guidePt.x, userPt.y - guidePt.y) <= tolerancePx * 1.25f }
+    }
+    val precisionRatio = onTrackUserCount.toFloat() / userPoints.size
+
+    return when {
+        coverageRatio < 0.65f -> StrokeValidationResult(
+            isValid = false,
+            feedback = "Huruf $targetLetter belum lengkap. Ikuti semua garis putus-putusnya ya!"
+        )
+        precisionRatio < 0.60f -> StrokeValidationResult(
+            isValid = false,
+            feedback = "Goresan masih keluar jalur. Coba tekan Ulangi dan ikuti garis putus-putus."
+        )
+        else -> StrokeValidationResult(isValid = true, feedback = "")
     }
 }

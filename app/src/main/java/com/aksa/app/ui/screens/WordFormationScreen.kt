@@ -27,6 +27,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -57,6 +59,7 @@ import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
+import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -78,7 +81,8 @@ data class WordQuestion(
     val id: String,
     val word: String,
     val emoji: String,
-    val hint: String,
+    val clueText: String,
+    val speechText: String,
     val letters: List<String>,
     val shuffled: List<String>
 )
@@ -91,14 +95,55 @@ fun WordFormationScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val tts = remember { AndroidTextToSpeechHelper(context) }
+    val isTtsReady by tts.isReady.collectAsState()
 
     val questions = remember {
         listOf(
-            WordQuestion("wq_1", "BOLA", "⚽", "B-O-L-A -> Bola untuk bermain", listOf("B", "O", "L", "A"), listOf("L", "A", "B", "O")),
-            WordQuestion("wq_2", "BUKU", "📖", "B-U-K-U -> Buku cerita seru", listOf("B", "U", "K", "U"), listOf("U", "K", "B", "U")),
-            WordQuestion("wq_3", "KUDA", "🐴", "K-U-D-A -> Kuda berlari kencang", listOf("K", "U", "D", "A"), listOf("D", "A", "K", "U")),
-            WordQuestion("wq_4", "MATA", "👀", "M-A-T-A -> Mata untuk melihat", listOf("M", "A", "T", "A"), listOf("T", "A", "M", "A")),
-            WordQuestion("wq_5", "SAPI", "🐮", "S-A-P-I -> Sapi menghasilkan susu", listOf("S", "A", "P", "I"), listOf("P", "I", "S", "A"))
+            WordQuestion(
+                id = "wq_1",
+                word = "BOLA",
+                emoji = "⚽",
+                clueText = "Benda bulat untuk bermain",
+                speechText = "Susun kata: BOLA. Benda bulat untuk bermain.",
+                letters = listOf("B", "O", "L", "A"),
+                shuffled = listOf("L", "A", "B", "O")
+            ),
+            WordQuestion(
+                id = "wq_2",
+                word = "BUKU",
+                emoji = "📚",
+                clueText = "Tempat membaca cerita seru",
+                speechText = "Susun kata: BUKU. Tempat membaca cerita seru.",
+                letters = listOf("B", "U", "K", "U"),
+                shuffled = listOf("U", "K", "B", "U")
+            ),
+            WordQuestion(
+                id = "wq_3",
+                word = "KUDA",
+                emoji = "🐴",
+                clueText = "Hewan yang berlari kencang",
+                speechText = "Susun kata: KUDA. Hewan yang berlari kencang.",
+                letters = listOf("K", "U", "D", "A"),
+                shuffled = listOf("D", "A", "K", "U")
+            ),
+            WordQuestion(
+                id = "wq_4",
+                word = "MATA",
+                emoji = "👀",
+                clueText = "Anggota tubuh untuk melihat",
+                speechText = "Susun kata: MATA. Anggota tubuh untuk melihat.",
+                letters = listOf("M", "A", "T", "A"),
+                shuffled = listOf("T", "A", "M", "A")
+            ),
+            WordQuestion(
+                id = "wq_5",
+                word = "SAPI",
+                emoji = "🐄",
+                clueText = "Hewan penghasil susu segar",
+                speechText = "Susun kata: SAPI. Hewan penghasil susu segar.",
+                letters = listOf("S", "A", "P", "I"),
+                shuffled = listOf("P", "I", "S", "A")
+            )
         )
     }
 
@@ -120,13 +165,15 @@ fun WordFormationScreen(
     val isComplete = selectedIndices.size == currentQ.letters.size
     val isCorrect = isComplete && currentLetters == currentQ.letters
 
-    val effectiveIsComplete = isComplete
-    val effectiveIsCorrect = isCorrect
-    val effectiveShowCompletion = showCompletionDialog
+    LaunchedEffect(currentQuestionIndex, isTtsReady) {
+        if (isTtsReady && !showCompletionDialog) {
+            tts.speak(questions[currentQuestionIndex].speechText)
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
-            tts.stop()
+            tts.release()
         }
     }
 
@@ -202,7 +249,7 @@ fun WordFormationScreen(
             )
 
             Text(
-                text = "Susun huruf-huruf menjadi kata yang tepat!",
+                text = "Dengarkan suaranya dan susun huruf menjadi kata!",
                 fontFamily = Poppins,
                 fontSize = 13.sp,
                 color = AksaDarkBrown.copy(alpha = 0.75f)
@@ -210,7 +257,6 @@ fun WordFormationScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Main White Rounded Puzzle Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -228,7 +274,10 @@ fun WordFormationScreen(
                             .fillMaxWidth()
                             .height(150.dp)
                             .clip(RoundedCornerShape(22.dp))
-                            .background(AksaPeachLight),
+                            .background(AksaPeachLight)
+                            .clickable {
+                                tts.speak(currentQ.speechText)
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -246,31 +295,38 @@ fun WordFormationScreen(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(10.dp)
-                                .size(38.dp)
-                                .clip(CircleShape)
+                                .clip(PillShape)
                                 .background(AksaWhite)
-                                .clickable {
-                                    tts.speak("Susun kata: ${currentQ.word}. ${currentQ.hint}.")
-                                },
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                painter = AksaIcons.volumeUp(),
-                                contentDescription = "Dengarkan",
-                                tint = AksaOrange,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = AksaIcons.volumeUp(),
+                                    contentDescription = "Dengarkan",
+                                    tint = AksaOrange,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Dengar",
+                                    fontFamily = Poppins,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = AksaDarkBrown
+                                )
+                            }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "Petunjuk: ${currentQ.hint}",
+                        text = currentQ.clueText,
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                        color = AksaDarkBrown.copy(alpha = 0.8f),
+                        fontSize = 14.sp,
+                        color = AksaDarkBrown.copy(alpha = 0.85f),
                         textAlign = TextAlign.Center
                     )
 
@@ -296,16 +352,16 @@ fun WordFormationScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     AnimatedVisibility(
-                        visible = effectiveIsComplete,
+                        visible = isComplete,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            val feedbackBg = if (effectiveIsCorrect) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                            val feedbackBorder = if (effectiveIsCorrect) AksaLimeDark else Color(0xFFE53935)
-                            val feedbackMsg = if (effectiveIsCorrect) {
+                            val feedbackBg = if (isCorrect) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                            val feedbackBorder = if (isCorrect) AksaLimeDark else Color(0xFFE53935)
+                            val feedbackMsg = if (isCorrect) {
                                 "Hebat sekali! Kamu berhasil menyusun kata ${currentQ.word}!"
                             } else {
-                                "Belum tepat. Ketuk kotak huruf untuk menghapus dan coba lagi ya!"
+                                "Belum tepat. Kata yang benar adalah ${currentQ.word}."
                             }
 
                             Box(
@@ -318,7 +374,7 @@ fun WordFormationScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        painter = if (effectiveIsCorrect) AksaIcons.check() else AksaIcons.info(),
+                                        painter = if (isCorrect) AksaIcons.check() else AksaIcons.info(),
                                         contentDescription = null,
                                         tint = feedbackBorder,
                                         modifier = Modifier.size(20.dp)
@@ -329,14 +385,14 @@ fun WordFormationScreen(
                                         fontFamily = Poppins,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 13.sp,
-                                        color = if (effectiveIsCorrect) AksaDarkBrown else Color(0xFFC62828)
+                                        color = if (isCorrect) AksaDarkBrown else Color(0xFFC62828)
                                     )
                                 }
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            if (effectiveIsCorrect) {
+                            if (isCorrect) {
                                 MascotCheering(size = 80.dp)
                             } else {
                                 MascotLearning(size = 80.dp, animated = false)
@@ -347,7 +403,7 @@ fun WordFormationScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = if (!effectiveIsComplete) "Pilih huruf secara berurutan:" else "Susunan selesai!",
+                        text = if (!isComplete) "Pilih huruf secara berurutan:" else "Susunan selesai!",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Medium,
                         fontSize = 13.sp,
@@ -356,7 +412,6 @@ fun WordFormationScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // SHUFFLED LETTER CHOICES
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -369,13 +424,16 @@ fun WordFormationScreen(
                                 onClick = {
                                     if (!isComplete && !isSelected) {
                                         selectedIndices.add(index)
-                                        tts.speak(letter)
                                         if (selectedIndices.size == currentQ.letters.size) {
                                             val formed = selectedIndices.map { currentQ.shuffled[it] }
                                             if (formed == currentQ.letters) {
                                                 correctCount++
                                                 tts.speak("Benar! ${currentQ.word}!")
+                                            } else {
+                                                tts.speak("Belum tepat. Yang benar adalah ${currentQ.word}.")
                                             }
+                                        } else {
+                                            tts.speak(letter)
                                         }
                                     }
                                 }
@@ -385,11 +443,10 @@ fun WordFormationScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // NEXT BUTTON
                     AksaButton(
                         text = if (currentQuestionIndex < questions.size - 1) "Soal Berikutnya" else "Lihat Hasil Latihan",
-                        style = if (effectiveIsComplete) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
-                        enabled = effectiveIsComplete,
+                        style = if (isComplete) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
+                        enabled = isComplete,
                         onClick = {
                             val childId = runCatching { activeChildResolver.getSync() }
                                 .getOrDefault(AksaUserState.currentProfileId)
@@ -411,7 +468,6 @@ fun WordFormationScreen(
                             if (currentQuestionIndex < questions.size - 1) {
                                 currentQuestionIndex++
                                 selectedIndices.clear()
-                                tts.speak("Susun kata: ${questions[currentQuestionIndex].word}.")
                             } else {
                                 if (!sessionCommitted) {
                                     sessionCommitted = true
@@ -419,34 +475,35 @@ fun WordFormationScreen(
                                     coroutineScope.launch {
                                         try {
                                             withContext(NonCancellable) {
-                                                val actualChildId = activeChildResolver()
-                                                for (ans in recordedAnswers) {
+                                                runCatching {
+                                                    val actualChildId = activeChildResolver()
+                                                    for (ans in recordedAnswers) {
+                                                        AksaRepositoryProvider.sessionRepository
+                                                            .recordAnswer(ans.copy(childId = actualChildId))
+                                                    }
+                                                    val sessionResult = SessionResult(
+                                                        sessionId = sessionId,
+                                                        childId = actualChildId,
+                                                        moduleId = "gunung_kata",
+                                                        activityId = "word_formation",
+                                                        startedAt = sessionStartedAt,
+                                                        completedAt = System.currentTimeMillis(),
+                                                        totalQuestions = questions.size,
+                                                        correctAnswers = correctCount,
+                                                        incorrectAnswers = questions.size - correctCount,
+                                                        accuracy = correctCount.toFloat() / questions.size.toFloat(),
+                                                        status = SessionStatus.COMPLETED
+                                                    )
                                                     AksaRepositoryProvider.sessionRepository
-                                                        .recordAnswer(ans.copy(childId = actualChildId))
-                                                        .getOrThrow()
+                                                        .saveSessionResult(sessionResult)
                                                 }
-                                                val sessionResult = SessionResult(
-                                                    sessionId = sessionId,
-                                                    childId = actualChildId,
-                                                    moduleId = "gunung_kata",
-                                                    activityId = "word_formation",
-                                                    startedAt = sessionStartedAt,
-                                                    completedAt = System.currentTimeMillis(),
-                                                    totalQuestions = questions.size,
-                                                    correctAnswers = correctCount,
-                                                    incorrectAnswers = questions.size - correctCount,
-                                                    accuracy = correctCount.toFloat() / questions.size.toFloat(),
-                                                    status = SessionStatus.COMPLETED
-                                                )
-                                                AksaRepositoryProvider.sessionRepository
-                                                    .saveSessionResult(sessionResult)
-                                                    .getOrThrow()
                                             }
                                         } finally {
                                             isSavingSession = false
                                         }
                                     }
                                 }
+                                tts.speak("Hebat! Latihan selesai!")
                                 showCompletionDialog = true
                             }
                         }
@@ -455,13 +512,12 @@ fun WordFormationScreen(
             }
         }
 
-        // COMPLETION CELEBRATION MODAL
-        if (effectiveShowCompletion) {
+        if (showCompletionDialog) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x88000000))
-                    .clickable { /* Block clicks behind */ }
+                    .clickable { }
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -478,6 +534,8 @@ fun WordFormationScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         MascotCheering(size = 120.dp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        EarnedStarsRow(accuracy = correctCount.toFloat() / questions.size.toFloat())
 
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -657,7 +715,6 @@ private fun BallIllustration() {
         val r = size.minDimension / 2f
         val c = Offset(size.width / 2f, size.height / 2f)
 
-        // Base circle
         drawCircle(color = AksaWhite, radius = r, center = c)
 
         val p1 = Path().apply {

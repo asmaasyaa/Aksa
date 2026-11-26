@@ -1,6 +1,7 @@
 package com.aksa.app.data.model
 
 import com.aksa.app.domain.model.AnswerLog
+import com.google.firebase.firestore.PropertyName
 
 data class AnswerLogDto(
     val answerId: String = "",
@@ -13,7 +14,9 @@ data class AnswerLogDto(
     val questionId: String = "",
     val targetChar: String = "",
     val chosenChar: String = "",
-    val isCorrect: Boolean = false,
+    @get:PropertyName("isCorrect")
+    @set:PropertyName("isCorrect")
+    var isCorrect: Boolean = false,
     val responseTimeMs: Long = 0L,
     val timestamp: Long = 0L
 ) {

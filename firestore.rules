@@ -22,10 +22,13 @@ service cloud.firestore {
 
     function isValidAnswerLog(parentUid) {
       let data = request.resource.data;
+      // Firestore SDK menserialisasi properti Kotlin `val isCorrect: Boolean` menjadi field `correct`
+      let hasValidCorrectFlag = (('correct' in data) && data.correct is bool)
+                             || (('isCorrect' in data) && data.isCorrect is bool);
       return ('sessionId' in data) && data.sessionId is string && data.sessionId.size() > 0
           && ('targetChar' in data) && data.targetChar is string
           && ('chosenChar' in data) && data.chosenChar is string
-          && ('isCorrect' in data) && data.isCorrect is bool
+          && hasValidCorrectFlag
           && (!('userId' in data) || data.userId == parentUid);
     }
 

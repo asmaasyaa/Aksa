@@ -8,10 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 
-/**
- * Text-to-Speech manager for Indonesian audio instruction replay in learning activities.
- * Handles initialization failure gracefully, prevents audio overlap, and safely releases resources.
- */
 class AndroidTextToSpeechHelper(
     context: Context
 ) : AksaAudioSpeaker, TextToSpeech.OnInitListener {
@@ -39,7 +35,6 @@ class AndroidTextToSpeechHelper(
                 return
             }
 
-            // Attempt Indonesian locale
             val indonesianLocale = try {
                 Locale.Builder().setLanguage("id").setRegion("ID").build()
             } catch (e: Exception) {
@@ -57,13 +52,22 @@ class AndroidTextToSpeechHelper(
                 ttsInstance.language = Locale.getDefault()
             }
 
-            ttsInstance.setSpeechRate(0.85f) // Slightly slower for child clarity
-            ttsInstance.setPitch(1.05f)     // Friendly, clear pitch
+            ttsInstance.setSpeechRate(0.85f)
+            ttsInstance.setPitch(1.05f)
             _isReady.value = true
         } else {
             Log.w(tag, "TTS initialization failed with status: $status")
             _isReady.value = false
         }
+    }
+
+    private fun sanitizeForSpeech(rawText: String): String {
+        return rawText
+            .replace("->", " menjadi ")
+            .replace("→", " menjadi ")
+            .replace(Regex("(?<=\\b[A-Za-z])-(?=[A-Za-z]\\b)"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
     }
 
     override fun speak(text: String) {
@@ -72,11 +76,13 @@ class AndroidTextToSpeechHelper(
             return
         }
 
+        val cleanText = sanitizeForSpeech(text)
+        if (cleanText.isBlank()) return
+
         try {
-            // Stop prior speech to avoid speaking over itself
             tts?.stop()
             val utteranceId = "aksa_utterance_${System.currentTimeMillis()}"
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+            tts?.speak(cleanText, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
         } catch (e: Exception) {
             Log.e(tag, "Error during TTS speak()", e)
         }

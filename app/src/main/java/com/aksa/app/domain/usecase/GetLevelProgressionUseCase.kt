@@ -37,13 +37,15 @@ class GetLevelProgressionUseCase(
     private val levelProgressRepository: LevelProgressRepository = AksaRepositoryProvider.levelProgressRepository
 ) {
     suspend operator fun invoke(childId: String): LevelMapProgress {
-        val persistedUnlocked = levelProgressRepository.getUnlockedLevels(childId)
+        val persistedUnlocked = runCatching {
+            levelProgressRepository.getUnlockedLevels(childId)
+        }.getOrDefault(emptySet())
 
         // LEVEL 1 — Pulau Alfabet (Always unlocked)
         val r1 = evaluateReadinessUseCase(childId, "pulau_alfabet")
         val level2Earned = r1.isReadyToUnlock || ("dunia_suku_kata" in persistedUnlocked)
         if (r1.isReadyToUnlock && "dunia_suku_kata" !in persistedUnlocked) {
-            levelProgressRepository.unlockLevel(childId, "dunia_suku_kata").getOrThrow()
+            runCatching { levelProgressRepository.unlockLevel(childId, "dunia_suku_kata") }
         }
 
         // LEVEL 2 — Dunia Suku Kata
@@ -53,7 +55,7 @@ class GetLevelProgressionUseCase(
 
         val level3Earned = (level2Earned && r2?.isReadyToUnlock == true) || ("gunung_kata" in persistedUnlocked)
         if (level2Earned && r2?.isReadyToUnlock == true && "gunung_kata" !in persistedUnlocked) {
-            levelProgressRepository.unlockLevel(childId, "gunung_kata").getOrThrow()
+            runCatching { levelProgressRepository.unlockLevel(childId, "gunung_kata") }
         }
 
         // LEVEL 3 — Gunung Kata
@@ -63,7 +65,7 @@ class GetLevelProgressionUseCase(
 
         val level4Earned = (level3Earned && r3?.isReadyToUnlock == true) || ("sungai_cerita" in persistedUnlocked)
         if (level3Earned && r3?.isReadyToUnlock == true && "sungai_cerita" !in persistedUnlocked) {
-            levelProgressRepository.unlockLevel(childId, "sungai_cerita").getOrThrow()
+            runCatching { levelProgressRepository.unlockLevel(childId, "sungai_cerita") }
         }
 
         // LEVEL 4 — Sungai Cerita
@@ -131,4 +133,3 @@ class GetLevelProgressionUseCase(
         )
     }
 }
-
