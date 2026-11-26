@@ -80,6 +80,34 @@ data class SyllableQuizItem(
     val choices: List<String>
 )
 
+private val syllableWordPool = listOf(
+    SyllableQuizItem("sq_1", "MATA", "MA", "TA", listOf("MA", "TA", "KU", "CA", "GA", "SO")),
+    SyllableQuizItem("sq_2", "BUKU", "BU", "KU", listOf("BU", "KU", "SA", "PI", "DA", "LA")),
+    SyllableQuizItem("sq_3", "BATU", "BA", "TU", listOf("BA", "TU", "MA", "RI", "KA", "LI")),
+    SyllableQuizItem("sq_4", "BOLA", "BO", "LA", listOf("BO", "LA", "KU", "PA", "TA", "MI")),
+    SyllableQuizItem("sq_5", "KAKI", "KA", "KI", listOf("KA", "KI", "MA", "DA", "LU", "SI")),
+    SyllableQuizItem("sq_6", "BAJU", "BA", "JU", listOf("BA", "JU", "TO", "PI", "ME", "LA")),
+    SyllableQuizItem("sq_7", "TOPI", "TO", "PI", listOf("TO", "PI", "BA", "KU", "RA", "SI")),
+    SyllableQuizItem("sq_8", "SAPI", "SA", "PI", listOf("SA", "PI", "KU", "DA", "BO", "LA")),
+    SyllableQuizItem("sq_9", "KUDA", "KU", "DA", listOf("KU", "DA", "SA", "PI", "MA", "TI")),
+    SyllableQuizItem("sq_10", "MEJA", "ME", "JA", listOf("ME", "JA", "BU", "KU", "RO", "DA")),
+    SyllableQuizItem("sq_11", "RODA", "RO", "DA", listOf("RO", "DA", "BA", "TU", "KA", "KI")),
+    SyllableQuizItem("sq_12", "PITA", "PI", "TA", listOf("PI", "TA", "BO", "LA", "MA", "NI")),
+    SyllableQuizItem("sq_13", "NAGA", "NA", "GA", listOf("NA", "GA", "KU", "CA", "TO", "PI")),
+    SyllableQuizItem("sq_14", "TALI", "TA", "LI", listOf("TA", "LI", "BA", "JU", "ME", "RA")),
+    SyllableQuizItem("sq_15", "JARI", "JA", "RI", listOf("JA", "RI", "KA", "KI", "SA", "TU")),
+    SyllableQuizItem("sq_16", "GULA", "GU", "LA", listOf("GU", "LA", "MA", "DU", "KO", "PI")),
+    SyllableQuizItem("sq_17", "LIMA", "LI", "MA", listOf("LI", "MA", "SA", "TU", "TI", "GA")),
+    SyllableQuizItem("sq_18", "SATU", "SA", "TU", listOf("SA", "TU", "DU", "WA", "LI", "MA"))
+)
+
+private fun generateSyllableQuizSession(count: Int = 5): List<SyllableQuizItem> {
+    return syllableWordPool
+        .shuffled()
+        .take(count)
+        .map { item -> item.copy(choices = item.choices.shuffled()) }
+}
+
 @Composable
 fun SyllableQuizScreen(
     onNavigateBack: () -> Unit,
@@ -90,15 +118,7 @@ fun SyllableQuizScreen(
     val tts = remember { AndroidTextToSpeechHelper(context) }
     val isTtsReady by tts.isReady.collectAsState()
 
-    val quizItems = remember {
-        listOf(
-            SyllableQuizItem("sq_1", "MATA", "MA", "TA", listOf("KU", "CA", "MA", "GA", "SO", "TA")),
-            SyllableQuizItem("sq_2", "BUKU", "BU", "KU", listOf("BU", "SA", "PI", "KU", "DA", "LA")),
-            SyllableQuizItem("sq_3", "BATU", "BA", "TU", listOf("BA", "TU", "MA", "RI", "KA", "LI")),
-            SyllableQuizItem("sq_4", "BOLA", "BO", "LA", listOf("BO", "KU", "LA", "PA", "TA", "MI")),
-            SyllableQuizItem("sq_5", "KAKI", "KA", "KI", listOf("KA", "MA", "KI", "DA", "LU", "SI"))
-        )
-    }
+    var quizItems by remember { mutableStateOf(generateSyllableQuizSession()) }
 
     var sessionId by remember { mutableStateOf("session_syllable_${UUID.randomUUID()}") }
     var sessionStartedAt by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -120,7 +140,7 @@ fun SyllableQuizScreen(
     val isFilled = effectiveSlot1 != null && effectiveSlot2 != null
     val isCorrect = effectiveSlot1 == currentQ.part1 && effectiveSlot2 == currentQ.part2
 
-    LaunchedEffect(currentQuestionIndex, isTtsReady) {
+    LaunchedEffect(sessionId, currentQuestionIndex, isTtsReady) {
         if (isTtsReady && !showCompletionDialog) {
             tts.speak("Dengarkan baik-baik. Susun kata: ${quizItems[currentQuestionIndex].targetWord}.")
         }
@@ -585,6 +605,7 @@ fun SyllableQuizScreen(
                             style = AksaButtonStyle.SECONDARY_LIME,
                             onClick = {
                                 showCompletionDialog = false
+                                quizItems = generateSyllableQuizSession()
                                 currentQuestionIndex = 0
                                 slot1 = null
                                 slot2 = null
