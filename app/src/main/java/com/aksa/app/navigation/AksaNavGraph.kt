@@ -234,8 +234,8 @@ fun AksaNavGraph(
                     onNavigateToPronunciation = { _ ->
                         navController.navigate(Screen.PronunciationPractice.route)
                     },
-                    onNavigateToLetterLearning = { _ ->
-                        navController.navigate(Screen.LetterLearning.route)
+                    onNavigateToLetterLearning = { selectedLetter ->
+                        navController.navigate(Screen.LetterLearning.createRoute(selectedLetter))
                     },
                     onNavigateToHurufMirip = {
                         navController.navigate(Screen.HurufMirip.route)
@@ -244,9 +244,10 @@ fun AksaNavGraph(
             }
 
             // INTERACTIVE LETTER LEARNING & QUIZ
-            composable(Screen.LetterLearning.route) {
+            composable(Screen.LetterLearning.route) { backStackEntry ->
+                val selectedLetter = backStackEntry.arguments?.getString("letter") ?: "A"
                 LetterLearningScreen(
-                    startLetter = "A",
+                    startLetter = selectedLetter,
                     onNavigateBack = {
                         navController.popBackStack()
                     },
@@ -256,7 +257,7 @@ fun AksaNavGraph(
                         }
                     },
                     onNavigateToWriting = {
-                        navController.navigate(Screen.WritingPractice.route)
+                        navController.navigate(Screen.WritingPractice.createRoute(selectedLetter))
                     }
                 )
             }
@@ -269,15 +270,16 @@ fun AksaNavGraph(
                         navController.popBackStack()
                     },
                     onNavigateToWriting = {
-                        navController.navigate(Screen.WritingPractice.route)
+                        navController.navigate(Screen.WritingPractice.createRoute("A"))
                     }
                 )
             }
 
             // SCREEN 11 — WRITING PRACTICE
-            composable(Screen.WritingPractice.route) {
+            composable(Screen.WritingPractice.route) { backStackEntry ->
+                val selectedLetter = backStackEntry.arguments?.getString("letter") ?: "A"
                 WritingPracticeScreen(
-                    letter = "A",
+                    letter = selectedLetter,
                     onNavigateBack = {
                         navController.popBackStack()
                     },

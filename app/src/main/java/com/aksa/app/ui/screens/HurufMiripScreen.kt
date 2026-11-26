@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -49,6 +50,7 @@ import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
+import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaError
@@ -76,6 +78,7 @@ fun HurufMiripScreen(
 ) {
     val context = LocalContext.current
     val audioSpeaker = remember { AndroidTextToSpeechHelper(context) }
+    val isTtsReady by audioSpeaker.isReady.collectAsState()
 
     DisposableEffect(Unit) {
         onDispose {
@@ -94,6 +97,12 @@ fun HurufMiripScreen(
 
     val uiState by vm.uiState.collectAsState()
     val currentQuestion = uiState.currentQuestion
+
+    LaunchedEffect(uiState.currentQuestionIndex, isTtsReady) {
+        if (isTtsReady && currentQuestion != null && !uiState.showCompletionDialog) {
+            vm.playCurrentQuestionAudio()
+        }
+    }
 
     val handleExit = {
         if (!uiState.showCompletionDialog && uiState.currentQuestionIndex < uiState.totalQuestions) {
@@ -219,7 +228,7 @@ fun HurufMiripScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                            Row(
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
@@ -255,57 +264,53 @@ fun HurufMiripScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Huruf Mirip",
-                                fontFamily = Poppins,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = AksaOrange
-                            )
+                        Text(
+                            text = "Huruf Mirip",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = AksaOrange
+                        )
 
-                            Box(
-                                modifier = Modifier
-                                    .clip(PillShape)
-                                    .background(AksaYellow.copy(alpha = 0.25f))
-                                    .clickable { vm.playCurrentQuestionAudio() }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        painter = AksaIcons.volumeUp(),
-                                        contentDescription = "Dengarkan Suara",
-                                        tint = AksaDarkBrown,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Dengarkan",
-                                        fontFamily = Poppins,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = AksaDarkBrown
-                                    )
-                                }
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .clip(PillShape)
+                                .background(AksaYellow)
+                                .clickable { vm.playCurrentQuestionAudio() }
+                                .padding(horizontal = 24.dp, vertical = 12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = AksaIcons.volumeUp(),
+                                    contentDescription = "Dengarkan Suara",
+                                    tint = AksaDarkBrown,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Dengarkan Hurufnya",
+                                    fontFamily = Poppins,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = AksaDarkBrown
+                                )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Text(
-                            text = currentQuestion.promptText,
+                            text = "Ketuk huruf yang sesuai dengan suara!",
                             fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
                             textAlign = TextAlign.Center,
-                            color = AksaDarkBrown
+                            color = AksaDarkBrown.copy(alpha = 0.8f)
                         )
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(22.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -424,6 +429,8 @@ fun HurufMiripScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         MascotCheering(size = 120.dp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        EarnedStarsRow(accuracy = correct.toFloat() / total.toFloat())
 
                         Spacer(modifier = Modifier.height(12.dp))
 

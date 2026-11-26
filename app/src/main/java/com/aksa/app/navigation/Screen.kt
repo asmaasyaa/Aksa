@@ -12,7 +12,9 @@ sealed class Screen(val route: String) {
     data object LevelMap : Screen("level_map")
     data object AlphabetSelection : Screen("alphabet_selection")
     data object PronunciationPractice : Screen("pronunciation_practice")
-    data object WritingPractice : Screen("writing_practice")
+    data object WritingPractice : Screen("writing_practice/{letter}") {
+        fun createRoute(letter: String) = "writing_practice/${letter.uppercase()}"
+    }
     data object SyllableIntro : Screen("syllable_intro")
     data object SyllableExample : Screen("syllable_example")
     data object SyllableQuiz : Screen("syllable_quiz")
@@ -21,7 +23,9 @@ sealed class Screen(val route: String) {
     data object Profile : Screen("profile")
     data object ProgressAchievements : Screen("progress_achievements")
     data object HurufMirip : Screen("huruf_mirip")
-    data object LetterLearning : Screen("letter_learning")
+    data object LetterLearning : Screen("letter_learning/{letter}") {
+        fun createRoute(letter: String) = "letter_learning/${letter.uppercase()}"
+    }
     data object TangkapHuruf : Screen("tangkap_huruf")
 
     data object CreateProfile : Screen("create_profile")

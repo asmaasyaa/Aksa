@@ -1,6 +1,7 @@
 package com.aksa.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,23 +19,25 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.aksa.app.ui.components.AksaAlphabetCard
-import com.aksa.app.ui.components.AlphabetCardStatus
 import com.aksa.app.ui.components.MascotStanding
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaOrange
+import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
@@ -42,33 +45,53 @@ import com.aksa.app.ui.theme.Poppins
 
 private data class AlphabetData(
     val letter: String,
-    val wordHint: String,
-    val status: AlphabetCardStatus
+    val displayLabel: String,
+    val wordHint: String
 )
 
 @Composable
 fun AlphabetSelectionScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToPronunciation: (String) -> Unit = {},
+    @Suppress("UNUSED_PARAMETER") onNavigateToPronunciation: (String) -> Unit = {},
     onNavigateToLetterLearning: (String) -> Unit = {},
     onNavigateToHurufMirip: () -> Unit = {}
 ) {
-    val alphabetList = listOf(
-        AlphabetData("A", "Apel", AlphabetCardStatus.ACTIVE),
-        AlphabetData("B", "Bola", AlphabetCardStatus.COMPLETED),
-        AlphabetData("C", "Cacing", AlphabetCardStatus.COMPLETED),
-        AlphabetData("D", "Daun", AlphabetCardStatus.COMPLETED),
-        AlphabetData("E", "Ekor", AlphabetCardStatus.COMPLETED),
-        AlphabetData("F", "Foto", AlphabetCardStatus.COMPLETED),
-        AlphabetData("G", "Gajah", AlphabetCardStatus.LOCKED),
-        AlphabetData("H", "Hujan", AlphabetCardStatus.LOCKED),
-        AlphabetData("I", "Ikan", AlphabetCardStatus.LOCKED),
-        AlphabetData("J", "Jeruk", AlphabetCardStatus.LOCKED),
-        AlphabetData("K", "Kuda", AlphabetCardStatus.LOCKED),
-        AlphabetData("L", "Lilin", AlphabetCardStatus.LOCKED),
-        AlphabetData("M", "Mata", AlphabetCardStatus.LOCKED),
-        AlphabetData("N", "Nasi", AlphabetCardStatus.LOCKED)
-    )
+    val alphabetList = remember {
+        listOf(
+            "A" to "Apel",
+            "B" to "Bola",
+            "C" to "Cacing",
+            "D" to "Daun",
+            "E" to "Ekor",
+            "F" to "Foto",
+            "G" to "Gajah",
+            "H" to "Hujan",
+            "I" to "Ikan",
+            "J" to "Jeruk",
+            "K" to "Kuda",
+            "L" to "Lilin",
+            "M" to "Mata",
+            "N" to "Nasi",
+            "O" to "Obat",
+            "P" to "Paku",
+            "Q" to "Quran",
+            "R" to "Roda",
+            "S" to "Sapi",
+            "T" to "Topi",
+            "U" to "Ular",
+            "V" to "Vas",
+            "W" to "Wortel",
+            "X" to "Xilofon",
+            "Y" to "Yoyo",
+            "Z" to "Zebra"
+        ).map { (upper, hint) ->
+            AlphabetData(
+                letter = upper,
+                displayLabel = "$upper${upper.lowercase()}",
+                wordHint = hint
+            )
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -80,7 +103,6 @@ fun AlphabetSelectionScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Top App Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -114,14 +136,12 @@ fun AlphabetSelectionScreen(
                     }
                 }
 
-                // Mascot mini badge
                 MascotStanding(
                     modifier = Modifier.size(46.dp),
                     animated = false
                 )
             }
 
-            // Header Titles
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,13 +167,12 @@ fun AlphabetSelectionScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // REVISION 11: HURUF MIRIP MENU CARD
             val featureCardShape = RoundedCornerShape(26.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .shadow(elevation = 6.dp, shape = featureCardShape, spotColor = androidx.compose.ui.graphics.Color(0x33441100))
+                    .shadow(elevation = 6.dp, shape = featureCardShape, spotColor = Color(0x33441100))
                     .clip(featureCardShape)
                     .background(AksaWhite)
                     .clickable(onClick = onNavigateToHurufMirip)
@@ -212,11 +231,10 @@ fun AlphabetSelectionScreen(
 
                     Spacer(modifier = Modifier.width(10.dp))
 
-                    // Mascot appearing beside the card
                     Box(
                         modifier = Modifier
                             .size(68.dp)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .clip(CircleShape)
                             .background(AksaYellow.copy(alpha = 0.25f)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -227,7 +245,6 @@ fun AlphabetSelectionScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Two-column Alphabet Cards Grid
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 40.dp),
@@ -236,16 +253,72 @@ fun AlphabetSelectionScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(alphabetList) { item ->
-                    AksaAlphabetCard(
-                        letter = item.letter,
+                    ContrastAlphabetCard(
+                        displayLabel = item.displayLabel,
                         wordHint = item.wordHint,
-                        status = item.status,
                         onClick = {
                             onNavigateToLetterLearning(item.letter)
                         }
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ContrastAlphabetCard(
+    displayLabel: String,
+    wordHint: String,
+    onClick: () -> Unit
+) {
+    val cardShape = RoundedCornerShape(26.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(138.dp)
+            .shadow(6.dp, cardShape, spotColor = Color(0x33441100))
+            .clip(cardShape)
+            .background(AksaWhite)
+            .border(2.dp, AksaYellow, cardShape)
+            .clickable(onClick = onClick)
+            .padding(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(AksaPeachLight),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = AksaIcons.volumeUp(),
+                contentDescription = null,
+                tint = AksaOrange,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = displayLabel,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Bold,
+                fontSize = 38.sp,
+                color = AksaDarkBrown
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = wordHint,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Medium,
+                fontSize = 13.sp,
+                color = AksaOrange
+            )
         }
     }
 }
