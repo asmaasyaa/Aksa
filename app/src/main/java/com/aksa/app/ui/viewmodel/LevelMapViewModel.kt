@@ -4,8 +4,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.LevelReadinessStatus
 import com.aksa.app.domain.repository.LevelProgressRepository
 import com.aksa.app.domain.repository.SessionRepository
+import com.aksa.app.domain.usecase.EvaluateLevelReadinessUseCase
 import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.domain.usecase.GetLevelProgressionUseCase
 import com.aksa.app.domain.usecase.LevelMapProgress
@@ -25,8 +27,15 @@ data class LockedLevelDetails(
     val title: String,
     val prerequisiteTitle: String,
     val explanation: String,
-    val targetAccuracies: String = "Rata-rata akurasi minimal 80%",
-    val targetErrorLimit: String = "Tingkat kesalahan materi maksimal 40%",
+    val currentSessions: Int = 0,
+    val requiredSessions: Int = 3,
+    val currentAccuracyPercent: Int = 0,
+    val requiredAccuracyPercent: Int = 80,
+    val hasLetterErrorRateCheck: Boolean = false,
+    val isErrorRateMet: Boolean = false,
+    val errorRateSummary: String = "Selesaikan minimal 3 sesi dulu",
+    val targetAccuracies: String = "Rata-rata akurasi 3 sesi terakhir minimal 80%",
+    val targetErrorLimit: String = "Kesalahan huruf mirip (b/d/p/q/m/n/u/w) maks. 40%",
     val recommendedLevelNumber: Int = (levelNumber - 1).coerceAtLeast(1),
     val isReadError: Boolean = false
 )
@@ -65,10 +74,6 @@ class LevelMapViewModel(
         }
     }
 
-    /**
-     * Re-initializes observation for the active child profile.
-     * Cancels any ongoing observer job and clears previous profile progress immediately.
-     */
     fun onProfileChanged() {
         startObserving()
     }
@@ -76,7 +81,6 @@ class LevelMapViewModel(
     private fun startObserving() {
         observeJob?.cancel()
         observeJob = viewModelScope.launch {
-            // Reset immediately so previous child's progress is never shown during profile switch
             _uiState.value = LevelMapUiState(isLoading = true)
 
             val childId = try {
@@ -96,10 +100,8 @@ class LevelMapViewModel(
                 childId = childId
             )
 
-            // Evaluate immediately so initial load never stalls if a listener delays or completes empty
             updateProgressionState(childId)
 
-            // Reactively re-evaluate on subsequent session or unlock changes
             combine(
                 sessionRepository.observeCompletedSessions(childId),
                 levelProgressRepository.observeUnlockedLevels(childId)
@@ -195,12 +197,10 @@ class LevelMapViewModel(
         }
 
         if (status == LevelNodeStatus.LOCKED) {
-            // Show friendly explanation modal (or surfaced read error, never a misleading diagnosis)
             _uiState.value = state.copy(
                 selectedLockedLevel = buildLockedLevelDetails(levelNumber, state.progress, state.errorMessage)
             )
         } else {
-            // Level is unlocked / completed -> permit navigation
             onNavigate()
         }
     }
@@ -239,7 +239,44 @@ class LevelMapViewModel(
             else -> null
         }
 
-        val explanation = prereqProgress?.readinessResult?.explanation
+        val hasLetterCheck = prereqNumber == 1
+        val readiness = prereqProgress?.readinessResult
+        val currentSessions = readiness?.sessionCount ?: 0
+        val currentAccuracyPercent = ((readiness?.averageAccuracy ?: 0f) * 100).toInt()
+
+        val confusablePerformances = readiness?.targetPerformances?.values
+            ?.filter { it.target in EvaluateLevelReadinessUseCase.CONFUSABLE_LETTERS && it.totalAttempts >= 2 }
+            .orEmpty()
+
+        val failingLetters = confusablePerformances
+            .filter { it.errorRate > 0.40f + 1e-6f }
+            .sortedByDescending { it.errorRate }
+
+        val maxErrorRatePercent = confusablePerformances.maxOfOrNull { (it.errorRate * 100).toInt() }
+
+        val isErrorRateMet = hasLetterCheck &&
+                readiness != null &&
+                readiness.targetPerformances.isNotEmpty() &&
+                readiness.status != LevelReadinessStatus.HIGH_ERROR_RATE &&
+                readiness.status != LevelReadinessStatus.INSUFFICIENT_EVIDENCE
+
+        val errorRateSummary = when {
+            !hasLetterCheck -> ""
+            readiness == null || readiness.targetPerformances.isEmpty() ->
+                "Selesaikan minimal 3 sesi dengan akurasi ≥ 80% dulu"
+            failingLetters.isNotEmpty() -> {
+                val detail = failingLetters.joinToString(", ") {
+                    "'${it.target}' (${(it.errorRate * 100).toInt()}%)"
+                }
+                "Perlu dilatih: $detail"
+            }
+            maxErrorRatePercent != null ->
+                "Aman! Kesalahan tertinggi saat ini: $maxErrorRatePercent% (maks. 40%)"
+            else ->
+                "Tingkat kesalahan huruf mirip maksimal 40%"
+        }
+
+        val explanation = readiness?.explanation
             ?: "Selesaikan latihan di $prereqTitle terlebih dahulu untuk membuka petualangan ini!"
 
         return LockedLevelDetails(
@@ -247,6 +284,13 @@ class LevelMapViewModel(
             title = title,
             prerequisiteTitle = prereqTitle,
             explanation = explanation,
+            currentSessions = currentSessions,
+            requiredSessions = 3,
+            currentAccuracyPercent = currentAccuracyPercent,
+            requiredAccuracyPercent = 80,
+            hasLetterErrorRateCheck = hasLetterCheck,
+            isErrorRateMet = isErrorRateMet,
+            errorRateSummary = errorRateSummary,
             recommendedLevelNumber = prereqNumber,
             isReadError = false
         )

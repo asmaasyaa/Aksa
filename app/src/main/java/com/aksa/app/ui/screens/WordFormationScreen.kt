@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -57,9 +56,9 @@ import com.aksa.app.domain.model.SessionStatus
 import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
+import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
-import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -111,7 +110,7 @@ fun WordFormationScreen(
             WordQuestion(
                 id = "wq_2",
                 word = "BUKU",
-                emoji = "📚",
+                emoji = "📘",
                 clueText = "Tempat membaca cerita seru",
                 speechText = "Susun kata: BUKU. Tempat membaca cerita seru.",
                 letters = listOf("B", "U", "K", "U"),
@@ -341,7 +340,7 @@ fun WordFormationScreen(
                             WordTargetSlot(
                                 letter = letterInSlot,
                                 onClick = {
-                                    if (i < selectedIndices.size) {
+                                    if (i < selectedIndices.size && !isComplete) {
                                         selectedIndices.removeAt(i)
                                     }
                                 }
@@ -424,16 +423,16 @@ fun WordFormationScreen(
                                 onClick = {
                                     if (!isComplete && !isSelected) {
                                         selectedIndices.add(index)
+                                        // Ucapkan huruf yang diketuk terlebih dahulu
+                                        tts.speak(letter)
                                         if (selectedIndices.size == currentQ.letters.size) {
                                             val formed = selectedIndices.map { currentQ.shuffled[it] }
                                             if (formed == currentQ.letters) {
                                                 correctCount++
-                                                tts.speak("Benar! ${currentQ.word}!")
+                                                tts.speakQueued("Benar! ${currentQ.word}!")
                                             } else {
-                                                tts.speak("Belum tepat. Yang benar adalah ${currentQ.word}.")
+                                                tts.speakQueued("Belum tepat. Yang benar adalah ${currentQ.word}.")
                                             }
-                                        } else {
-                                            tts.speak(letter)
                                         }
                                     }
                                 }

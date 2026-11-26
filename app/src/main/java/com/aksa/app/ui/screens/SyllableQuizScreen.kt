@@ -53,11 +53,11 @@ import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaSyllableCard
+import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.components.SyllableCardColor
 import com.aksa.app.ui.state.AksaUserState
-import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
@@ -129,6 +129,24 @@ fun SyllableQuizScreen(
     DisposableEffect(Unit) {
         onDispose {
             tts.release()
+        }
+    }
+
+    fun handleSyllableTap(syl: String) {
+        if (isFilled) return
+        if (slot1 == null) {
+            slot1 = syl
+            tts.speak(syl)
+        } else if (slot2 == null && slot1 != syl) {
+            slot2 = syl
+            // Ucapkan suku kata yang dipilih dulu, lalu antrekan feedback jawaban agar tidak bertabrakan
+            tts.speak(syl)
+            if (slot1 == currentQ.part1 && syl == currentQ.part2) {
+                correctCount++
+                tts.speakQueued("Benar! ${currentQ.targetWord}!")
+            } else {
+                tts.speakQueued("Belum tepat. Yang benar adalah ${currentQ.targetWord}.")
+            }
         }
     }
 
@@ -360,22 +378,7 @@ fun SyllableQuizScreen(
                                 AksaSyllableCard(
                                     syllable = syl,
                                     colorTheme = if (isUsed) SyllableCardColor.ORANGE else SyllableCardColor.GREEN,
-                                    onClick = {
-                                        if (!isFilled) {
-                                            if (slot1 == null) {
-                                                slot1 = syl
-                                                tts.speak(syl)
-                                            } else if (slot2 == null && slot1 != syl) {
-                                                slot2 = syl
-                                                if (slot1 == currentQ.part1 && syl == currentQ.part2) {
-                                                    correctCount++
-                                                    tts.speak("Benar! ${currentQ.targetWord}!")
-                                                } else {
-                                                    tts.speak("Belum tepat. Yang benar adalah ${currentQ.targetWord}.")
-                                                }
-                                            }
-                                        }
-                                    }
+                                    onClick = { handleSyllableTap(syl) }
                                 )
                             }
                         }
@@ -393,22 +396,7 @@ fun SyllableQuizScreen(
                                 AksaSyllableCard(
                                     syllable = syl,
                                     colorTheme = if (isUsed) SyllableCardColor.ORANGE else SyllableCardColor.GREEN,
-                                    onClick = {
-                                        if (!isFilled) {
-                                            if (slot1 == null) {
-                                                slot1 = syl
-                                                tts.speak(syl)
-                                            } else if (slot2 == null && slot1 != syl) {
-                                                slot2 = syl
-                                                if (slot1 == currentQ.part1 && syl == currentQ.part2) {
-                                                    correctCount++
-                                                    tts.speak("Benar! ${currentQ.targetWord}!")
-                                                } else {
-                                                    tts.speak("Belum tepat. Yang benar adalah ${currentQ.targetWord}.")
-                                                }
-                                            }
-                                        }
-                                    }
+                                    onClick = { handleSyllableTap(syl) }
                                 )
                             }
                         }

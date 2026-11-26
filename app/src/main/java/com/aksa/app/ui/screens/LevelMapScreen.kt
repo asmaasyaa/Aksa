@@ -1,8 +1,19 @@
 package com.aksa.app.ui.screens
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -25,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,8 +48,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,14 +61,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaLevelNode
-import com.aksa.app.ui.components.LevelNodeStatus
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.components.MascotPeeking
-import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -66,6 +79,7 @@ import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
 import com.aksa.app.ui.viewmodel.LevelMapViewModel
 import com.aksa.app.ui.viewmodel.LockedLevelDetails
+import kotlinx.coroutines.launch
 
 @Composable
 fun LevelMapScreen(
@@ -81,7 +95,6 @@ fun LevelMapScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
 
-    // Refresh level progression whenever returning to the Level Map from a learning session
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME && !uiState.isLoading) {
@@ -106,46 +119,13 @@ fun LevelMapScreen(
             .fillMaxSize()
             .background(AksaLime)
     ) {
-        // Scrollable Adventure Map Landscape
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 60.dp)
+                .padding(bottom = 48.dp)
         ) {
-            Spacer(modifier = Modifier.height(110.dp))
-
-            // Mini-Game & Dev Quick Access Banner
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Mini-Game Tangkap Huruf Pill
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(AksaWhite)
-                        .clickable { onNavigateToTangkapHuruf() }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Tangkap Huruf",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            color = AksaDarkBrown
-                        )
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(84.dp))
 
             uiState.errorMessage?.let { errorMsg ->
                 Box(
@@ -169,29 +149,26 @@ fun LevelMapScreen(
                 }
             }
 
-            // The Map Canvas containing the path and nodes
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(860.dp)
+                    .height(820.dp)
             ) {
-                // Background Vector Illustration (Winding Road, Mountains, Trees, River)
                 AdventureMapCanvas(modifier = Modifier.fillMaxSize())
 
-                // Mascot Peeking near Level 1
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .offset(x = 24.dp, y = (-70).dp)
+                        .offset(x = 24.dp, y = (-50).dp)
                 ) {
                     MascotPeeking(width = 90.dp, height = 60.dp)
                 }
 
-                // LEVEL 4 — Sungai Cerita (Top Right)
+                // LEVEL 4 — Sungai Cerita
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = 60.dp, y = 50.dp)
+                        .offset(x = 60.dp, y = 40.dp)
                 ) {
                     AksaLevelNode(
                         levelNumber = 4,
@@ -203,11 +180,11 @@ fun LevelMapScreen(
                     )
                 }
 
-                // LEVEL 3 — Gunung Kata (Middle Left)
+                // LEVEL 3 — Gunung Kata
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = (-80).dp, y = 240.dp)
+                        .offset(x = (-80).dp, y = 230.dp)
                 ) {
                     AksaLevelNode(
                         levelNumber = 3,
@@ -219,11 +196,11 @@ fun LevelMapScreen(
                     )
                 }
 
-                // LEVEL 2 — Dunia Suku Kata (Middle Right)
+                // LEVEL 2 — Dunia Suku Kata
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = 80.dp, y = 440.dp)
+                        .offset(x = 80.dp, y = 430.dp)
                 ) {
                     AksaLevelNode(
                         levelNumber = 2,
@@ -235,11 +212,11 @@ fun LevelMapScreen(
                     )
                 }
 
-                // LEVEL 1 — Pulau Alfabet (Bottom Center-Left)
+                // LEVEL 1 — Pulau Alfabet
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(x = (-40).dp, y = 640.dp)
+                        .offset(x = (-40).dp, y = 630.dp)
                 ) {
                     AksaLevelNode(
                         levelNumber = 1,
@@ -251,9 +228,15 @@ fun LevelMapScreen(
                     )
                 }
             }
+
+            // Kartu Tangkap Huruf di bagian bawah
+            TangkapHurufActionCard(
+                onClick = onNavigateToTangkapHuruf,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
         }
 
-        // Fixed Top Floating App Bar with Back and Title
+        // Fixed Top Floating App Bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -265,7 +248,6 @@ fun LevelMapScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Back Button
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -283,7 +265,6 @@ fun LevelMapScreen(
                     )
                 }
 
-                // Header Badge Pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, RoundedCornerShape(24.dp))
@@ -300,7 +281,6 @@ fun LevelMapScreen(
                     )
                 }
 
-                // Balance spacer for centered pill
                 Spacer(modifier = Modifier.size(48.dp))
             }
         }
@@ -327,11 +307,149 @@ fun LevelMapScreen(
 }
 
 @Composable
+private fun TangkapHurufActionCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        label = "TangkapHurufCardScale"
+    )
+
+    val infiniteTransition = rememberInfiniteTransition(label = "TangkapHurufWiggle")
+
+    // Getaran halus berkala agar kartu terlihat bisa ditekan
+    val cardShakeRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 2200
+                0f at 0 using FastOutSlowInEasing
+                -1.4f at 90 using FastOutSlowInEasing
+                1.4f at 180 using FastOutSlowInEasing
+                -1.0f at 270 using FastOutSlowInEasing
+                1.0f at 360 using FastOutSlowInEasing
+                0f at 450 using FastOutSlowInEasing
+                0f at 2200
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "CardShakeRotation"
+    )
+
+    val iconBounceY by infiniteTransition.animateFloat(
+        initialValue = -2f,
+        targetValue = 3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "IconBounceY"
+    )
+
+    val cardShape = RoundedCornerShape(24.dp)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                rotationZ = if (isPressed) 0f else cardShakeRotation
+            }
+            .shadow(8.dp, cardShape, spotColor = Color(0x33441100))
+            .clip(cardShape)
+            .background(AksaWhite)
+            .border(2.5.dp, AksaYellow, cardShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(AksaPeachLight),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = AksaIcons.star(),
+                    contentDescription = "Ikon Tangkap Huruf",
+                    tint = AksaOrange,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .graphicsLayer { translationY = iconBounceY }
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Tangkap Huruf",
+                    fontFamily = Poppins,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = AksaDarkBrown
+                )
+                Text(
+                    text = "Main sambil belajar huruf",
+                    fontFamily = Poppins,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                    color = AksaDarkBrown.copy(alpha = 0.7f)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Box(
+                modifier = Modifier
+                    .clip(PillShape)
+                    .background(AksaOrange)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = AksaIcons.arrowForward(),
+                        contentDescription = "Main",
+                        tint = AksaWhite,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Main",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = AksaWhite
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun LockedLevelExplanationDialog(
     locked: LockedLevelDetails,
     onPracticePrerequisite: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val isSessionsMet = locked.currentSessions >= locked.requiredSessions
+    val isAccuracyMet = isSessionsMet && locked.currentAccuracyPercent >= locked.requiredAccuracyPercent
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -341,30 +459,30 @@ private fun LockedLevelExplanationDialog(
     ) {
         Box(
             modifier = Modifier
-                .padding(horizontal = 28.dp)
+                .padding(horizontal = 24.dp)
                 .clip(RoundedCornerShape(28.dp))
                 .background(AksaWhite)
                 .clickable(enabled = false) {}
-                .padding(24.dp)
+                .padding(22.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                MascotLearning(size = 90.dp, animated = false)
+                MascotLearning(size = 84.dp, animated = false)
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = if (locked.isReadError) "Gagal Memuat Progres" else "${locked.title} Terkunci \uD83D\uDD12",
+                    text = if (locked.isReadError) "Gagal Memuat Progres" else "${locked.title} Terkunci 🔒",
                     fontFamily = Poppins,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
+                    fontSize = 19.sp,
                     color = AksaDarkBrown,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = locked.explanation,
@@ -372,77 +490,55 @@ private fun LockedLevelExplanationDialog(
                     fontSize = 13.sp,
                     color = AksaDarkBrown.copy(alpha = 0.85f),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 6.dp)
                 )
 
                 if (!locked.isReadError) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Requirements checklist card
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(18.dp))
-                            .background(AksaPeachLight.copy(alpha = 0.5f))
+                            .background(AksaPeachLight.copy(alpha = 0.55f))
                             .padding(14.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(
-                                text = "Syarat Membuka Level:",
+                                text = "Progres & Syarat Membuka Level:",
                                 fontFamily = Poppins,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
                                 color = AksaDarkBrown
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    painter = AksaIcons.check(),
-                                    contentDescription = null,
-                                    tint = AksaLimeDark,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Minimal 3 sesi selesai di ${locked.prerequisiteTitle}",
-                                    fontFamily = Poppins,
-                                    fontSize = 11.sp,
-                                    color = AksaDarkBrown
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    painter = AksaIcons.check(),
-                                    contentDescription = null,
-                                    tint = AksaLimeDark,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = locked.targetAccuracies,
-                                    fontFamily = Poppins,
-                                    fontSize = 11.sp,
-                                    color = AksaDarkBrown
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    painter = AksaIcons.check(),
-                                    contentDescription = null,
-                                    tint = AksaLimeDark,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = locked.targetErrorLimit,
-                                    fontFamily = Poppins,
-                                    fontSize = 11.sp,
-                                    color = AksaDarkBrown
+
+                            RequirementStatusRow(
+                                isMet = isSessionsMet,
+                                title = "Minimal ${locked.requiredSessions} sesi selesai di ${locked.prerequisiteTitle}",
+                                currentStatus = "Saat ini: ${locked.currentSessions} / ${locked.requiredSessions} sesi"
+                            )
+
+                            RequirementStatusRow(
+                                isMet = isAccuracyMet,
+                                title = locked.targetAccuracies,
+                                currentStatus = if (locked.currentSessions > 0) {
+                                    "Saat ini: ${locked.currentAccuracyPercent}% (target ${locked.requiredAccuracyPercent}%)"
+                                } else {
+                                    "Saat ini: 0% (belum ada sesi)"
+                                }
+                            )
+
+                            if (locked.hasLetterErrorRateCheck) {
+                                RequirementStatusRow(
+                                    isMet = locked.isErrorRateMet,
+                                    title = locked.targetErrorLimit,
+                                    currentStatus = locked.errorRateSummary
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     AksaButton(
                         text = "Ayo Latihan di ${locked.prerequisiteTitle}",
@@ -452,7 +548,7 @@ private fun LockedLevelExplanationDialog(
 
                     Spacer(modifier = Modifier.height(10.dp))
                 } else {
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
                 }
 
                 AksaButton(
@@ -465,21 +561,72 @@ private fun LockedLevelExplanationDialog(
     }
 }
 
-/**
- * Draws the picturesque, storybook-style 2D vector environment.
- */
+@Composable
+private fun RequirementStatusRow(
+    isMet: Boolean,
+    title: String,
+    currentStatus: String
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .size(18.dp)
+                .clip(CircleShape)
+                .background(if (isMet) AksaLimeDark else AksaOrange.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isMet) {
+                Icon(
+                    painter = AksaIcons.check(),
+                    contentDescription = "Tercapai",
+                    tint = AksaWhite,
+                    modifier = Modifier.size(12.dp)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(AksaOrange)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 11.sp,
+                color = AksaDarkBrown
+            )
+            Text(
+                text = currentStatus,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp,
+                color = if (isMet) AksaLimeDark else AksaOrange
+            )
+        }
+    }
+}
+
 @Composable
 private fun AdventureMapCanvas(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
 
-        // 1. Distant Mountain Ranges (Top / Level 3 & 4 backdrop)
         drawMountain(base = Offset(w * 0.2f, 180.dp.toPx()), size = 110.dp.toPx(), color = Color(0xFF81B828))
         drawMountain(base = Offset(w * 0.45f, 150.dp.toPx()), size = 140.dp.toPx(), color = Color(0xFF6E9F20))
         drawMountain(base = Offset(w * 0.8f, 190.dp.toPx()), size = 120.dp.toPx(), color = Color(0xFF81B828))
 
-        // 2. Winding River (Sungai Cerita) near the top (Level 4 - Blue Path)
         val riverPath = Path().apply {
             moveTo(w * 0.45f, 0f)
             cubicTo(w * 0.65f, 60.dp.toPx(), w * 0.35f, 120.dp.toPx(), w * 0.55f, 190.dp.toPx())
@@ -491,7 +638,6 @@ private fun AdventureMapCanvas(modifier: Modifier = Modifier) {
         }
         drawPath(riverPath, color = AksaBlue)
 
-        // Small Lake / Pond near Level 3 (Middle Left)
         val lakePath = Path().apply {
             moveTo(w * 0.05f, h * 0.38f)
             cubicTo(w * 0.25f, h * 0.34f, w * 0.35f, h * 0.44f, w * 0.20f, h * 0.52f)
@@ -499,7 +645,6 @@ private fun AdventureMapCanvas(modifier: Modifier = Modifier) {
             close()
         }
         drawPath(lakePath, color = AksaBlue)
-        // Little water reflection ripples
         drawLine(
             color = AksaWhite.copy(alpha = 0.7f),
             start = Offset(w * 0.12f, h * 0.42f),
@@ -508,43 +653,38 @@ private fun AdventureMapCanvas(modifier: Modifier = Modifier) {
             cap = StrokeCap.Round
         )
 
-        // 3. Winding WHITE Adventure Path
         val path = Path().apply {
-            val p1 = Offset(w * 0.5f - 40.dp.toPx(), 670.dp.toPx())
-            val p2 = Offset(w * 0.5f + 80.dp.toPx(), 470.dp.toPx())
-            val p3 = Offset(w * 0.5f - 80.dp.toPx(), 270.dp.toPx())
-            val p4 = Offset(w * 0.5f + 60.dp.toPx(), 80.dp.toPx())
+            val p1 = Offset(w * 0.5f - 40.dp.toPx(), 660.dp.toPx())
+            val p2 = Offset(w * 0.5f + 80.dp.toPx(), 460.dp.toPx())
+            val p3 = Offset(w * 0.5f - 80.dp.toPx(), 260.dp.toPx())
+            val p4 = Offset(w * 0.5f + 60.dp.toPx(), 70.dp.toPx())
 
             moveTo(p1.x, p1.y)
-            cubicTo(w * 0.2f, 570.dp.toPx(), w * 0.85f, 570.dp.toPx(), p2.x, p2.y)
-            cubicTo(w * 0.9f, 370.dp.toPx(), w * 0.15f, 370.dp.toPx(), p3.x, p3.y)
-            cubicTo(w * 0.1f, 170.dp.toPx(), w * 0.75f, 170.dp.toPx(), p4.x, p4.y)
+            cubicTo(w * 0.2f, 560.dp.toPx(), w * 0.85f, 560.dp.toPx(), p2.x, p2.y)
+            cubicTo(w * 0.9f, 360.dp.toPx(), w * 0.15f, 360.dp.toPx(), p3.x, p3.y)
+            cubicTo(w * 0.1f, 160.dp.toPx(), w * 0.75f, 160.dp.toPx(), p4.x, p4.y)
         }
 
-        // Path border / tactile shadow
         drawPath(
             path = path,
             color = Color(0x33441100),
             style = Stroke(width = 46f, cap = StrokeCap.Round)
         )
-        // Path base (bright pure white)
         drawPath(
             path = path,
             color = AksaWhite,
             style = Stroke(width = 38f, cap = StrokeCap.Round)
         )
-        // Dotted center line (soft peach / orange dashes)
         drawPath(
             path = path,
             color = AksaYellow.copy(alpha = 0.8f),
             style = Stroke(
                 width = 8f,
                 cap = StrokeCap.Round,
-                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(20f, 20f), 0f)
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 20f), 0f)
             )
         )
 
-        // 4. Flat Vector Decorations along the path
         drawMapTree(Offset(w * 0.78f, h * 0.72f), 22f)
         drawMapTree(Offset(w * 0.86f, h * 0.76f), 18f)
         drawMapTree(Offset(w * 0.18f, h * 0.78f), 24f)
@@ -561,7 +701,7 @@ private fun AdventureMapCanvas(modifier: Modifier = Modifier) {
     }
 }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMountain(base: Offset, size: Float, color: Color) {
+private fun DrawScope.drawMountain(base: Offset, size: Float, color: Color) {
     val mPath = Path().apply {
         moveTo(base.x - size, base.y + size * 0.8f)
         lineTo(base.x, base.y - size * 0.8f)
@@ -571,7 +711,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMountain(base: 
     drawPath(mPath, color = color)
 }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMapTree(base: Offset, size: Float) {
+private fun DrawScope.drawMapTree(base: Offset, size: Float) {
     drawLine(
         color = AksaDarkBrown,
         start = base,
@@ -582,7 +722,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMapTree(base: O
     drawCircle(color = Color(0xFF6DA118), radius = size * 0.45f, center = Offset(base.x - size * 0.2f, base.y - size * 0.2f))
 }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSmallHouse(pos: Offset, size: Float) {
+private fun DrawScope.drawSmallHouse(pos: Offset, size: Float) {
     drawRoundRect(
         color = AksaWhite,
         topLeft = pos,
@@ -604,7 +744,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSmallHouse(pos:
     )
 }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBush(pos: Offset, r: Float) {
+private fun DrawScope.drawBush(pos: Offset, r: Float) {
     drawCircle(color = Color(0xFF75A61E), radius = r, center = pos)
     drawCircle(color = Color(0xFF8BBF29), radius = r * 0.75f, center = Offset(pos.x + r * 0.6f, pos.y))
 }

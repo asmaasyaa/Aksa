@@ -30,11 +30,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,11 +45,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
-import com.aksa.app.ui.components.AksaProgressBar
 import com.aksa.app.ui.components.AksaProfileCard
+import com.aksa.app.ui.components.AksaProgressBar
 import com.aksa.app.ui.components.MascotHeadband
+import com.aksa.app.ui.components.WeeklyActivityCard
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
@@ -65,19 +67,20 @@ import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
     onNavigateToLevelMap: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    viewModel: com.aksa.app.ui.viewmodel.HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: HomeViewModel = viewModel()
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
 
-    androidx.compose.runtime.LaunchedEffect(AksaUserState.currentProfileId) {
+    LaunchedEffect(AksaUserState.currentProfileId) {
         viewModel.loadData()
     }
 
@@ -89,6 +92,9 @@ fun HomeScreen(
     val avatarId = profile?.avatarId ?: AksaUserState.avatarId
     val effectiveWeeklyProgress = uiState.weeklyProgress
     val currentStreak = effectiveWeeklyProgress?.currentStreak ?: AksaUserState.streakCount
+    val currentModuleNumber = uiState.activeModuleNumber
+    val completedModules = uiState.completedModulesCount
+    val totalModules = uiState.totalModulesCount.coerceAtLeast(1)
 
     Box(
         modifier = Modifier
@@ -107,14 +113,14 @@ fun HomeScreen(
             AksaProfileCard(
                 name = displayName.uppercase(),
                 age = displayAge,
-                level = AksaUserState.level,
+                level = uiState.activeModuleBadgeLabel,
                 streakCount = currentStreak,
                 avatarId = avatarId
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            com.aksa.app.ui.components.WeeklyActivityCard(
+            WeeklyActivityCard(
                 weeklyProgress = effectiveWeeklyProgress
             )
 
@@ -167,7 +173,7 @@ fun HomeScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "MODUL 1",
+                                    text = "MODUL $currentModuleNumber",
                                     fontFamily = Poppins,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp,
@@ -180,7 +186,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(18.dp))
 
                     Text(
-                        text = "Petualangan Membaca",
+                        text = uiState.activeModuleTitle,
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
@@ -188,7 +194,7 @@ fun HomeScreen(
                     )
 
                     Text(
-                        text = "Latihan pengenalan huruf dan bunyi suara kata",
+                        text = uiState.activeModuleDescription,
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Normal,
                         fontSize = 13.sp,
@@ -209,7 +215,7 @@ fun HomeScreen(
                             color = AksaDarkBrown
                         )
                         Text(
-                            text = "3 / 8 Selesai",
+                            text = "$completedModules / $totalModules Selesai",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
@@ -220,7 +226,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     AksaProgressBar(
-                        progress = 3f / 8f,
+                        progress = completedModules.toFloat() / totalModules.toFloat(),
                         height = 14.dp
                     )
 
@@ -234,7 +240,7 @@ fun HomeScreen(
                         fontSize = 18.sp,
                         onClick = {
                             scope.launch {
-                                snackbarHostState.showSnackbar("Memulai modul latihan petualangan!")
+                                snackbarHostState.showSnackbar("Memulai ${uiState.activeModuleTitle}!")
                             }
                             onNavigateToLevelMap()
                         }
@@ -303,7 +309,7 @@ private fun LandscapeIllustration() {
             lineTo(w, h)
             lineTo(0f, h)
             close()
-        }   
+        }
         drawPath(hillPath2, color = AksaLime)
 
         drawMiniTree(Offset(w * 0.12f, h * 0.68f), 18f)
