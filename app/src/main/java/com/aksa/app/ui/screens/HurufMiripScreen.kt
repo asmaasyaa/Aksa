@@ -443,7 +443,7 @@ fun HurufMiripScreen(
                         )
 
                         Text(
-                            text = "Hebat! Kamu telah menyelesaikan 10 soal latihan huruf mirip b, d, p, dan q.",
+                            text = "Hebat! Kamu telah menyelesaikan $total soal latihan huruf mirip b, d, p, q, m, n, u, dan w.",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Normal,
                             fontSize = 13.sp,

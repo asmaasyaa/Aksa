@@ -21,15 +21,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotLearning
@@ -47,6 +52,20 @@ fun SyllableIntroScreen(
     onNavigateBack: () -> Unit,
     onNavigateToExample: () -> Unit
 ) {
+    val context = LocalContext.current
+    val tts = remember { AndroidTextToSpeechHelper(context) }
+    val welcomeSpeech = "Selamat datang di Dunia Suku Kata! Mari belajar membentuk kata dari gabungan suku kata yang menyenangkan!"
+
+    LaunchedEffect(Unit) {
+        tts.speak(welcomeSpeech)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            tts.release()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -140,17 +159,19 @@ fun SyllableIntroScreen(
                     Box(
                         modifier = Modifier
                             .align(Alignment.End)
-                            .size(36.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(AksaSoftPeach)
-                            .clickable { /* Audio hint */ },
+                            .clickable {
+                                tts.speak(welcomeSpeech)
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = AksaIcons.volumeUp(),
                             contentDescription = "Bunyikan",
                             tint = AksaDarkBrown,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
 

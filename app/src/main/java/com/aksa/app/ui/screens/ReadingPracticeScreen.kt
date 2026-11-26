@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -99,9 +100,9 @@ fun ReadingPracticeScreen(
 
     val storyPanels = remember {
         listOf(
-            StoryPanel("Kancil dan Kebun Buah", "Kancil berjalan riang ke kebun buah di dekat sungai yang jernih.", "🦌🌳"),
+            StoryPanel("Kancil dan Kebun Buah", "Kancil berjalan riang ke kebun buah di dekat sungai yang jernih.", "🦊🌊"),
             StoryPanel("Apel Merah yang Manis", "Di kebun, Kancil memetik buah apel merah yang matang dan manis rasanya.", "🍎🧺"),
-            StoryPanel("Berbagi Bersama Sahabat", "Kancil membagikan buah apel kepada burung pipit dan kelinci sahabatnya.", "🐰🐦")
+            StoryPanel("Berbagi Bersama Sahabat", "Kancil membagikan buah apel kepada burung pipit dan kelinci sahabatnya.", "🐦🐰")
         )
     }
 
@@ -136,9 +137,25 @@ fun ReadingPracticeScreen(
     val effectiveIsCorrect = isCorrect
     val effectiveSelectedChoice = selectedChoice
 
+    // Otomatis bacakan setiap panel cerita (termasuk panel pertama) & pertanyaan kuis
+    LaunchedEffect(effectiveStage, currentPanelIndex, currentQuestionIndex) {
+        when (effectiveStage) {
+            ReadingStage.READING_STORY -> {
+                val panel = storyPanels[currentPanelIndex]
+                tts.speak("${panel.title}. ${panel.text}")
+            }
+            ReadingStage.COMPREHENSION_QUIZ -> {
+                tts.speak(questions[currentQuestionIndex].questionText)
+            }
+            ReadingStage.COMPLETION -> {
+                tts.speak("Petualangan selesai! Selamat, kamu telah menyelesaikan Sungai Cerita.")
+            }
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
-            tts.stop()
+            tts.release()
         }
     }
 
@@ -348,11 +365,9 @@ fun ReadingPracticeScreen(
                             onClick = {
                                 if (currentPanelIndex < storyPanels.size - 1) {
                                     currentPanelIndex++
-                                    tts.speak(storyPanels[currentPanelIndex].text)
                                 } else {
                                     stage = ReadingStage.COMPREHENSION_QUIZ
                                     currentQuestionIndex = 0
-                                    tts.speak(questions[0].questionText)
                                 }
                             },
                             modifier = Modifier.weight(1f)
@@ -570,7 +585,6 @@ fun ReadingPracticeScreen(
                                         selectedChoice = null
                                         isAnswered = false
                                         isCorrect = false
-                                        tts.speak(questions[currentQuestionIndex].questionText)
                                     } else {
                                         if (!sessionCommitted) {
                                             sessionCommitted = true

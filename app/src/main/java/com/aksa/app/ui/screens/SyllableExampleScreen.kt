@@ -22,6 +22,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,9 +34,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaSyllableCard
@@ -47,10 +52,6 @@ import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import com.aksa.app.audio.AndroidTextToSpeechHelper
 
 @Composable
 fun SyllableExampleScreen(
@@ -59,10 +60,15 @@ fun SyllableExampleScreen(
 ) {
     val context = LocalContext.current
     val tts = remember { AndroidTextToSpeechHelper(context) }
+    val exampleSpeech = "Perhatikan contoh berikut. Suku kata MA, ditambah suku kata TA, menjadi MATA."
+
+    LaunchedEffect(Unit) {
+        tts.speak(exampleSpeech)
+    }
 
     DisposableEffect(Unit) {
         onDispose {
-            tts.stop()
+            tts.release()
         }
     }
 
@@ -171,7 +177,7 @@ fun SyllableExampleScreen(
                         AksaSyllableCard(
                             syllable = "MA",
                             colorTheme = SyllableCardColor.GREEN,
-                            onClick = {}
+                            onClick = { tts.speak("MA") }
                         )
 
                         Text(
@@ -185,7 +191,7 @@ fun SyllableExampleScreen(
                         AksaSyllableCard(
                             syllable = "TA",
                             colorTheme = SyllableCardColor.GREEN,
-                            onClick = {}
+                            onClick = { tts.speak("TA") }
                         )
                     }
 
@@ -227,7 +233,7 @@ fun SyllableExampleScreen(
                                     .clip(CircleShape)
                                     .background(AksaWhite)
                                     .clickable {
-                                        tts.speak("Suku kata M A, ma. Suku kata T A, ta. MA ditambah TA menjadi MATA.")
+                                        tts.speak(exampleSpeech)
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -267,28 +273,23 @@ fun EyesIllustration() {
         val leftEyeCenter = Offset(w * 0.32f, h * 0.5f)
         val rightEyeCenter = Offset(w * 0.68f, h * 0.5f)
 
-        // Sclera (White base)
         drawCircle(color = AksaWhite, radius = eyeRadius, center = leftEyeCenter)
         drawCircle(color = AksaWhite, radius = eyeRadius, center = rightEyeCenter)
 
-        // Eyeball Border
         drawCircle(color = AksaDarkBrown, radius = eyeRadius, center = leftEyeCenter, style = Stroke(width = 4f))
         drawCircle(color = AksaDarkBrown, radius = eyeRadius, center = rightEyeCenter, style = Stroke(width = 4f))
 
-        // Pupils (Dark Brown)
         val pupilRadius = 18f
         val pupilOffset = 4f
         drawCircle(color = AksaDarkBrown, radius = pupilRadius, center = leftEyeCenter.copy(y = leftEyeCenter.y + pupilOffset))
         drawCircle(color = AksaDarkBrown, radius = pupilRadius, center = rightEyeCenter.copy(y = rightEyeCenter.y + pupilOffset))
 
-        // Sparkle reflection highlights
         drawCircle(color = AksaWhite, radius = 6f, center = Offset(leftEyeCenter.x - 5f, leftEyeCenter.y - 2f))
         drawCircle(color = AksaWhite, radius = 3.5f, center = Offset(leftEyeCenter.x + 6f, leftEyeCenter.y + 6f))
 
         drawCircle(color = AksaWhite, radius = 6f, center = Offset(rightEyeCenter.x - 5f, rightEyeCenter.y - 2f))
         drawCircle(color = AksaWhite, radius = 3.5f, center = Offset(rightEyeCenter.x + 6f, rightEyeCenter.y + 6f))
 
-        // Eyebrows
         val browPathLeft = Path().apply {
             moveTo(leftEyeCenter.x - 24f, leftEyeCenter.y - 38f)
             quadraticTo(leftEyeCenter.x, leftEyeCenter.y - 48f, leftEyeCenter.x + 22f, leftEyeCenter.y - 40f)
