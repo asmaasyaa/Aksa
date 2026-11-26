@@ -1,5 +1,6 @@
 package com.aksa.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,7 +25,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
+import com.aksa.app.ui.components.AksaExitConfirmationDialog
 import com.aksa.app.ui.components.AksaSyllableCard
 import com.aksa.app.ui.components.SyllableCardColor
 import com.aksa.app.ui.theme.AksaDarkBrown
@@ -61,6 +66,19 @@ fun SyllableExampleScreen(
     val context = LocalContext.current
     val tts = remember { AndroidTextToSpeechHelper(context) }
     val exampleSpeech = "Perhatikan contoh berikut. Suku kata MA, ditambah suku kata TA, menjadi MATA."
+    var showExitConfirmation by remember { mutableStateOf(false) }
+
+    val requestExit = {
+        showExitConfirmation = true
+    }
+
+    BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
 
     LaunchedEffect(Unit) {
         tts.speak(exampleSpeech)
@@ -96,7 +114,7 @@ fun SyllableExampleScreen(
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -256,6 +274,17 @@ fun SyllableExampleScreen(
                     )
                 }
             }
+        }
+
+        if (showExitConfirmation) {
+            AksaExitConfirmationDialog(
+                isMiniGame = false,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    onNavigateBack()
+                }
+            )
         }
     }
 }

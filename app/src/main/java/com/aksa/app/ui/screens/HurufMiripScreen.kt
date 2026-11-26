@@ -32,7 +32,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -97,6 +99,7 @@ fun HurufMiripScreen(
 
     val uiState by vm.uiState.collectAsState()
     val currentQuestion = uiState.currentQuestion
+    var showExitConfirmation by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.currentQuestionIndex, isTtsReady) {
         if (isTtsReady && currentQuestion != null && !uiState.showCompletionDialog) {
@@ -104,14 +107,21 @@ fun HurufMiripScreen(
         }
     }
 
-    val handleExit = {
+    val requestExit = {
         if (!uiState.showCompletionDialog && uiState.currentQuestionIndex < uiState.totalQuestions) {
-            vm.abandonSession()
+            showExitConfirmation = true
+        } else {
+            onNavigateBack()
         }
-        onNavigateBack()
     }
 
-    BackHandler(onBack = handleExit)
+    BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -137,7 +147,7 @@ fun HurufMiripScreen(
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = handleExit)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -551,6 +561,18 @@ fun HurufMiripScreen(
                     }
                 }
             }
+        }
+
+        if (showExitConfirmation) {
+            com.aksa.app.ui.components.AksaExitConfirmationDialog(
+                isMiniGame = false,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    vm.abandonSession()
+                    onNavigateBack()
+                }
+            )
         }
     }
 }
