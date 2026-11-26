@@ -53,10 +53,10 @@ import com.aksa.app.domain.model.SessionStatus
 import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
+import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.state.AksaUserState
-import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaError
@@ -67,7 +67,6 @@ import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaSuccessLight
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
@@ -110,7 +109,19 @@ private val ALL_ALPHABET_DATA = listOf(
     LetterIntroData("K", "Kuda", "K untuk Kuda yang berlari"),
     LetterIntroData("L", "Lilin", "L untuk Lilin yang terang"),
     LetterIntroData("M", "Mata", "M untuk Mata yang melihat"),
-    LetterIntroData("N", "Nasi", "N untuk Nasi yang hangat")
+    LetterIntroData("N", "Nasi", "N untuk Nasi yang hangat"),
+    LetterIntroData("O", "Obat", "O untuk Obat penyembuh"),
+    LetterIntroData("P", "Paku", "P untuk Paku di dinding"),
+    LetterIntroData("Q", "Quran", "Q untuk Quran kitab suci"),
+    LetterIntroData("R", "Roda", "R untuk Roda berputar"),
+    LetterIntroData("S", "Sapi", "S untuk Sapi di padang rumput"),
+    LetterIntroData("T", "Topi", "T untuk Topi pelindung kepala"),
+    LetterIntroData("U", "Ular", "U untuk Ular melata"),
+    LetterIntroData("V", "Vas", "V untuk Vas bunga cantik"),
+    LetterIntroData("W", "Wortel", "W untuk Wortel kesukaan kelinci"),
+    LetterIntroData("X", "Xilofon", "X untuk Xilofon alat musik"),
+    LetterIntroData("Y", "Yoyo", "Y untuk Yoyo mainan seru"),
+    LetterIntroData("Z", "Zebra", "Z untuk Zebra belang hitam putih")
 )
 
 @Composable
@@ -125,20 +136,21 @@ fun LetterLearningScreen(
     val tts = remember { AndroidTextToSpeechHelper(context) }
     val isTtsReady by tts.isReady.collectAsState()
 
-    // Ambil 3 huruf mulai dari huruf yang dipilih (misal klik F -> F, G, H; atau grupnya)
     val lettersToLearn = remember(startLetter) {
         val normalized = startLetter.uppercase()
         val startIndex = ALL_ALPHABET_DATA.indexOfFirst { it.letter == normalized }.coerceAtLeast(0)
         val groupStart = (startIndex / 3) * 3
         val slice = ALL_ALPHABET_DATA.drop(groupStart).take(3)
-        // Putar urutan agar huruf yang diklik user muncul pertama kali
-        val clickedItem = slice.find { it.letter == normalized }
-        if (clickedItem != null) {
-            listOf(clickedItem) + slice.filterNot { it.letter == normalized }
-        } else if (slice.size == 3) {
+        val fullSlice = if (slice.size == 3) {
             slice
         } else {
-            ALL_ALPHABET_DATA.take(3)
+            (slice + ALL_ALPHABET_DATA.take(3 - slice.size))
+        }
+        val clickedItem = fullSlice.find { it.letter == normalized }
+        if (clickedItem != null) {
+            listOf(clickedItem) + fullSlice.filterNot { it.letter == normalized }
+        } else {
+            fullSlice
         }
     }
 
@@ -177,7 +189,6 @@ fun LetterLearningScreen(
     var sessionCommitted by remember { mutableStateOf(false) }
     var isSavingSession by remember { mutableStateOf(false) }
 
-    // Auto-play suara otomatis setiap kali masuk ke Kenali Huruf, ganti huruf, atau ganti soal kuis
     LaunchedEffect(step, currentIntroIndex, currentQuizIndex, isTtsReady) {
         if (!isTtsReady) return@LaunchedEffect
         when (step) {
@@ -246,17 +257,22 @@ fun LetterLearningScreen(
                     }
                 }
 
+                // Badge kanan atas: klik "Selesai" langsung kembali ke Peta Petualangan
                 Box(
                     modifier = Modifier
+                        .shadow(if (step == LetterLearningStep.COMPLETION) 4.dp else 0.dp, PillShape)
                         .clip(PillShape)
-                        .background(AksaWhite.copy(alpha = 0.9f))
+                        .background(if (step == LetterLearningStep.COMPLETION) AksaLime else AksaWhite.copy(alpha = 0.9f))
+                        .clickable(enabled = step == LetterLearningStep.COMPLETION) {
+                            onNavigateToLevelMap()
+                        }
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = when (step) {
                             LetterLearningStep.INTRODUCTION -> "Pengenalan ${currentIntroIndex + 1}/3"
                             LetterLearningStep.QUIZ -> "Soal ${currentQuizIndex + 1}/3"
-                            LetterLearningStep.COMPLETION -> "Selesai"
+                            LetterLearningStep.COMPLETION -> "Selesai ✓"
                         },
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
@@ -272,6 +288,7 @@ fun LetterLearningScreen(
                 // ==================== STEP 1: INTRODUCTION ====================
                 LetterLearningStep.INTRODUCTION -> {
                     val currentLetterData = lettersToLearn[currentIntroIndex]
+                    val letterPairDisplay = "${currentLetterData.letter}${currentLetterData.letter.lowercase()}"
 
                     val introCardShape = RoundedCornerShape(32.dp)
                     Box(
@@ -297,7 +314,7 @@ fun LetterLearningScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .size(140.dp)
+                                    .size(144.dp)
                                     .clip(CircleShape)
                                     .background(AksaYellow.copy(alpha = 0.25f))
                                     .border(4.dp, AksaYellow, CircleShape)
@@ -307,10 +324,10 @@ fun LetterLearningScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = currentLetterData.letter,
+                                    text = letterPairDisplay,
                                     fontFamily = Poppins,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 72.sp,
+                                    fontSize = 54.sp,
                                     color = AksaDarkBrown
                                 )
                             }
@@ -421,7 +438,6 @@ fun LetterLearningScreen(
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            // Tombol Audio Besar agar anak fokus mendengarkan bunyi huruf tanpa mencocokkan teks
                             Box(
                                 modifier = Modifier
                                     .clip(PillShape)
@@ -462,7 +478,6 @@ fun LetterLearningScreen(
 
                             Spacer(modifier = Modifier.height(22.dp))
 
-                            // Choice Cards Row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(14.dp)

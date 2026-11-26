@@ -36,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -51,8 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
-import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.EarnedStarsRow
+import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -74,6 +73,7 @@ fun WritingPracticeScreen(
     val targetChar = letter.trim().uppercase().firstOrNull() ?: 'A'
     val strokes = remember { mutableStateListOf<List<Offset>>() }
     var currentStroke by remember { mutableStateOf<List<Offset>>(emptyList()) }
+    var isDrawing by remember { mutableStateOf(false) }
     var isSubmitted by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf<String?>(null) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -87,7 +87,7 @@ fun WritingPracticeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState(), enabled = !isDrawing)
                 .padding(horizontal = 20.dp, vertical = 12.dp)
                 .padding(bottom = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -180,6 +180,7 @@ fun WritingPracticeScreen(
                             if (!isSubmitted) {
                                 detectDragGestures(
                                     onDragStart = { offset ->
+                                        isDrawing = true
                                         validationMessage = null
                                         currentStroke = listOf(offset)
                                     },
@@ -188,6 +189,14 @@ fun WritingPracticeScreen(
                                         currentStroke = currentStroke + change.position
                                     },
                                     onDragEnd = {
+                                        isDrawing = false
+                                        if (currentStroke.isNotEmpty()) {
+                                            strokes.add(currentStroke)
+                                            currentStroke = emptyList()
+                                        }
+                                    },
+                                    onDragCancel = {
+                                        isDrawing = false
                                         if (currentStroke.isNotEmpty()) {
                                             strokes.add(currentStroke)
                                             currentStroke = emptyList()
@@ -233,6 +242,12 @@ fun WritingPracticeScreen(
                                     join = StrokeJoin.Round
                                 )
                             )
+                        } else if (strokePoints.size == 1) {
+                            drawCircle(
+                                color = AksaOrange,
+                                radius = 10f,
+                                center = strokePoints.first()
+                            )
                         }
                     }
 
@@ -256,7 +271,6 @@ fun WritingPracticeScreen(
                     }
                 }
 
-                // Helper touch hint if no drawing yet
                 if (strokes.isEmpty() && currentStroke.isEmpty()) {
                     Box(
                         modifier = Modifier
@@ -299,12 +313,10 @@ fun WritingPracticeScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Action Buttons: Ulangi & Submit
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // "Ulangi" (Reset Canvas) Button
                 Box(modifier = Modifier.weight(1f)) {
                     AksaButton(
                         text = "Ulangi",
@@ -313,21 +325,26 @@ fun WritingPracticeScreen(
                         onClick = {
                             strokes.clear()
                             currentStroke = emptyList()
+                            isDrawing = false
                             validationMessage = null
                         }
                     )
                 }
 
-                // "Submit" Button with Stroke Validation
                 Box(modifier = Modifier.weight(1f)) {
                     AksaButton(
                         text = "Submit",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
                         iconPainter = AksaIcons.check(),
                         onClick = {
+                            val allStrokes = if (currentStroke.isNotEmpty()) {
+                                strokes.toList() + listOf(currentStroke)
+                            } else {
+                                strokes.toList()
+                            }
                             val result = validateLetterStrokes(
                                 targetLetter = targetChar,
-                                strokes = strokes.toList(),
+                                strokes = allStrokes,
                                 canvasWidth = canvasSize.width.toFloat(),
                                 canvasHeight = canvasSize.height.toFloat()
                             )
@@ -352,7 +369,7 @@ fun WritingPracticeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x77000000))
-                    .clickable { /* Block clicks behind */ }
+                    .clickable { }
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -368,7 +385,9 @@ fun WritingPracticeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        MascotCheering(size = 140.dp)
+                        MascotCheering(size = 130.dp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        EarnedStarsRow(accuracy = 1.0f)
 
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -414,10 +433,6 @@ private data class StrokeValidationResult(
     val feedback: String
 )
 
-/**
- * Mengembalikan daftar segmen garis target (dalam koordinat ternormalisasi 0f..1f)
- * untuk tiap huruf A-Z agar rendering garis putus-putus dan validasi goresan sinkron.
- */
 private fun getNormalizedLetterSegments(letter: Char): List<Pair<Offset, Offset>> {
     val left = 0.28f
     val right = 0.72f
@@ -592,10 +607,6 @@ private fun buildLetterGuidePath(letter: Char, w: Float, h: Float): Path {
     }
 }
 
-/**
- * Memvalidasi apakah goresan jari di kanvas benar-benar mengikuti bentuk huruf [targetLetter]
- * dan bukan kanvas kosong atau coretan acak.
- */
 private fun validateLetterStrokes(
     targetLetter: Char,
     strokes: List<List<Offset>>,
@@ -603,7 +614,7 @@ private fun validateLetterStrokes(
     canvasHeight: Float
 ): StrokeValidationResult {
     val userPoints = strokes.flatten()
-    if (userPoints.size < 10) {
+    if (userPoints.size < 6) {
         return StrokeValidationResult(
             isValid = false,
             feedback = "Yuk tulis huruf $targetLetter mengikuti garis putus-putus dulu!"
@@ -614,13 +625,12 @@ private fun validateLetterStrokes(
         return StrokeValidationResult(isValid = true, feedback = "")
     }
 
-    // Sampling titik-titik target di sepanjang segmen huruf
     val segments = getNormalizedLetterSegments(targetLetter)
     val guideSamples = mutableListOf<Offset>()
     segments.forEach { (normStart, normEnd) ->
         val p1 = Offset(normStart.x * canvasWidth, normStart.y * canvasHeight)
         val p2 = Offset(normEnd.x * canvasWidth, normEnd.y * canvasHeight)
-        val steps = 16
+        val steps = 12
         for (i in 0..steps) {
             val t = i.toFloat() / steps
             guideSamples.add(
@@ -632,26 +642,24 @@ private fun validateLetterStrokes(
         }
     }
 
-    val tolerancePx = minOf(canvasWidth, canvasHeight) * 0.16f
+    val tolerancePx = minOf(canvasWidth, canvasHeight) * 0.22f
 
-    // 1. Cek seberapa banyak bagian huruf target yang berhasil dilewati goresan user (coverage)
     val coveredGuideCount = guideSamples.count { guidePt ->
         userPoints.any { userPt -> hypot(userPt.x - guidePt.x, userPt.y - guidePt.y) <= tolerancePx }
     }
     val coverageRatio = coveredGuideCount.toFloat() / guideSamples.size
 
-    // 2. Cek seberapa banyak goresan user yang benar-benar berada di jalur huruf (precision)
     val onTrackUserCount = userPoints.count { userPt ->
-        guideSamples.any { guidePt -> hypot(userPt.x - guidePt.x, userPt.y - guidePt.y) <= tolerancePx * 1.25f }
+        guideSamples.any { guidePt -> hypot(userPt.x - guidePt.x, userPt.y - guidePt.y) <= tolerancePx * 1.35f }
     }
     val precisionRatio = onTrackUserCount.toFloat() / userPoints.size
 
     return when {
-        coverageRatio < 0.65f -> StrokeValidationResult(
+        coverageRatio < 0.45f -> StrokeValidationResult(
             isValid = false,
             feedback = "Huruf $targetLetter belum lengkap. Ikuti semua garis putus-putusnya ya!"
         )
-        precisionRatio < 0.60f -> StrokeValidationResult(
+        precisionRatio < 0.45f -> StrokeValidationResult(
             isValid = false,
             feedback = "Goresan masih keluar jalur. Coba tekan Ulangi dan ikuti garis putus-putus."
         )
