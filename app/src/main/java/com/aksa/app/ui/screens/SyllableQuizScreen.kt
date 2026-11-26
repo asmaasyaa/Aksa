@@ -1,6 +1,5 @@
 package com.aksa.app.ui.screens
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -26,9 +25,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -45,28 +46,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.AksaSyllableCard
+import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.components.SyllableCardColor
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.PreviewVisualState
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class SyllableQuizItem(
@@ -77,6 +80,34 @@ data class SyllableQuizItem(
     val choices: List<String>
 )
 
+private val syllableWordPool = listOf(
+    SyllableQuizItem("sq_1", "MATA", "MA", "TA", listOf("MA", "TA", "KU", "CA", "GA", "SO")),
+    SyllableQuizItem("sq_2", "BUKU", "BU", "KU", listOf("BU", "KU", "SA", "PI", "DA", "LA")),
+    SyllableQuizItem("sq_3", "BATU", "BA", "TU", listOf("BA", "TU", "MA", "RI", "KA", "LI")),
+    SyllableQuizItem("sq_4", "BOLA", "BO", "LA", listOf("BO", "LA", "KU", "PA", "TA", "MI")),
+    SyllableQuizItem("sq_5", "KAKI", "KA", "KI", listOf("KA", "KI", "MA", "DA", "LU", "SI")),
+    SyllableQuizItem("sq_6", "BAJU", "BA", "JU", listOf("BA", "JU", "TO", "PI", "ME", "LA")),
+    SyllableQuizItem("sq_7", "TOPI", "TO", "PI", listOf("TO", "PI", "BA", "KU", "RA", "SI")),
+    SyllableQuizItem("sq_8", "SAPI", "SA", "PI", listOf("SA", "PI", "KU", "DA", "BO", "LA")),
+    SyllableQuizItem("sq_9", "KUDA", "KU", "DA", listOf("KU", "DA", "SA", "PI", "MA", "TI")),
+    SyllableQuizItem("sq_10", "MEJA", "ME", "JA", listOf("ME", "JA", "BU", "KU", "RO", "DA")),
+    SyllableQuizItem("sq_11", "RODA", "RO", "DA", listOf("RO", "DA", "BA", "TU", "KA", "KI")),
+    SyllableQuizItem("sq_12", "PITA", "PI", "TA", listOf("PI", "TA", "BO", "LA", "MA", "NI")),
+    SyllableQuizItem("sq_13", "NAGA", "NA", "GA", listOf("NA", "GA", "KU", "CA", "TO", "PI")),
+    SyllableQuizItem("sq_14", "TALI", "TA", "LI", listOf("TA", "LI", "BA", "JU", "ME", "RA")),
+    SyllableQuizItem("sq_15", "JARI", "JA", "RI", listOf("JA", "RI", "KA", "KI", "SA", "TU")),
+    SyllableQuizItem("sq_16", "GULA", "GU", "LA", listOf("GU", "LA", "MA", "DU", "KO", "PI")),
+    SyllableQuizItem("sq_17", "LIMA", "LI", "MA", listOf("LI", "MA", "SA", "TU", "TI", "GA")),
+    SyllableQuizItem("sq_18", "SATU", "SA", "TU", listOf("SA", "TU", "DU", "WA", "LI", "MA"))
+)
+
+private fun generateSyllableQuizSession(count: Int = 5): List<SyllableQuizItem> {
+    return syllableWordPool
+        .shuffled()
+        .take(count)
+        .map { item -> item.copy(choices = item.choices.shuffled()) }
+}
+
 @Composable
 fun SyllableQuizScreen(
     onNavigateBack: () -> Unit,
@@ -85,16 +116,14 @@ fun SyllableQuizScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val tts = remember { AndroidTextToSpeechHelper(context) }
+    val isTtsReady by tts.isReady.collectAsState()
 
-    val quizItems = remember {
-        listOf(
-            SyllableQuizItem("sq_1", "MATA", "MA", "TA", listOf("KU", "CA", "MA", "GA", "SO", "TA")),
-            SyllableQuizItem("sq_2", "BUKU", "BU", "KU", listOf("BU", "SA", "PI", "KU", "DA", "LA")),
-            SyllableQuizItem("sq_3", "BATU", "BA", "TU", listOf("BA", "TU", "MA", "RI", "KA", "LI")),
-            SyllableQuizItem("sq_4", "BOLA", "BO", "LA", listOf("BO", "KU", "LA", "PA", "TA", "MI")),
-            SyllableQuizItem("sq_5", "KAKI", "KA", "KI", listOf("KA", "MA", "KI", "DA", "LU", "SI"))
-        )
-    }
+    var quizItems by remember { mutableStateOf(generateSyllableQuizSession()) }
+
+    var sessionId by remember { mutableStateOf("session_syllable_${UUID.randomUUID()}") }
+    var sessionStartedAt by remember { mutableStateOf(System.currentTimeMillis()) }
+    val recordedAnswers = remember { mutableStateListOf<AnswerLog>() }
+    val activeChildResolver = remember { GetActiveChildIdUseCase() }
 
     var currentQuestionIndex by remember { mutableIntStateOf(0) }
     var slot1 by remember { mutableStateOf<String?>(null) }
@@ -102,32 +131,59 @@ fun SyllableQuizScreen(
     var correctCount by remember { mutableIntStateOf(0) }
     var showCompletionDialog by remember { mutableStateOf(false) }
     var sessionCommitted by remember { mutableStateOf(false) }
+    var isSavingSession by remember { mutableStateOf(false) }
+    var showExitConfirmation by remember { mutableStateOf(false) }
+
+    val requestExit = {
+        if (!showCompletionDialog) {
+            showExitConfirmation = true
+        } else {
+            onNavigateBack()
+        }
+    }
+
+    androidx.activity.compose.BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
 
     val currentQ = quizItems[currentQuestionIndex]
 
-    // Developer Preview overrides
-    val visualState by DeveloperPreviewManager.visualState.collectAsState()
-    val isDevPreview by DeveloperPreviewManager.isPreviewActive.collectAsState()
-
-    val effectiveSlot1 = when {
-        isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK -> currentQ.part1
-        isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK -> currentQ.choices.firstOrNull { it != currentQ.part1 } ?: "SA"
-        else -> slot1
-    }
-
-    val effectiveSlot2 = when {
-        isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK -> currentQ.part2
-        isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK -> currentQ.choices.lastOrNull { it != currentQ.part2 } ?: "LA"
-        else -> slot2
-    }
-
+    val effectiveSlot1 = slot1
+    val effectiveSlot2 = slot2
     val isFilled = effectiveSlot1 != null && effectiveSlot2 != null
     val isCorrect = effectiveSlot1 == currentQ.part1 && effectiveSlot2 == currentQ.part2
-    val effectiveShowCompletion = (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) || showCompletionDialog
+
+    LaunchedEffect(sessionId, currentQuestionIndex, isTtsReady) {
+        if (isTtsReady && !showCompletionDialog) {
+            tts.speak("Dengarkan baik-baik. Susun kata: ${quizItems[currentQuestionIndex].targetWord}.")
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
-            tts.stop()
+            tts.release()
+        }
+    }
+
+    fun handleSyllableTap(syl: String) {
+        if (isFilled) return
+        if (slot1 == null) {
+            slot1 = syl
+            tts.speak(syl)
+        } else if (slot2 == null && slot1 != syl) {
+            slot2 = syl
+            // Ucapkan suku kata yang dipilih dulu, lalu antrekan feedback jawaban agar tidak bertabrakan
+            tts.speak(syl)
+            if (slot1 == currentQ.part1 && syl == currentQ.part2) {
+                correctCount++
+                tts.speakQueued("Benar! ${currentQ.targetWord}!")
+            } else {
+                tts.speakQueued("Belum tepat. Yang benar adalah ${currentQ.targetWord}.")
+            }
         }
     }
 
@@ -145,24 +201,22 @@ fun SyllableQuizScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -178,7 +232,6 @@ fun SyllableQuizScreen(
                     }
                 }
 
-                // Question progress pill
                 Box(
                     modifier = Modifier
                         .clip(PillShape)
@@ -197,7 +250,6 @@ fun SyllableQuizScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Large White Rounded Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -210,66 +262,60 @@ fun SyllableQuizScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Susun Suku Kata",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = AksaOrange
-                        )
-
-                        // TTS Audio Button
-                        Box(
-                            modifier = Modifier
-                                .clip(PillShape)
-                                .background(AksaPeachLight)
-                                .clickable {
-                                    tts.speak("Susun kata: ${currentQ.targetWord}.")
-                                }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = AksaIcons.VolumeUp,
-                                    contentDescription = "Dengarkan",
-                                    tint = AksaDarkBrown,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Dengarkan",
-                                    fontFamily = Poppins,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = AksaDarkBrown
-                                )
-                            }
-                        }
-                    }
+                    Text(
+                        text = "Susun Suku Kata",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = AksaOrange
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    Box(
+                        modifier = Modifier
+                            .clip(PillShape)
+                            .background(AksaYellow)
+                            .clickable {
+                                tts.speak("Susun kata: ${currentQ.targetWord}.")
+                            }
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = AksaIcons.volumeUp(),
+                                contentDescription = "Dengarkan",
+                                tint = AksaDarkBrown,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Dengarkan Kata",
+                                fontFamily = Poppins,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = AksaDarkBrown
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     Text(
-                        text = "Susun kata '${currentQ.targetWord}':",
+                        text = "Dengarkan suaranya, lalu susun 2 suku kata yang tepat!",
                         fontFamily = Poppins,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                        color = AksaDarkBrown
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center,
+                        color = AksaDarkBrown.copy(alpha = 0.75f)
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // TARGET SLOTS ROW
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Slot 1
                         SyllableTargetSlot(
                             syllable = effectiveSlot1,
                             onClear = {
@@ -285,7 +331,6 @@ fun SyllableQuizScreen(
                             color = AksaDarkBrown
                         )
 
-                        // Slot 2
                         SyllableTargetSlot(
                             syllable = effectiveSlot2,
                             onClear = {
@@ -296,7 +341,6 @@ fun SyllableQuizScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // FEEDBACK BANNER & MASCOT
                     AnimatedVisibility(
                         visible = isFilled,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
@@ -307,7 +351,7 @@ fun SyllableQuizScreen(
                             val feedbackMsg = if (isCorrect) {
                                 "Luar biasa! ${currentQ.part1} + ${currentQ.part2} = ${currentQ.targetWord}."
                             } else {
-                                "Belum tepat. Coba ketuk kotak untuk mengosongkan dan susun lagi ya!"
+                                "Belum tepat. Seharusnya ${currentQ.part1} + ${currentQ.part2} = ${currentQ.targetWord}."
                             }
 
                             Box(
@@ -320,7 +364,7 @@ fun SyllableQuizScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = if (isCorrect) AksaIcons.Check else AksaIcons.Info,
+                                        painter = if (isCorrect) AksaIcons.check() else AksaIcons.info(),
                                         contentDescription = null,
                                         tint = feedbackBorder,
                                         modifier = Modifier.size(20.dp)
@@ -348,7 +392,6 @@ fun SyllableQuizScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // INSTRUCTION LABEL
                     Text(
                         text = if (!isFilled) "Ketuk suku kata di bawah untuk mengisi:" else "Susunan selesai!",
                         fontFamily = Poppins,
@@ -359,7 +402,6 @@ fun SyllableQuizScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // CHOICE TILES GRID (2 rows of 3)
                     val row1 = currentQ.choices.take(3)
                     val row2 = currentQ.choices.drop(3)
 
@@ -373,20 +415,7 @@ fun SyllableQuizScreen(
                                 AksaSyllableCard(
                                     syllable = syl,
                                     colorTheme = if (isUsed) SyllableCardColor.ORANGE else SyllableCardColor.GREEN,
-                                    onClick = {
-                                        if (!isFilled) {
-                                            if (slot1 == null) {
-                                                slot1 = syl
-                                                tts.speak(syl)
-                                            } else if (slot2 == null && slot1 != syl) {
-                                                slot2 = syl
-                                                tts.speak(syl)
-                                                if (slot1 == currentQ.part1 && syl == currentQ.part2) {
-                                                    correctCount++
-                                                }
-                                            }
-                                        }
-                                    }
+                                    onClick = { handleSyllableTap(syl) }
                                 )
                             }
                         }
@@ -404,20 +433,7 @@ fun SyllableQuizScreen(
                                 AksaSyllableCard(
                                     syllable = syl,
                                     colorTheme = if (isUsed) SyllableCardColor.ORANGE else SyllableCardColor.GREEN,
-                                    onClick = {
-                                        if (!isFilled) {
-                                            if (slot1 == null) {
-                                                slot1 = syl
-                                                tts.speak(syl)
-                                            } else if (slot2 == null && slot1 != syl) {
-                                                slot2 = syl
-                                                tts.speak(syl)
-                                                if (slot1 == currentQ.part1 && syl == currentQ.part2) {
-                                                    correctCount++
-                                                }
-                                            }
-                                        }
-                                    }
+                                    onClick = { handleSyllableTap(syl) }
                                 )
                             }
                         }
@@ -425,38 +441,68 @@ fun SyllableQuizScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // BUTTON: NEXT QUESTION / FINISH
                     AksaButton(
                         text = if (currentQuestionIndex < quizItems.size - 1) "Soal Berikutnya" else "Lihat Hasil Latihan",
                         style = if (isFilled) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
                         enabled = isFilled,
                         onClick = {
+                            val childId = runCatching { activeChildResolver.getSync() }
+                                .getOrDefault(AksaUserState.currentProfileId)
+                            val log = AnswerLog(
+                                answerId = "ans_${sessionId}_syl_${currentQ.id}",
+                                sessionId = sessionId,
+                                childId = childId,
+                                moduleId = "dunia_suku_kata",
+                                activityId = "syllable_quiz",
+                                questionId = currentQ.id,
+                                targetChar = currentQ.targetWord,
+                                chosenChar = "${effectiveSlot1 ?: ""}${effectiveSlot2 ?: ""}",
+                                isCorrect = isCorrect,
+                                responseTimeMs = 1500L,
+                                timestamp = System.currentTimeMillis()
+                            )
+                            recordedAnswers.add(log)
+
                             if (currentQuestionIndex < quizItems.size - 1) {
                                 currentQuestionIndex++
                                 slot1 = null
                                 slot2 = null
-                                tts.speak("Susun kata: ${quizItems[currentQuestionIndex].targetWord}.")
                             } else {
-                                // Finalize session
                                 if (!sessionCommitted) {
                                     sessionCommitted = true
+                                    isSavingSession = true
                                     coroutineScope.launch {
-                                        val sessionResult = SessionResult(
-                                            sessionId = "session_syllable_${UUID.randomUUID()}",
-                                            childId = "child_marvin_demo",
-                                            moduleId = "dunia_suku_kata",
-                                            activityId = "syllable_quiz",
-                                            startedAt = System.currentTimeMillis() - 90_000,
-                                            completedAt = System.currentTimeMillis(),
-                                            totalQuestions = quizItems.size,
-                                            correctAnswers = correctCount,
-                                            incorrectAnswers = quizItems.size - correctCount,
-                                            accuracy = correctCount.toFloat() / quizItems.size.toFloat(),
-                                            status = SessionStatus.COMPLETED
-                                        )
-                                        AksaRepositoryProvider.sessionRepository.saveSessionResult(sessionResult)
+                                        try {
+                                            withContext(NonCancellable) {
+                                                runCatching {
+                                                    val actualChildId = activeChildResolver()
+                                                    for (ans in recordedAnswers) {
+                                                        AksaRepositoryProvider.sessionRepository
+                                                            .recordAnswer(ans.copy(childId = actualChildId))
+                                                    }
+                                                    val sessionResult = SessionResult(
+                                                        sessionId = sessionId,
+                                                        childId = actualChildId,
+                                                        moduleId = "dunia_suku_kata",
+                                                        activityId = "syllable_quiz",
+                                                        startedAt = sessionStartedAt,
+                                                        completedAt = System.currentTimeMillis(),
+                                                        totalQuestions = quizItems.size,
+                                                        correctAnswers = correctCount,
+                                                        incorrectAnswers = quizItems.size - correctCount,
+                                                        accuracy = correctCount.toFloat() / quizItems.size.toFloat(),
+                                                        status = SessionStatus.COMPLETED
+                                                    )
+                                                    AksaRepositoryProvider.sessionRepository
+                                                        .saveSessionResult(sessionResult)
+                                                }
+                                            }
+                                        } finally {
+                                            isSavingSession = false
+                                        }
                                     }
                                 }
+                                tts.speak("Hebat! Latihan selesai!")
                                 showCompletionDialog = true
                             }
                         }
@@ -465,13 +511,12 @@ fun SyllableQuizScreen(
             }
         }
 
-        // COMPLETION CELEBRATION MODAL
-        if (effectiveShowCompletion) {
+        if (showCompletionDialog) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x88000000))
-                    .clickable { /* Block clicks behind */ }
+                    .clickable { }
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -488,6 +533,8 @@ fun SyllableQuizScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         MascotCheering(size = 120.dp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        EarnedStarsRow(accuracy = correctCount.toFloat() / quizItems.size.toFloat())
 
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -510,8 +557,8 @@ fun SyllableQuizScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        val scoreText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "5 / 5" else "$correctCount / ${quizItems.size}"
-                        val accuracyText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "100%" else "${((correctCount.toFloat() / quizItems.size) * 100).toInt()}%"
+                        val scoreText = "$correctCount / ${quizItems.size}"
+                        val accuracyText = "${((correctCount.toFloat() / quizItems.size) * 100).toInt()}%"
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -575,24 +622,40 @@ fun SyllableQuizScreen(
                             style = AksaButtonStyle.SECONDARY_LIME,
                             onClick = {
                                 showCompletionDialog = false
+                                quizItems = generateSyllableQuizSession()
                                 currentQuestionIndex = 0
                                 slot1 = null
                                 slot2 = null
                                 correctCount = 0
                                 sessionCommitted = false
+                                sessionId = "session_syllable_${UUID.randomUUID()}"
+                                sessionStartedAt = System.currentTimeMillis()
+                                recordedAnswers.clear()
                             }
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
 
                         AksaButton(
-                            text = "Lihat Peta Petualangan",
+                            text = if (isSavingSession) "Menyimpan progres..." else "Lihat Peta Petualangan",
                             style = AksaButtonStyle.PRIMARY_ORANGE,
+                            enabled = !isSavingSession,
                             onClick = onNavigateToLevelMap
                         )
                     }
                 }
             }
+        }
+
+        if (showExitConfirmation) {
+            com.aksa.app.ui.components.AksaExitConfirmationDialog(
+                isMiniGame = false,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    onNavigateBack()
+                }
+            )
         }
     }
 }
@@ -618,7 +681,7 @@ private fun SyllableTargetSlot(
     ) {
         if (isOccupied) {
             Text(
-                text = syllable ?: "",
+                text = syllable,
                 fontFamily = Poppins,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,

@@ -1,19 +1,26 @@
 package com.aksa.app.domain.model
 
-/**
- * Learning profile for a child, associated with a guardian account.
- * Age must be between 6 and 12 years.
- */
-data class ChildProfile(
-    val childId: String,
-    val guardianUid: String,
-    val displayName: String,
-    val age: Int,
+object ProfileConfig {
+    var maxProfilesPerAccount: Int? = null
+}
+
+data class Profile(
+    val profileId: String,
+    val userId: String,
+    val name: String,
     val avatarId: String,
+    val age: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 ) {
+    val childId: String get() = profileId
+    val guardianUid: String get() = userId
+    val displayName: String get() = name
+
     init {
-        require(displayName.isNotBlank()) { "Child display name cannot be blank" }
-        require(age in 6..12) { "Child age must be between 6 and 12 years (got $age)" }
+        require(name.isNotBlank()) { "Profile name cannot be blank" }
+        require(avatarId.isNotBlank()) { "Profile avatarId cannot be blank" }
     }
 }
+
+typealias ChildProfile = Profile
+

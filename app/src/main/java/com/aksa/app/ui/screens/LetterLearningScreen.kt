@@ -1,6 +1,5 @@
 package com.aksa.app.ui.screens
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -23,8 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -49,28 +47,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
-import com.aksa.app.ui.components.AksaProgressBar
+import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
-import com.aksa.app.ui.components.ProgressBarColor
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.PreviewVisualState
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
+import com.aksa.app.ui.theme.AksaError
+import com.aksa.app.ui.theme.AksaErrorLight
+import com.aksa.app.ui.theme.AksaErrorText
+import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaPeachLight
+import com.aksa.app.ui.theme.AksaSuccessLight
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class LetterIntroData(
@@ -81,7 +85,7 @@ data class LetterIntroData(
 
 data class LetterQuizQuestion(
     val targetLetter: String,
-    val prompt: String,
+    val audioInstruction: String,
     val choices: List<String>
 )
 
@@ -90,6 +94,35 @@ enum class LetterLearningStep {
     QUIZ,
     COMPLETION
 }
+
+private val ALL_ALPHABET_DATA = listOf(
+    LetterIntroData("A", "Apel", "A untuk Apel yang manis"),
+    LetterIntroData("B", "Bola", "B untuk Bola yang bulat"),
+    LetterIntroData("C", "Cacing", "C untuk Cacing di tanah"),
+    LetterIntroData("D", "Daun", "D untuk Daun yang hijau"),
+    LetterIntroData("E", "Ekor", "E untuk Ekor kelinci"),
+    LetterIntroData("F", "Foto", "F untuk Foto pemandangan"),
+    LetterIntroData("G", "Gajah", "G untuk Gajah yang besar"),
+    LetterIntroData("H", "Hujan", "H untuk Hujan yang sejuk"),
+    LetterIntroData("I", "Ikan", "I untuk Ikan di kolam"),
+    LetterIntroData("J", "Jeruk", "J untuk Jeruk yang segar"),
+    LetterIntroData("K", "Kuda", "K untuk Kuda yang berlari"),
+    LetterIntroData("L", "Lilin", "L untuk Lilin yang terang"),
+    LetterIntroData("M", "Mata", "M untuk Mata yang melihat"),
+    LetterIntroData("N", "Nasi", "N untuk Nasi yang hangat"),
+    LetterIntroData("O", "Obat", "O untuk Obat penyembuh"),
+    LetterIntroData("P", "Paku", "P untuk Paku di dinding"),
+    LetterIntroData("Q", "Quran", "Q untuk Quran kitab suci"),
+    LetterIntroData("R", "Roda", "R untuk Roda berputar"),
+    LetterIntroData("S", "Sapi", "S untuk Sapi di padang rumput"),
+    LetterIntroData("T", "Topi", "T untuk Topi pelindung kepala"),
+    LetterIntroData("U", "Ular", "U untuk Ular melata"),
+    LetterIntroData("V", "Vas", "V untuk Vas bunga cantik"),
+    LetterIntroData("W", "Wortel", "W untuk Wortel kesukaan kelinci"),
+    LetterIntroData("X", "Xilofon", "X untuk Xilofon alat musik"),
+    LetterIntroData("Y", "Yoyo", "Y untuk Yoyo mainan seru"),
+    LetterIntroData("Z", "Zebra", "Z untuk Zebra belang hitam putih")
+)
 
 @Composable
 fun LetterLearningScreen(
@@ -101,29 +134,50 @@ fun LetterLearningScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val tts = remember { AndroidTextToSpeechHelper(context) }
+    val isTtsReady by tts.isReady.collectAsState()
 
     val lettersToLearn = remember(startLetter) {
-        when (startLetter.uppercase()) {
-            "D", "E", "F" -> listOf(
-                LetterIntroData("D", "Daun", "D untuk Daun yang hijau"),
-                LetterIntroData("E", "Ekor", "E untuk Ekor kelinci"),
-                LetterIntroData("F", "Foto", "F untuk Foto pemandangan")
-            )
-            else -> listOf(
-                LetterIntroData("A", "Apel", "A untuk Apel yang manis"),
-                LetterIntroData("B", "Bola", "B untuk Bola yang bulat"),
-                LetterIntroData("C", "Cacing", "C untuk Cacing di tanah")
-            )
+        val normalized = startLetter.uppercase()
+        val startIndex = ALL_ALPHABET_DATA.indexOfFirst { it.letter == normalized }.coerceAtLeast(0)
+        val groupStart = (startIndex / 3) * 3
+        val slice = ALL_ALPHABET_DATA.drop(groupStart).take(3)
+        val fullSlice = if (slice.size == 3) {
+            slice
+        } else {
+            (slice + ALL_ALPHABET_DATA.take(3 - slice.size))
+        }
+        val clickedItem = fullSlice.find { it.letter == normalized }
+        if (clickedItem != null) {
+            listOf(clickedItem) + fullSlice.filterNot { it.letter == normalized }
+        } else {
+            fullSlice
         }
     }
 
     val quizQuestions = remember(lettersToLearn) {
         listOf(
-            LetterQuizQuestion(lettersToLearn[0].letter, "Mana huruf ${lettersToLearn[0].letter}?", listOf(lettersToLearn[0].letter, lettersToLearn[1].letter, lettersToLearn[2].letter).shuffled()),
-            LetterQuizQuestion(lettersToLearn[1].letter, "Mana huruf ${lettersToLearn[1].letter}?", listOf(lettersToLearn[1].letter, lettersToLearn[0].letter, lettersToLearn[2].letter).shuffled()),
-            LetterQuizQuestion(lettersToLearn[2].letter, "Mana huruf ${lettersToLearn[2].letter}?", listOf(lettersToLearn[2].letter, lettersToLearn[1].letter, lettersToLearn[0].letter).shuffled())
+            LetterQuizQuestion(
+                targetLetter = lettersToLearn[0].letter,
+                audioInstruction = "Mana huruf ${lettersToLearn[0].letter}?",
+                choices = listOf(lettersToLearn[0].letter, lettersToLearn[1].letter, lettersToLearn[2].letter).shuffled()
+            ),
+            LetterQuizQuestion(
+                targetLetter = lettersToLearn[1].letter,
+                audioInstruction = "Mana huruf ${lettersToLearn[1].letter}?",
+                choices = listOf(lettersToLearn[1].letter, lettersToLearn[0].letter, lettersToLearn[2].letter).shuffled()
+            ),
+            LetterQuizQuestion(
+                targetLetter = lettersToLearn[2].letter,
+                audioInstruction = "Mana huruf ${lettersToLearn[2].letter}?",
+                choices = listOf(lettersToLearn[2].letter, lettersToLearn[1].letter, lettersToLearn[0].letter).shuffled()
+            )
         )
     }
+
+    val sessionId = remember { "session_letter_${UUID.randomUUID()}" }
+    val sessionStartedAt = remember { System.currentTimeMillis() }
+    val recordedAnswers = remember { mutableStateListOf<AnswerLog>() }
+    val activeChildResolver = remember { GetActiveChildIdUseCase() }
 
     var step by remember { mutableStateOf(LetterLearningStep.INTRODUCTION) }
     var currentIntroIndex by remember { mutableIntStateOf(0) }
@@ -133,24 +187,45 @@ fun LetterLearningScreen(
     var isCorrect by remember { mutableStateOf(false) }
     var correctCount by remember { mutableIntStateOf(0) }
     var sessionCommitted by remember { mutableStateOf(false) }
+    var isSavingSession by remember { mutableStateOf(false) }
+    var showExitConfirmation by remember { mutableStateOf(false) }
 
-    // Developer Preview overrides
-    val visualState by DeveloperPreviewManager.visualState.collectAsState()
-    val isDevPreview by DeveloperPreviewManager.isPreviewActive.collectAsState()
-
-    val effectiveStep = when {
-        isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED -> LetterLearningStep.COMPLETION
-        isDevPreview && (visualState == PreviewVisualState.CORRECT_FEEDBACK || visualState == PreviewVisualState.INCORRECT_FEEDBACK) -> LetterLearningStep.QUIZ
-        else -> step
+    val requestExit = {
+        if (step != LetterLearningStep.COMPLETION) {
+            showExitConfirmation = true
+        } else {
+            onNavigateBack()
+        }
     }
 
-    val effectiveIsAnswered = if (isDevPreview && (visualState == PreviewVisualState.CORRECT_FEEDBACK || visualState == PreviewVisualState.INCORRECT_FEEDBACK)) true else isAnswered
-    val effectiveIsCorrect = if (isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK) true else if (isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK) false else isCorrect
-    val effectiveSelectedChoice = if (isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK) quizQuestions[currentQuizIndex].targetLetter else if (isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK) quizQuestions[currentQuizIndex].choices.firstOrNull { it != quizQuestions[currentQuizIndex].targetLetter } ?: "X" else selectedChoice
+    androidx.activity.compose.BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
+
+    LaunchedEffect(step, currentIntroIndex, currentQuizIndex, isTtsReady) {
+        if (!isTtsReady) return@LaunchedEffect
+        when (step) {
+            LetterLearningStep.INTRODUCTION -> {
+                val data = lettersToLearn[currentIntroIndex]
+                tts.speak("Huruf ${data.letter}. Seperti pada kata ${data.word}.")
+            }
+            LetterLearningStep.QUIZ -> {
+                val q = quizQuestions[currentQuizIndex]
+                tts.speak("Dengarkan baik-baik. ${q.audioInstruction}")
+            }
+            LetterLearningStep.COMPLETION -> {
+                tts.speak("Hebat! Latihan selesai!")
+            }
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
-            tts.stop()
+            tts.release()
         }
     }
 
@@ -168,7 +243,6 @@ fun LetterLearningScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // TOP BAR
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -179,12 +253,12 @@ fun LetterLearningScreen(
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -200,33 +274,51 @@ fun LetterLearningScreen(
                     }
                 }
 
-                // Progress Indicator Pill
+                // Badge kanan atas: klik "Selesai" langsung kembali ke Peta Petualangan
                 Box(
                     modifier = Modifier
+                        .shadow(if (step == LetterLearningStep.COMPLETION) 4.dp else 0.dp, PillShape)
                         .clip(PillShape)
-                        .background(AksaWhite.copy(alpha = 0.9f))
+                        .background(if (step == LetterLearningStep.COMPLETION) AksaLime else AksaWhite.copy(alpha = 0.9f))
+                        .clickable(enabled = step == LetterLearningStep.COMPLETION) {
+                            onNavigateToLevelMap()
+                        }
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Text(
-                        text = when (effectiveStep) {
-                            LetterLearningStep.INTRODUCTION -> "Pengenalan ${currentIntroIndex + 1}/3"
-                            LetterLearningStep.QUIZ -> "Soal ${currentQuizIndex + 1}/3"
-                            LetterLearningStep.COMPLETION -> "Selesai"
-                        },
-                        fontFamily = Poppins,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = AksaDarkBrown
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = when (step) {
+                                LetterLearningStep.INTRODUCTION -> "Pengenalan ${currentIntroIndex + 1}/3"
+                                LetterLearningStep.QUIZ -> "Soal ${currentQuizIndex + 1}/3"
+                                LetterLearningStep.COMPLETION -> "Selesai"
+                            },
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = AksaDarkBrown
+                        )
+                        if (step == LetterLearningStep.COMPLETION) {
+                            Icon(
+                                painter = AksaIcons.check(),
+                                contentDescription = null,
+                                tint = AksaDarkBrown,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            when (effectiveStep) {
+            when (step) {
                 // ==================== STEP 1: INTRODUCTION ====================
                 LetterLearningStep.INTRODUCTION -> {
                     val currentLetterData = lettersToLearn[currentIntroIndex]
+                    val letterPairDisplay = "${currentLetterData.letter}${currentLetterData.letter.lowercase()}"
 
                     val introCardShape = RoundedCornerShape(32.dp)
                     Box(
@@ -250,27 +342,28 @@ fun LetterLearningScreen(
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            // Large Letter Display
                             Box(
                                 modifier = Modifier
-                                    .size(140.dp)
+                                    .size(144.dp)
                                     .clip(CircleShape)
                                     .background(AksaYellow.copy(alpha = 0.25f))
-                                    .border(4.dp, AksaYellow, CircleShape),
+                                    .border(4.dp, AksaYellow, CircleShape)
+                                    .clickable {
+                                        tts.speak("Huruf ${currentLetterData.letter}. Seperti pada kata ${currentLetterData.word}.")
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = currentLetterData.letter,
+                                    text = letterPairDisplay,
                                     fontFamily = Poppins,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 72.sp,
+                                    fontSize = 54.sp,
                                     color = AksaDarkBrown
                                 )
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Word association
                             Text(
                                 text = currentLetterData.word,
                                 fontFamily = Poppins,
@@ -290,7 +383,6 @@ fun LetterLearningScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // Audio TTS Button
                             Box(
                                 modifier = Modifier
                                     .clip(PillShape)
@@ -302,14 +394,14 @@ fun LetterLearningScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AksaIcons.VolumeUp,
+                                        painter = AksaIcons.volumeUp(),
                                         contentDescription = "Dengarkan",
                                         tint = AksaDarkBrown,
                                         modifier = Modifier.size(22.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Dengarkan Suara",
+                                        text = "Ulangi Suara",
                                         fontFamily = Poppins,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
@@ -343,7 +435,6 @@ fun LetterLearningScreen(
                                 } else {
                                     step = LetterLearningStep.QUIZ
                                     currentQuizIndex = 0
-                                    tts.speak("Dengarkan suara: ${quizQuestions[0].prompt}")
                                 }
                             },
                             modifier = Modifier.weight(1f)
@@ -351,7 +442,7 @@ fun LetterLearningScreen(
                     }
                 }
 
-                // ==================== STEP 2: QUIZ ====================
+                // ==================== STEP 2: QUIZ (AUDIO-FIRST) ====================
                 LetterLearningStep.QUIZ -> {
                     val currentQ = quizQuestions[currentQuizIndex]
 
@@ -367,75 +458,70 @@ fun LetterLearningScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "Kuis Dengar & Pilih",
-                                    fontFamily = Poppins,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = AksaOrange
-                                )
+                            Text(
+                                text = "Kuis Dengar & Pilih",
+                                fontFamily = Poppins,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = AksaOrange
+                            )
 
-                                Box(
-                                    modifier = Modifier
-                                        .clip(PillShape)
-                                        .background(AksaPeachLight)
-                                        .clickable {
-                                            tts.speak("Dengarkan suara: ${currentQ.prompt}")
-                                        }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = AksaIcons.VolumeUp,
-                                            contentDescription = "Dengarkan",
-                                            tint = AksaDarkBrown,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Putar",
-                                            fontFamily = Poppins,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp,
-                                            color = AksaDarkBrown
-                                        )
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(PillShape)
+                                    .background(AksaYellow)
+                                    .clickable {
+                                        tts.speak(currentQ.audioInstruction)
                                     }
+                                    .padding(horizontal = 24.dp, vertical = 14.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        painter = AksaIcons.volumeUp(),
+                                        contentDescription = "Dengarkan Soal",
+                                        tint = AksaDarkBrown,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Dengarkan Hurufnya",
+                                        fontFamily = Poppins,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = AksaDarkBrown
+                                    )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
-                                text = currentQ.prompt,
+                                text = "Ketuk huruf yang sesuai dengan suara!",
                                 fontFamily = Poppins,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 13.sp,
                                 textAlign = TextAlign.Center,
-                                color = AksaDarkBrown
+                                color = AksaDarkBrown.copy(alpha = 0.75f)
                             )
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(22.dp))
 
-                            // Choice Cards Row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
                                 for (choice in currentQ.choices) {
-                                    val isSelected = effectiveSelectedChoice == choice
+                                    val isSelected = selectedChoice == choice
                                     val isChoiceTarget = choice == currentQ.targetLetter
 
                                     val (bgColor, borderColor) = when {
-                                        !effectiveIsAnswered -> Pair(AksaWhite, Color(0xFFE2E8F0))
-                                        isSelected && effectiveIsCorrect -> Pair(Color(0xFFE8F5E9), AksaLimeDark)
-                                        isSelected && !effectiveIsCorrect -> Pair(Color(0xFFFFEBEE), Color(0xFFE53935))
-                                        effectiveIsAnswered && isChoiceTarget -> Pair(Color(0xFFE8F5E9), AksaLimeDark)
-                                        else -> Pair(AksaWhite, Color(0xFFE2E8F0))
+                                        !isAnswered -> Pair(AksaWhite, AksaGrayBorder)
+                                        isSelected && isCorrect -> Pair(AksaSuccessLight, AksaLimeDark)
+                                        isSelected && !isCorrect -> Pair(AksaErrorLight, AksaError)
+                                        isAnswered && isChoiceTarget -> Pair(AksaSuccessLight, AksaLimeDark)
+                                        else -> Pair(AksaWhite, AksaGrayBorder)
                                     }
 
                                     Box(
@@ -446,16 +532,32 @@ fun LetterLearningScreen(
                                             .clip(RoundedCornerShape(22.dp))
                                             .background(bgColor)
                                             .border(2.5.dp, borderColor, RoundedCornerShape(22.dp))
-                                            .clickable(enabled = !effectiveIsAnswered) {
+                                            .clickable(enabled = !isAnswered) {
                                                 selectedChoice = choice
                                                 isAnswered = true
                                                 val correct = choice == currentQ.targetLetter
                                                 isCorrect = correct
+                                                val childId = runCatching { activeChildResolver.getSync() }
+                                                    .getOrDefault(AksaUserState.currentProfileId)
+                                                val log = AnswerLog(
+                                                    answerId = "ans_${sessionId}_letter_${currentQuizIndex}",
+                                                    sessionId = sessionId,
+                                                    childId = childId,
+                                                    moduleId = "pulau_alfabet",
+                                                    activityId = "letter_learning",
+                                                    questionId = "letter_q_${currentQ.targetLetter}_$currentQuizIndex",
+                                                    targetChar = currentQ.targetLetter,
+                                                    chosenChar = choice,
+                                                    isCorrect = correct,
+                                                    responseTimeMs = 1000L,
+                                                    timestamp = System.currentTimeMillis()
+                                                )
+                                                recordedAnswers.add(log)
                                                 if (correct) {
                                                     correctCount++
                                                     tts.speak("Benar! Ini huruf $choice.")
                                                 } else {
-                                                    tts.speak("Belum tepat. Coba perhatikan lagi ya.")
+                                                    tts.speak("Belum tepat. Yang benar adalah huruf ${currentQ.targetLetter}.")
                                                 }
                                             },
                                         contentAlignment = Alignment.Center
@@ -473,15 +575,18 @@ fun LetterLearningScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // Feedback Banner
                             AnimatedVisibility(
-                                visible = effectiveIsAnswered,
+                                visible = isAnswered,
                                 enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    val bannerBg = if (effectiveIsCorrect) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                                    val bannerBorder = if (effectiveIsCorrect) AksaLimeDark else Color(0xFFE53935)
-                                    val bannerText = if (effectiveIsCorrect) "Benar! Pintar sekali!" else "Belum tepat. Jawaban benar adalah huruf ${currentQ.targetLetter}."
+                                    val bannerBg = if (isCorrect) AksaSuccessLight else AksaErrorLight
+                                    val bannerBorder = if (isCorrect) AksaLimeDark else AksaError
+                                    val bannerText = if (isCorrect) {
+                                        "Benar! Ini adalah huruf ${currentQ.targetLetter}."
+                                    } else {
+                                        "Belum tepat. Jawaban benar adalah huruf ${currentQ.targetLetter}."
+                                    }
 
                                     Box(
                                         modifier = Modifier
@@ -493,7 +598,7 @@ fun LetterLearningScreen(
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                imageVector = if (effectiveIsCorrect) AksaIcons.Check else AksaIcons.Info,
+                                                painter = if (isCorrect) AksaIcons.check() else AksaIcons.info(),
                                                 contentDescription = null,
                                                 tint = bannerBorder,
                                                 modifier = Modifier.size(20.dp)
@@ -504,14 +609,14 @@ fun LetterLearningScreen(
                                                 fontFamily = Poppins,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 13.sp,
-                                                color = if (effectiveIsCorrect) AksaDarkBrown else Color(0xFFC62828)
+                                                color = if (isCorrect) AksaDarkBrown else AksaErrorText
                                             )
                                         }
                                     }
 
                                     Spacer(modifier = Modifier.height(14.dp))
 
-                                    if (effectiveIsCorrect) {
+                                    if (isCorrect) {
                                         MascotCheering(size = 80.dp)
                                     } else {
                                         MascotLearning(size = 80.dp, animated = false)
@@ -523,34 +628,47 @@ fun LetterLearningScreen(
 
                             AksaButton(
                                 text = if (currentQuizIndex < quizQuestions.size - 1) "Soal Berikutnya" else "Lihat Hasil Latihan",
-                                style = if (effectiveIsAnswered) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
-                                enabled = effectiveIsAnswered,
+                                style = if (isAnswered) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
+                                enabled = isAnswered,
                                 onClick = {
                                     if (currentQuizIndex < quizQuestions.size - 1) {
                                         currentQuizIndex++
                                         selectedChoice = null
                                         isAnswered = false
                                         isCorrect = false
-                                        tts.speak("Dengarkan suara: ${quizQuestions[currentQuizIndex].prompt}")
                                     } else {
-                                        // Commit session
                                         if (!sessionCommitted) {
                                             sessionCommitted = true
+                                            isSavingSession = true
                                             coroutineScope.launch {
-                                                val sessionResult = SessionResult(
-                                                    sessionId = "session_letter_${UUID.randomUUID()}",
-                                                    childId = "child_marvin_demo",
-                                                    moduleId = "pulau_alfabet",
-                                                    activityId = "letter_learning",
-                                                    startedAt = System.currentTimeMillis() - 60_000,
-                                                    completedAt = System.currentTimeMillis(),
-                                                    totalQuestions = quizQuestions.size,
-                                                    correctAnswers = correctCount,
-                                                    incorrectAnswers = quizQuestions.size - correctCount,
-                                                    accuracy = correctCount.toFloat() / quizQuestions.size.toFloat(),
-                                                    status = SessionStatus.COMPLETED
-                                                )
-                                                AksaRepositoryProvider.sessionRepository.saveSessionResult(sessionResult)
+                                                try {
+                                                    withContext(NonCancellable) {
+                                                        runCatching {
+                                                            val childId = activeChildResolver()
+                                                            for (ans in recordedAnswers) {
+                                                                AksaRepositoryProvider.sessionRepository
+                                                                    .recordAnswer(ans.copy(childId = childId))
+                                                            }
+                                                            val sessionResult = SessionResult(
+                                                                sessionId = sessionId,
+                                                                childId = childId,
+                                                                moduleId = "pulau_alfabet",
+                                                                activityId = "letter_learning",
+                                                                startedAt = sessionStartedAt,
+                                                                completedAt = System.currentTimeMillis(),
+                                                                totalQuestions = quizQuestions.size,
+                                                                correctAnswers = correctCount,
+                                                                incorrectAnswers = quizQuestions.size - correctCount,
+                                                                accuracy = correctCount.toFloat() / quizQuestions.size.toFloat(),
+                                                                status = SessionStatus.COMPLETED
+                                                            )
+                                                            AksaRepositoryProvider.sessionRepository
+                                                                .saveSessionResult(sessionResult)
+                                                        }
+                                                    }
+                                                } finally {
+                                                    isSavingSession = false
+                                                }
                                             }
                                         }
                                         step = LetterLearningStep.COMPLETION
@@ -576,6 +694,8 @@ fun LetterLearningScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             MascotCheering(size = 120.dp)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            EarnedStarsRow(accuracy = correctCount.toFloat() / quizQuestions.size.toFloat())
 
                             Spacer(modifier = Modifier.height(14.dp))
 
@@ -598,9 +718,8 @@ fun LetterLearningScreen(
 
                             Spacer(modifier = Modifier.height(18.dp))
 
-                            // Score Badge
-                            val scoreDisplay = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "3 / 3" else "$correctCount / ${quizQuestions.size}"
-                            val accuracyDisplay = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "100%" else "${((correctCount.toFloat() / quizQuestions.size) * 100).toInt()}%"
+                            val scoreDisplay = "$correctCount / ${quizQuestions.size}"
+                            val accuracyDisplay = "${((correctCount.toFloat() / quizQuestions.size) * 100).toInt()}%"
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -668,14 +787,26 @@ fun LetterLearningScreen(
                             Spacer(modifier = Modifier.height(10.dp))
 
                             AksaButton(
-                                text = "Lihat Peta Petualangan",
+                                text = if (isSavingSession) "Menyimpan progres..." else "Lihat Peta Petualangan",
                                 style = AksaButtonStyle.PRIMARY_ORANGE,
+                                enabled = !isSavingSession,
                                 onClick = onNavigateToLevelMap
                             )
                         }
                     }
                 }
             }
+        }
+
+        if (showExitConfirmation) {
+            com.aksa.app.ui.components.AksaExitConfirmationDialog(
+                isMiniGame = false,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    onNavigateBack()
+                }
+            )
         }
     }
 }

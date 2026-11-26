@@ -19,12 +19,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,9 +38,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.components.AksaAvatar
+import com.aksa.app.ui.components.AksaButton
+import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotStanding
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
@@ -47,19 +56,27 @@ import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
+import com.aksa.app.ui.theme.DialogShape
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.ProfileManagementViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onNavigateBack: () -> Unit,
+    onNavigateBack: () -> Unit = {},
     onNavigateToProgress: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    onNavigateToDeveloperPreview: () -> Unit = {},
-    authViewModel: com.aksa.app.ui.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    onNavigateToEditProfile: () -> Unit = {},
+    onNavigateToCreateProfile: () -> Unit = {},
+    authViewModel: com.aksa.app.ui.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    profileManagementViewModel: ProfileManagementViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val authState by authViewModel.uiState.collectAsState()
-    val guardianEmail = authState.currentGuardian?.email ?: "demo.orangtua@aksa.id"
+    val profileManagementState by profileManagementViewModel.uiState.collectAsState()
+    val guardianEmail = authState.currentGuardian?.email ?: ""
+    var showLogoutConfirmation by remember { mutableStateOf(false) }
+    var showSwitchProfileSheet by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -71,42 +88,15 @@ fun ProfileScreen(
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
-                .padding(bottom = 36.dp),
+                .padding(bottom = 100.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // "Kembali" pill
-                Box(
-                    modifier = Modifier
-                        .shadow(4.dp, PillShape)
-                        .clip(PillShape)
-                        .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = AksaIcons.ArrowBack,
-                            contentDescription = "Kembali",
-                            tint = AksaDarkBrown,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Kembali",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = AksaDarkBrown
-                        )
-                    }
-                }
-
                 Text(
                     text = "Profil",
                     fontFamily = Poppins,
@@ -114,13 +104,10 @@ fun ProfileScreen(
                     fontSize = 20.sp,
                     color = AksaWhite
                 )
-
-                Spacer(modifier = Modifier.width(48.dp)) // Visual balance
             }
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Large White Rounded Profile Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -133,7 +120,6 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Avatar Circle with Selected Avatar
                     Box(
                         modifier = Modifier
                             .size(96.dp)
@@ -148,7 +134,7 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = AksaUserState.username,
+                        text = AksaUserState.username.takeIf { it.isNotBlank() } ?: "Pengguna",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
@@ -164,7 +150,6 @@ fun ProfileScreen(
                         modifier = Modifier.padding(top = 2.dp)
                     )
 
-                    // Guardian account & mode indicator
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
@@ -173,7 +158,7 @@ fun ProfileScreen(
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "Wali: $guardianEmail (${if (authState.isDemoMode) "Demo" else "Firebase"})",
+                            text = "Wali: $guardianEmail",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Medium,
                             fontSize = 11.sp,
@@ -188,7 +173,6 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Level Badge
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -199,7 +183,7 @@ fun ProfileScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = AksaIcons.Star,
+                                    painter = AksaIcons.star(),
                                     contentDescription = null,
                                     tint = AksaYellowDark,
                                     modifier = Modifier.size(18.dp)
@@ -226,7 +210,7 @@ fun ProfileScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = AksaIcons.Flame,
+                                    painter = AksaIcons.flame(),
                                     contentDescription = null,
                                     tint = AksaOrange,
                                     modifier = Modifier.size(18.dp)
@@ -247,7 +231,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // White Rounded Menu Rows Card
             val menuCardShape = RoundedCornerShape(26.dp)
             Box(
                 modifier = Modifier
@@ -257,19 +240,17 @@ fun ProfileScreen(
                     .padding(vertical = 8.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Row 1: Edit Profil
                     ProfileMenuRow(
-                        icon = AksaIcons.Edit,
+                        icon = AksaIcons.edit(),
                         iconBg = AksaPeachLight,
                         title = "Edit Profil",
-                        onClick = { /* UI Mockup action */ }
+                        onClick = onNavigateToEditProfile
                     )
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
-                    // Row 2: Progress Belajar
                     ProfileMenuRow(
-                        icon = AksaIcons.EmojiEvents,
+                        icon = AksaIcons.emojiEvents(),
                         iconBg = AksaYellow.copy(alpha = 0.35f),
                         title = "Progress Belajar",
                         badge = "Lihat",
@@ -278,37 +259,156 @@ fun ProfileScreen(
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
-                    // Row 3: Pengaturan
                     ProfileMenuRow(
-                        icon = AksaIcons.Settings,
+                        icon = AksaIcons.face(),
                         iconBg = Color(0xFFE8F2FA),
-                        title = "Pengaturan",
-                        onClick = { /* UI Mockup action */ }
+                        title = "Pindah Profil Anak",
+                        onClick = {
+                            showSwitchProfileSheet = true
+                        }
                     )
-
-                    if (com.aksa.app.BuildConfig.DEBUG) {
-                        HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
-                        ProfileMenuRow(
-                            icon = AksaIcons.Star,
-                            iconBg = AksaYellow.copy(alpha = 0.3f),
-                            title = "Developer Preview Mode",
-                            badge = "Debug",
-                            textColor = AksaDarkBrown,
-                            onClick = onNavigateToDeveloperPreview
-                        )
-                    }
 
                     HorizontalDivider(color = AksaGrayBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
 
-                    // Row 4: Keluar
                     ProfileMenuRow(
-                        icon = AksaIcons.ExitToApp,
+                        icon = AksaIcons.logout(),
                         iconBg = Color(0xFFFFECE6),
                         title = "Keluar",
                         textColor = AksaOrange,
                         onClick = {
-                            authViewModel.signOut(onNavigateToLogin)
+                            showLogoutConfirmation = true
                         }
+                    )
+                }
+            }
+        }
+
+        if (showLogoutConfirmation) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x88000000))
+                    .clickable { /* block touches */ },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp)
+                        .shadow(16.dp, DialogShape)
+                        .background(AksaWhite, DialogShape)
+                        .padding(28.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        MascotStanding(size = 120.dp)
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Keluar dari Akun?",
+                                fontFamily = Poppins,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp,
+                                color = AksaDarkBrown,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        Text(
+                            text = "Apakah Anda yakin ingin keluar? Progres belajar anak tetap tersimpan dengan aman.",
+                            fontFamily = Poppins,
+                            fontSize = 13.sp,
+                            color = AksaDarkBrown.copy(alpha = 0.75f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+                        )
+                        AksaButton(
+                            text = "Ya, Keluar",
+                            style = AksaButtonStyle.PRIMARY_ORANGE,
+                            onClick = {
+                                showLogoutConfirmation = false
+                                authViewModel.signOut(onNavigateToLogin)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "Batal",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = AksaOrange,
+                            modifier = Modifier.clickable {
+                                showLogoutConfirmation = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // ModalBottomSheet for switching child profile
+        if (showSwitchProfileSheet) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { showSwitchProfileSheet = false },
+                sheetState = sheetState,
+                containerColor = AksaWhite,
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 36.dp)
+                ) {
+                    Text(
+                        text = "Pindah Profil Anak",
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = AksaDarkBrown
+                    )
+                    Text(
+                        text = "Pilih profil yang ingin digunakan untuk belajar",
+                        fontFamily = Poppins,
+                        fontSize = 13.sp,
+                        color = AksaGrayText,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 18.dp)
+                    )
+
+                    // Profile items
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        profileManagementState.profiles.forEach { profile ->
+                            val isActive = profile.profileId == AksaUserState.currentProfileId
+                            ChildProfileSelectionCard(
+                                profile = profile,
+                                isActive = isActive,
+                                onClick = {
+                                    profileManagementViewModel.selectProfile(profile) {
+                                        showSwitchProfileSheet = false
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    AksaButton(
+                        text = "+ Tambah Profil Anak",
+                        style = AksaButtonStyle.PRIMARY_ORANGE,
+                        onClick = {
+                            showSwitchProfileSheet = false
+                            onNavigateToCreateProfile()
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -318,7 +418,7 @@ fun ProfileScreen(
 
 @Composable
 private fun ProfileMenuRow(
-    icon: ImageVector,
+    icon: androidx.compose.ui.graphics.painter.Painter,
     iconBg: Color,
     title: String,
     modifier: Modifier = Modifier,
@@ -341,7 +441,7 @@ private fun ProfileMenuRow(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = icon,
+                painter = icon,
                 contentDescription = null,
                 tint = if (textColor == AksaOrange) AksaOrange else AksaDarkBrown,
                 modifier = Modifier.size(20.dp)
@@ -378,7 +478,7 @@ private fun ProfileMenuRow(
         }
 
         Icon(
-            imageVector = AksaIcons.ChevronRight,
+            painter = AksaIcons.chevronRight(),
             contentDescription = null,
             tint = AksaGrayText,
             modifier = Modifier.size(20.dp)

@@ -23,7 +23,11 @@ private val AksaColorScheme = lightColorScheme(
     onSurface = AksaDarkBrown,
     surfaceVariant = AksaPeachLight,
     onSurfaceVariant = AksaBrownLight,
-    outline = AksaGrayBorder
+    outline = AksaGrayBorder,
+    error = AksaError,
+    onError = AksaWhite,
+    errorContainer = AksaErrorLight,
+    onErrorContainer = AksaErrorText
 )
 
 @Composable

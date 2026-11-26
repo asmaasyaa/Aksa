@@ -13,7 +13,8 @@ import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 /**
- * Real Firestore implementation of AchievementRepository.
+ * Cloud Firestore implementation of AchievementRepository (Badges).
+ * Stores badges under users/{parentUid}/profiles/{profileId}/badges/{badgeId}.
  * Uses idempotent document IDs "${weekStartDate}_${milestoneDays}" to guarantee single award per week.
  */
 class FirestoreAchievementRepository(
@@ -21,9 +22,9 @@ class FirestoreAchievementRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) : AchievementRepository {
 
-    private fun getGuardianUid(): String {
+    private fun getParentUid(): String {
         return authRepository.currentGuardian.value?.uid
-            ?: throw IllegalStateException("Guardian must be authenticated to access achievements")
+            ?: throw IllegalStateException("Guardian must be authenticated to access badges")
     }
 
     override suspend fun awardMilestoneIfEligible(
@@ -32,9 +33,9 @@ class FirestoreAchievementRepository(
         milestoneDays: Int
     ): Boolean {
         return try {
-            val guardianUid = getGuardianUid()
+            val parentUid = getParentUid()
             val docId = "${weekStartDate}_$milestoneDays"
-            val docRef = firestore.document(FirestorePaths.achievementDoc(guardianUid, childId, docId))
+            val docRef = firestore.document(FirestorePaths.badgeDoc(parentUid, childId, docId))
 
             val existing = docRef.get().await()
             if (existing.exists()) {
@@ -43,14 +44,15 @@ class FirestoreAchievementRepository(
             }
 
             val achievement = WeeklyAchievement(
-                achievementId = "ach_${UUID.randomUUID()}",
+                achievementId = "badge_${UUID.randomUUID()}",
                 childId = childId,
                 weekStartDate = weekStartDate,
                 milestoneDays = milestoneDays,
-                awardedAt = System.currentTimeMillis()
+                awardedAt = System.currentTimeMillis(),
+                userId = parentUid
             )
 
-            val dto = WeeklyAchievementDto.fromDomain(achievement)
+            val dto = WeeklyAchievementDto.fromDomain(achievement, parentUid)
             docRef.set(dto).await()
             true
         } catch (e: Exception) {
@@ -60,8 +62,8 @@ class FirestoreAchievementRepository(
 
     override suspend fun getAchievements(childId: String): List<WeeklyAchievement> {
         return try {
-            val guardianUid = getGuardianUid()
-            val snapshot = firestore.collection(FirestorePaths.achievementsCollection(guardianUid, childId))
+            val parentUid = getParentUid()
+            val snapshot = firestore.collection(FirestorePaths.badgesCollection(parentUid, childId))
                 .get()
                 .await()
 
@@ -72,14 +74,14 @@ class FirestoreAchievementRepository(
     }
 
     override fun observeAchievements(childId: String): Flow<List<WeeklyAchievement>> = callbackFlow {
-        val guardianUid = try { getGuardianUid() } catch (e: Exception) { null }
-        if (guardianUid == null) {
+        val parentUid = try { getParentUid() } catch (e: Exception) { null }
+        if (parentUid == null) {
             trySend(emptyList())
             close()
             return@callbackFlow
         }
 
-        val registration = firestore.collection(FirestorePaths.achievementsCollection(guardianUid, childId))
+        val registration = firestore.collection(FirestorePaths.badgesCollection(parentUid, childId))
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     trySend(emptyList())

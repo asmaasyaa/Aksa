@@ -31,6 +31,10 @@ class DemoSessionRepository : SessionRepository {
         return answers.value.filter { it.sessionId == sessionId }
     }
 
+    override suspend fun getAnswersForChild(childId: String): List<AnswerLog> {
+        return answers.value.filter { it.childId == childId }
+    }
+
     override suspend fun saveSessionResult(result: SessionResult): Result<Unit> {
         val current = sessions.value.toMutableMap()
         current[result.sessionId] = result
@@ -55,5 +59,16 @@ class DemoSessionRepository : SessionRepository {
             current[s.sessionId] = s
         }
         sessions.value = current
+    }
+
+    // Helper for tests/demo to preload answer logs if needed
+    fun seedAnswers(seedList: List<AnswerLog>) {
+        val current = answers.value.toMutableList()
+        for (a in seedList) {
+            if (current.none { it.answerId == a.answerId }) {
+                current.add(a)
+            }
+        }
+        answers.value = current
     }
 }

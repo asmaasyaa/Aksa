@@ -21,23 +21,29 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotLearning
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
-import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaOrangeLight
 import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
@@ -49,6 +55,33 @@ fun SyllableIntroScreen(
     onNavigateBack: () -> Unit,
     onNavigateToExample: () -> Unit
 ) {
+    val context = LocalContext.current
+    val tts = remember { AndroidTextToSpeechHelper(context) }
+    val welcomeSpeech = "Selamat datang di Dunia Suku Kata! Mari belajar membentuk kata dari gabungan suku kata yang menyenangkan!"
+    var showExitConfirmation by remember { mutableStateOf(false) }
+
+    val requestExit = {
+        showExitConfirmation = true
+    }
+
+    androidx.activity.compose.BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        tts.speak(welcomeSpeech)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            tts.release()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -63,24 +96,22 @@ fun SyllableIntroScreen(
                 .padding(bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -96,7 +127,6 @@ fun SyllableIntroScreen(
                     }
                 }
 
-                // Level Badge
                 Box(
                     modifier = Modifier
                         .clip(PillShape)
@@ -115,7 +145,6 @@ fun SyllableIntroScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Title
             Text(
                 text = "Dunia Suku Kata",
                 fontFamily = Poppins,
@@ -126,7 +155,6 @@ fun SyllableIntroScreen(
 
             Spacer(modifier = Modifier.height(26.dp))
 
-            // Mascot Guide (Learning pose with book)
             MascotLearning(size = 170.dp)
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -144,21 +172,22 @@ fun SyllableIntroScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Mini speaker button
                     Box(
                         modifier = Modifier
                             .align(Alignment.End)
-                            .size(36.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(AksaSoftPeach)
-                            .clickable { /* Audio hint */ },
+                            .clickable {
+                                tts.speak(welcomeSpeech)
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = AksaIcons.VolumeUp,
+                            painter = AksaIcons.volumeUp(),
                             contentDescription = "Bunyikan",
                             tint = AksaDarkBrown,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
 
@@ -186,7 +215,6 @@ fun SyllableIntroScreen(
 
                     Spacer(modifier = Modifier.height(28.dp))
 
-                    // Primary Button: Lanjut
                     AksaButton(
                         text = "Lanjut",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
@@ -194,6 +222,17 @@ fun SyllableIntroScreen(
                     )
                 }
             }
+        }
+
+        if (showExitConfirmation) {
+            com.aksa.app.ui.components.AksaExitConfirmationDialog(
+                isMiniGame = false,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    onNavigateBack()
+                }
+            )
         }
     }
 }

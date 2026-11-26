@@ -29,9 +29,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,13 +48,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aksa.app.audio.AndroidTextToSpeechHelper
-import com.aksa.app.domain.model.HurufMiripQuestion
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
+import com.aksa.app.ui.components.EarnedStarsRow
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
+import com.aksa.app.ui.theme.AksaError
+import com.aksa.app.ui.theme.AksaErrorLight
+import com.aksa.app.ui.theme.AksaErrorText
+import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
@@ -73,6 +80,7 @@ fun HurufMiripScreen(
 ) {
     val context = LocalContext.current
     val audioSpeaker = remember { AndroidTextToSpeechHelper(context) }
+    val isTtsReady by audioSpeaker.isReady.collectAsState()
 
     DisposableEffect(Unit) {
         onDispose {
@@ -91,16 +99,29 @@ fun HurufMiripScreen(
 
     val uiState by vm.uiState.collectAsState()
     val currentQuestion = uiState.currentQuestion
+    var showExitConfirmation by remember { mutableStateOf(false) }
 
-    // Handle back button safely: abandon session if exiting early
-    val handleExit = {
-        if (!uiState.showCompletionDialog && uiState.currentQuestionIndex < uiState.totalQuestions) {
-            vm.abandonSession()
+    LaunchedEffect(uiState.currentQuestionIndex, isTtsReady) {
+        if (isTtsReady && currentQuestion != null && !uiState.showCompletionDialog) {
+            vm.playCurrentQuestionAudio()
         }
-        onNavigateBack()
     }
 
-    BackHandler(onBack = handleExit)
+    val requestExit = {
+        if (!uiState.showCompletionDialog && uiState.currentQuestionIndex < uiState.totalQuestions) {
+            showExitConfirmation = true
+        } else {
+            onNavigateBack()
+        }
+    }
+
+    BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -116,24 +137,22 @@ fun HurufMiripScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar (Kembali + Progress Pill)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill button
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = handleExit)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -149,7 +168,6 @@ fun HurufMiripScreen(
                     }
                 }
 
-                // Progress Badge: Soal X dari 10
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
@@ -169,7 +187,6 @@ fun HurufMiripScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // VISUAL EXPLANATION / EDUCATIONAL HINT CARD
             if (currentQuestion != null) {
                 val hintCardShape = RoundedCornerShape(24.dp)
                 Box(
@@ -194,7 +211,7 @@ fun HurufMiripScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = AksaIcons.AutoAwesome,
+                                        painter = AksaIcons.autoAwesome(),
                                         contentDescription = null,
                                         tint = AksaDarkBrown,
                                         modifier = Modifier.size(16.dp)
@@ -221,7 +238,6 @@ fun HurufMiripScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Visual Side-by-Side Comparison Cards
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -245,7 +261,6 @@ fun HurufMiripScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // MAIN QUESTION CARD
             if (currentQuestion != null) {
                 val cardShape = RoundedCornerShape(32.dp)
                 Box(
@@ -259,60 +274,54 @@ fun HurufMiripScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Huruf Mirip",
-                                fontFamily = Poppins,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = AksaOrange
-                            )
+                        Text(
+                            text = "Huruf Mirip",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = AksaOrange
+                        )
 
-                            // Replayable Audio Speaker Button
-                            Box(
-                                modifier = Modifier
-                                    .clip(PillShape)
-                                    .background(AksaYellow.copy(alpha = 0.25f))
-                                    .clickable { vm.playCurrentQuestionAudio() }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = AksaIcons.VolumeUp,
-                                        contentDescription = "Dengarkan Suara",
-                                        tint = AksaDarkBrown,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Dengarkan",
-                                        fontFamily = Poppins,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = AksaDarkBrown
-                                    )
-                                }
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .clip(PillShape)
+                                .background(AksaYellow)
+                                .clickable { vm.playCurrentQuestionAudio() }
+                                .padding(horizontal = 24.dp, vertical = 12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = AksaIcons.volumeUp(),
+                                    contentDescription = "Dengarkan Suara",
+                                    tint = AksaDarkBrown,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Dengarkan Hurufnya",
+                                    fontFamily = Poppins,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = AksaDarkBrown
+                                )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Text(
-                            text = currentQuestion.promptText,
+                            text = "Ketuk huruf yang sesuai dengan suara!",
                             fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
                             textAlign = TextAlign.Center,
-                            color = AksaDarkBrown
+                            color = AksaDarkBrown.copy(alpha = 0.8f)
                         )
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(22.dp))
 
-                        // TWO LARGE WHITE ROUNDED LETTER CHOICE CARDS
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(18.dp)
@@ -334,7 +343,6 @@ fun HurufMiripScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // FEEDBACK SECTION & MASCOT
                         AnimatedVisibility(
                             visible = uiState.isAnswered,
                             enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
@@ -344,9 +352,9 @@ fun HurufMiripScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 val isCorrect = uiState.isCorrect
-                                val feedbackBgColor = if (isCorrect) AksaLime.copy(alpha = 0.25f) else Color(0xFFFFEBEE)
-                                val feedbackBorderColor = if (isCorrect) AksaLimeDark else Color(0xFFE53935)
-                                val feedbackTextColor = if (isCorrect) AksaDarkBrown else Color(0xFFC62828)
+                                val feedbackBgColor = if (isCorrect) AksaLime.copy(alpha = 0.25f) else AksaErrorLight
+                                val feedbackBorderColor = if (isCorrect) AksaLimeDark else AksaError
+                                val feedbackTextColor = if (isCorrect) AksaDarkBrown else AksaErrorText
 
                                 Box(
                                     modifier = Modifier
@@ -361,7 +369,7 @@ fun HurufMiripScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Icon(
-                                            imageVector = if (isCorrect) AksaIcons.Check else AksaIcons.Info,
+                                            painter = if (isCorrect) AksaIcons.check() else AksaIcons.info(),
                                             contentDescription = null,
                                             tint = feedbackBorderColor,
                                             modifier = Modifier.size(24.dp)
@@ -393,7 +401,6 @@ fun HurufMiripScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // BUTTON: SELANJUTNYA / SELESAI
                         AksaButton(
                             text = if (uiState.currentQuestionIndex == uiState.totalQuestions - 1) "Selesai" else "Selanjutnya",
                             style = if (uiState.isAnswered) AksaButtonStyle.PRIMARY_ORANGE else AksaButtonStyle.SECONDARY_LIME,
@@ -405,7 +412,6 @@ fun HurufMiripScreen(
             }
         }
 
-        // COMPLETION CELEBRATION MODAL
         if (uiState.showCompletionDialog) {
             val result = uiState.sessionResult
             val correct = result?.correctAnswers ?: uiState.correctAnswersCount
@@ -416,7 +422,7 @@ fun HurufMiripScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x88000000))
-                    .clickable { /* Block clicks behind */ }
+                    .clickable { }
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -433,6 +439,8 @@ fun HurufMiripScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         MascotCheering(size = 120.dp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        EarnedStarsRow(accuracy = correct.toFloat() / total.toFloat())
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -445,7 +453,7 @@ fun HurufMiripScreen(
                         )
 
                         Text(
-                            text = "Hebat! Kamu telah menyelesaikan 10 soal latihan huruf mirip b, d, p, dan q.",
+                            text = "Hebat! Kamu telah menyelesaikan $total soal latihan huruf mirip b, d, p, q, m, n, u, dan w.",
                             fontFamily = Poppins,
                             fontWeight = FontWeight.Normal,
                             fontSize = 13.sp,
@@ -454,7 +462,6 @@ fun HurufMiripScreen(
                             modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
                         )
 
-                        // Score & Accuracy Box
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -507,7 +514,6 @@ fun HurufMiripScreen(
                             }
                         }
 
-                        // Milestone notice if awarded
                         if (uiState.newlyAwardedMilestones.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Box(
@@ -520,7 +526,7 @@ fun HurufMiripScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AksaIcons.Star,
+                                        painter = AksaIcons.star(),
                                         contentDescription = null,
                                         tint = AksaYellowDark,
                                         modifier = Modifier.size(18.dp)
@@ -556,12 +562,21 @@ fun HurufMiripScreen(
                 }
             }
         }
+
+        if (showExitConfirmation) {
+            com.aksa.app.ui.components.AksaExitConfirmationDialog(
+                isMiniGame = false,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    vm.abandonSession()
+                    onNavigateBack()
+                }
+            )
+        }
     }
 }
 
-/**
- * Visual Educational Hint Pill Card
- */
 @Composable
 private fun VisualHintPill(
     letter: String,
@@ -611,9 +626,6 @@ private fun VisualHintPill(
     }
 }
 
-/**
- * Large Interactive Letter Card
- */
 @Composable
 private fun LetterChoiceCard(
     letter: String,
@@ -641,9 +653,9 @@ private fun LetterChoiceCard(
 
     val borderColor = when {
         isChosen && isChoiceCorrect -> AksaLimeDark
-        isChosen && !isChoiceCorrect -> Color(0xFFE53935)
+        isChosen && !isChoiceCorrect -> AksaError
         isChosen -> AksaOrange
-        else -> Color(0xFFE0E0E0)
+        else -> AksaGrayBorder
     }
 
     Box(

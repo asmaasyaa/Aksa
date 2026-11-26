@@ -1,24 +1,29 @@
 package com.aksa.app.data.model
 
 import com.aksa.app.domain.model.AnswerLog
+import com.google.firebase.firestore.PropertyName
 
 data class AnswerLogDto(
     val answerId: String = "",
     val sessionId: String = "",
     val childId: String = "",
+    val profileId: String = childId,
+    val userId: String = "",
     val moduleId: String = "",
     val activityId: String = "",
     val questionId: String = "",
     val targetChar: String = "",
     val chosenChar: String = "",
-    val isCorrect: Boolean = false,
+    @get:PropertyName("isCorrect")
+    @set:PropertyName("isCorrect")
+    var isCorrect: Boolean = false,
     val responseTimeMs: Long = 0L,
     val timestamp: Long = 0L
 ) {
     fun toDomain() = AnswerLog(
         answerId = answerId,
         sessionId = sessionId,
-        childId = childId,
+        childId = if (childId.isNotBlank()) childId else profileId,
         moduleId = moduleId,
         activityId = activityId,
         questionId = questionId,
@@ -26,14 +31,17 @@ data class AnswerLogDto(
         chosenChar = chosenChar,
         isCorrect = isCorrect,
         responseTimeMs = responseTimeMs,
-        timestamp = timestamp
+        timestamp = timestamp,
+        userId = userId
     )
 
     companion object {
-        fun fromDomain(domain: AnswerLog) = AnswerLogDto(
+        fun fromDomain(domain: AnswerLog, parentUid: String = domain.userId) = AnswerLogDto(
             answerId = domain.answerId,
             sessionId = domain.sessionId,
             childId = domain.childId,
+            profileId = domain.profileId,
+            userId = if (parentUid.isNotBlank()) parentUid else domain.userId,
             moduleId = domain.moduleId,
             activityId = domain.activityId,
             questionId = domain.questionId,

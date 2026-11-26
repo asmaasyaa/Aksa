@@ -112,3 +112,21 @@ val AksaTypography = Typography(
         lineHeight = 14.sp
     )
 )
+
+object AksaTextStyles {
+    val displayLarge = AksaTypography.displayLarge
+    val displayMedium = AksaTypography.displayMedium
+    val displaySmall = AksaTypography.displaySmall
+    val headlineLarge = AksaTypography.headlineLarge
+    val headlineMedium = AksaTypography.headlineMedium
+    val headlineSmall = AksaTypography.headlineSmall
+    val titleLarge = AksaTypography.titleLarge
+    val titleMedium = AksaTypography.titleMedium
+    val titleSmall = AksaTypography.titleSmall
+    val bodyLarge = AksaTypography.bodyLarge
+    val bodyMedium = AksaTypography.bodyMedium
+    val bodySmall = AksaTypography.bodySmall
+    val labelLarge = AksaTypography.labelLarge
+    val labelMedium = AksaTypography.labelMedium
+    val labelSmall = AksaTypography.labelSmall
+}

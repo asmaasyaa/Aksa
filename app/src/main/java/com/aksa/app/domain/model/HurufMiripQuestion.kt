@@ -1,8 +1,5 @@
 package com.aksa.app.domain.model
 
-/**
- * Question model for Huruf Mirip (b/d and p/q visual comparison activity).
- */
 data class HurufMiripQuestion(
     val id: String,
     val targetLetter: String,

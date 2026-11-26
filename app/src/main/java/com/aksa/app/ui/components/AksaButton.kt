@@ -1,16 +1,12 @@
 package com.aksa.app.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -40,6 +35,8 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.theme.AksaDarkBrown
+import com.aksa.app.ui.theme.AksaError
+import com.aksa.app.ui.theme.AksaErrorDark
 import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaGrayDisabled
 import com.aksa.app.ui.theme.AksaGrayText
@@ -58,12 +55,14 @@ enum class AksaButtonStyle {
     SECONDARY_LIME,
     WHITE_CARD,
     OUTLINE,
-    SOCIAL
+    SOCIAL,
+    DESTRUCTIVE_RED;
+
+    companion object {
+        val DANGER_RED = DESTRUCTIVE_RED
+    }
 }
 
-/**
- * High-fidelity, child-friendly tactile button with 3D press effect.
- */
 @Composable
 fun AksaButton(
     text: String,
@@ -72,6 +71,8 @@ fun AksaButton(
     style: AksaButtonStyle = AksaButtonStyle.PRIMARY_ORANGE,
     icon: ImageVector? = null,
     trailingIcon: ImageVector? = null,
+    iconPainter: androidx.compose.ui.graphics.painter.Painter? = null,
+    trailingIconPainter: androidx.compose.ui.graphics.painter.Painter? = null,
     enabled: Boolean = true,
     height: Dp = 56.dp,
     fontSize: TextUnit = 17.sp,
@@ -120,6 +121,12 @@ fun AksaButton(
             AksaDarkBrown,
             AksaGrayBorder
         )
+        AksaButtonStyle.DESTRUCTIVE_RED -> QuadColor(
+            AksaError,
+            AksaErrorDark,
+            AksaWhite,
+            Color.Transparent
+        )
     }
 
     val finalBg = if (enabled) bgColor else AksaGrayDisabled
@@ -149,7 +156,6 @@ fun AksaButton(
                 }
             }
     ) {
-        // Bottom bevel shadow (3D effect)
         if (style != AksaButtonStyle.OUTLINE && enabled) {
             Box(
                 modifier = Modifier
@@ -160,7 +166,6 @@ fun AksaButton(
             )
         }
 
-        // Top button surface
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -186,6 +191,14 @@ fun AksaButton(
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
+                } else if (iconPainter != null) {
+                    Icon(
+                        painter = iconPainter,
+                        contentDescription = null,
+                        tint = finalTextColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
                 }
 
                 Text(
@@ -200,6 +213,14 @@ fun AksaButton(
                     Spacer(modifier = Modifier.width(10.dp))
                     Icon(
                         imageVector = trailingIcon,
+                        contentDescription = null,
+                        tint = finalTextColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                } else if (trailingIconPainter != null) {
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Icon(
+                        painter = trailingIconPainter,
                         contentDescription = null,
                         tint = finalTextColor,
                         modifier = Modifier.size(22.dp)

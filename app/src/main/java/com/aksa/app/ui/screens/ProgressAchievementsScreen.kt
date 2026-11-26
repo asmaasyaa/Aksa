@@ -2,7 +2,6 @@ package com.aksa.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -29,7 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,8 +41,6 @@ import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.ProgressBarColor
 import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
-import com.aksa.app.ui.theme.AksaGrayBorder
-import com.aksa.app.ui.theme.AksaGrayDisabled
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
@@ -62,15 +61,8 @@ fun ProgressAchievementsScreen(
     viewModel: ProgressAchievementsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val isDevPreview by com.aksa.app.ui.preview.DeveloperPreviewManager.isPreviewActive.collectAsState()
-    val previewDays by com.aksa.app.ui.preview.DeveloperPreviewManager.previewWeeklyDays.collectAsState()
-
-    val effectiveStreak = if (isDevPreview) previewDays else uiState.currentStreak
-    val effectiveBadges = if (isDevPreview) {
-        com.aksa.app.ui.preview.DeveloperPreviewFixtures.createMilestoneBadges(previewDays)
-    } else {
-        uiState.milestoneBadges
-    }
+    val effectiveStreak = uiState.currentStreak
+    val effectiveBadges = uiState.milestoneBadges
 
     Box(
         modifier = Modifier
@@ -81,42 +73,29 @@ fun ProgressAchievementsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
-                .padding(bottom = 36.dp),
+                .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
-                Box(
+                IconButton(
+                    onClick = onNavigateBack,
                     modifier = Modifier
-                        .shadow(4.dp, PillShape)
-                        .clip(PillShape)
-                        .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(AksaWhite.copy(alpha = 0.25f))
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = AksaIcons.ArrowBack,
-                            contentDescription = "Kembali",
-                            tint = AksaDarkBrown,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Kembali",
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = AksaDarkBrown
-                        )
-                    }
+                    Icon(
+                        painter = AksaIcons.arrowBack(),
+                        contentDescription = "Kembali",
+                        tint = AksaWhite
+                    )
                 }
 
                 Text(
@@ -127,7 +106,7 @@ fun ProgressAchievementsScreen(
                     color = AksaWhite
                 )
 
-                Spacer(modifier = Modifier.width(48.dp))
+                Spacer(modifier = Modifier.width(42.dp))
             }
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -153,7 +132,7 @@ fun ProgressAchievementsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = AksaIcons.Flame,
+                            painter = AksaIcons.flame(),
                             contentDescription = null,
                             tint = AksaOrange,
                             modifier = Modifier.size(32.dp)
@@ -214,6 +193,36 @@ fun ProgressAchievementsScreen(
                         value = "${uiState.completedSessionsCount} sesi",
                         highlightColor = AksaOrange
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Total bintang aksa
+                    StatRow(
+                        label = "Total Bintang Diraih",
+                        value = "${uiState.totalStarsEarned} Bintang",
+                        highlightColor = AksaYellowDark,
+                        iconPainter = AksaIcons.star()
+                    )
+
+                    if (uiState.isLoading) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Memuat data progress...",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp,
+                            color = AksaGrayText
+                        )
+                    } else if (uiState.errorMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.errorMessage ?: "Gagal memuat data progress",
+                            fontFamily = Poppins,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp,
+                            color = AksaOrange
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -285,14 +294,14 @@ fun ProgressAchievementsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                    // Cheering Mascot at bottom of achievements
+                    // Compact Cheering Mascot at bottom of achievements so it won't get cropped
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        MascotCheering(size = 130.dp)
+                        MascotCheering(size = 64.dp)
                     }
                 }
             }
@@ -304,7 +313,8 @@ fun ProgressAchievementsScreen(
 private fun StatRow(
     label: String,
     value: String,
-    highlightColor: Color
+    highlightColor: Color,
+    iconPainter: Painter? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -318,13 +328,24 @@ private fun StatRow(
             fontSize = 14.sp,
             color = AksaDarkBrown
         )
-        Text(
-            text = value,
-            fontFamily = Poppins,
-            fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
-            color = highlightColor
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (iconPainter != null) {
+                Icon(
+                    painter = iconPainter,
+                    contentDescription = null,
+                    tint = highlightColor,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            Text(
+                text = value,
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = highlightColor
+            )
+        }
     }
 }
 
@@ -334,10 +355,10 @@ private fun WeeklyBadgeItemRow(badge: MilestoneBadgeInfo) {
     val shape = RoundedCornerShape(18.dp)
 
     val icon = when (badge.milestoneDays) {
-        2 -> AksaIcons.Star
-        3 -> AksaIcons.Flame
-        7 -> AksaIcons.EmojiEvents
-        else -> AksaIcons.Star
+        2 -> AksaIcons.star()
+        3 -> AksaIcons.flame()
+        7 -> AksaIcons.emojiEvents()
+        else -> AksaIcons.star()
     }
 
     val iconBg = when {
@@ -368,7 +389,7 @@ private fun WeeklyBadgeItemRow(badge: MilestoneBadgeInfo) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = if (isEarned) icon else AksaIcons.Lock,
+                painter = if (isEarned) icon else AksaIcons.lock(),
                 contentDescription = null,
                 tint = if (isEarned) AksaDarkBrown else AksaGrayText,
                 modifier = Modifier.size(22.dp)

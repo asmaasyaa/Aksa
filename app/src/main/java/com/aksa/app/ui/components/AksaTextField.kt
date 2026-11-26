@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaGrayText
+import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.Poppins
 
@@ -53,6 +53,7 @@ fun AksaTextField(
     label: String? = null,
     placeholder: String = "",
     leadingIcon: ImageVector? = null,
+    leadingIconPainter: androidx.compose.ui.graphics.painter.Painter? = null,
     isPassword: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
@@ -98,6 +99,14 @@ fun AksaTextField(
                 if (leadingIcon != null) {
                     Icon(
                         imageVector = leadingIcon,
+                        contentDescription = null,
+                        tint = if (isFocused) AksaOrange else AksaGrayText,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                } else if (leadingIconPainter != null) {
+                    Icon(
+                        painter = leadingIconPainter,
                         contentDescription = null,
                         tint = if (isFocused) AksaOrange else AksaGrayText,
                         modifier = Modifier.size(22.dp)
@@ -151,7 +160,7 @@ fun AksaTextField(
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
-                            imageVector = if (passwordVisible) com.aksa.app.ui.theme.AksaIcons.Eye else com.aksa.app.ui.theme.AksaIcons.EyeOff,
+                            painter = if (passwordVisible) AksaIcons.visibility() else AksaIcons.visibilityOff(),
                             contentDescription = if (passwordVisible) "Sembunyikan password" else "Lihat password",
                             tint = if (isFocused) AksaOrange else AksaGrayText,
                             modifier = Modifier.size(20.dp)

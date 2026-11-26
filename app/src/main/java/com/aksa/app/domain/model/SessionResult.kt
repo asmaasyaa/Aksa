@@ -6,11 +6,6 @@ enum class SessionStatus {
     ABANDONED
 }
 
-/**
- * Summary result of an educational activity session.
- * COMPLETED = the child finished the exercise.
- * Mastered = separate evaluation of learning performance.
- */
 data class SessionResult(
     val sessionId: String,
     val childId: String,
@@ -22,7 +17,9 @@ data class SessionResult(
     val correctAnswers: Int,
     val incorrectAnswers: Int,
     val accuracy: Float,
-    val status: SessionStatus
+    val status: SessionStatus,
+    val userId: String = ""
 ) {
     val isCompleted: Boolean get() = status == SessionStatus.COMPLETED
+    val profileId: String get() = childId
 }

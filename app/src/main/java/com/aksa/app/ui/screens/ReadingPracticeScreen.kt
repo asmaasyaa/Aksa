@@ -1,6 +1,5 @@
 package com.aksa.app.ui.screens
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -20,16 +19,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,14 +45,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.audio.AndroidTextToSpeechHelper
 import com.aksa.app.data.repository.AksaRepositoryProvider
+import com.aksa.app.domain.model.AnswerLog
 import com.aksa.app.domain.model.SessionResult
 import com.aksa.app.domain.model.SessionStatus
+import com.aksa.app.domain.usecase.GetActiveChildIdUseCase
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotCheering
 import com.aksa.app.ui.components.MascotLearning
-import com.aksa.app.ui.preview.DeveloperPreviewManager
-import com.aksa.app.ui.preview.PreviewVisualState
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaBlue
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
@@ -61,12 +61,13 @@ import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class StoryPanel(
@@ -99,12 +100,11 @@ fun ReadingPracticeScreen(
 
     val storyPanels = remember {
         listOf(
-            StoryPanel("Kancil dan Kebun Buah", "Kancil berjalan riang ke kebun buah di dekat sungai yang jernih.", "🦌🌳"),
+            StoryPanel("Kancil dan Kebun Buah", "Kancil berjalan riang ke kebun buah di dekat sungai yang jernih.", "🦌🌊"),
             StoryPanel("Apel Merah yang Manis", "Di kebun, Kancil memetik buah apel merah yang matang dan manis rasanya.", "🍎🧺"),
-            StoryPanel("Berbagi Bersama Sahabat", "Kancil membagikan buah apel kepada burung pipit dan kelinci sahabatnya.", "🐰🐦")
+            StoryPanel("Berbagi Bersama Sahabat", "Kancil membagikan buah apel kepada burung pipit dan kelinci sahabatnya.", "🐦🐰")
         )
     }
-
     val questions = remember {
         listOf(
             ComprehensionQuestion("cq_1", "Siapa yang pergi ke kebun buah di dekat sungai?", "Kancil", listOf("Kancil", "Gajah", "Kucing")),
@@ -112,6 +112,11 @@ fun ReadingPracticeScreen(
             ComprehensionQuestion("cq_3", "Kepada siapa Kancil membagikan buah apel?", "Burung dan kelinci", listOf("Burung dan kelinci", "Harimau", "Buaya"))
         )
     }
+
+    var sessionId by remember { mutableStateOf("session_reading_${UUID.randomUUID()}") }
+    var sessionStartedAt by remember { mutableStateOf(System.currentTimeMillis()) }
+    val recordedAnswers = remember { mutableStateListOf<AnswerLog>() }
+    val activeChildResolver = remember { GetActiveChildIdUseCase() }
 
     var stage by remember { mutableStateOf(ReadingStage.READING_STORY) }
     var currentPanelIndex by remember { mutableIntStateOf(0) }
@@ -122,26 +127,51 @@ fun ReadingPracticeScreen(
     var isCorrect by remember { mutableStateOf(false) }
     var correctCount by remember { mutableIntStateOf(0) }
     var sessionCommitted by remember { mutableStateOf(false) }
+    var isSavingSession by remember { mutableStateOf(false) }
+    var showExitConfirmation by remember { mutableStateOf(false) }
+
+    val requestExit = {
+        if (stage != ReadingStage.COMPLETION) {
+            showExitConfirmation = true
+        } else {
+            onNavigateBack()
+        }
+    }
+
+    androidx.activity.compose.BackHandler {
+        if (showExitConfirmation) {
+            showExitConfirmation = false
+        } else {
+            requestExit()
+        }
+    }
 
     val currentQ = questions[currentQuestionIndex]
 
-    // Developer Preview overrides
-    val visualState by DeveloperPreviewManager.visualState.collectAsState()
-    val isDevPreview by DeveloperPreviewManager.isPreviewActive.collectAsState()
+    val effectiveStage = stage
+    val effectiveIsAnswered = isAnswered
+    val effectiveIsCorrect = isCorrect
+    val effectiveSelectedChoice = selectedChoice
 
-    val effectiveStage = when {
-        isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED -> ReadingStage.COMPLETION
-        isDevPreview && (visualState == PreviewVisualState.CORRECT_FEEDBACK || visualState == PreviewVisualState.INCORRECT_FEEDBACK) -> ReadingStage.COMPREHENSION_QUIZ
-        else -> stage
+    // Otomatis bacakan setiap panel cerita (termasuk panel pertama) & pertanyaan kuis
+    LaunchedEffect(effectiveStage, currentPanelIndex, currentQuestionIndex) {
+        when (effectiveStage) {
+            ReadingStage.READING_STORY -> {
+                val panel = storyPanels[currentPanelIndex]
+                tts.speak("${panel.title}. ${panel.text}")
+            }
+            ReadingStage.COMPREHENSION_QUIZ -> {
+                tts.speak(questions[currentQuestionIndex].questionText)
+            }
+            ReadingStage.COMPLETION -> {
+                tts.speak("Petualangan selesai! Selamat, kamu telah menyelesaikan Sungai Cerita.")
+            }
+        }
     }
-
-    val effectiveIsAnswered = if (isDevPreview && (visualState == PreviewVisualState.CORRECT_FEEDBACK || visualState == PreviewVisualState.INCORRECT_FEEDBACK)) true else isAnswered
-    val effectiveIsCorrect = if (isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK) true else if (isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK) false else isCorrect
-    val effectiveSelectedChoice = if (isDevPreview && visualState == PreviewVisualState.CORRECT_FEEDBACK) currentQ.targetAnswer else if (isDevPreview && visualState == PreviewVisualState.INCORRECT_FEEDBACK) currentQ.choices.firstOrNull { it != currentQ.targetAnswer } ?: "Lain" else selectedChoice
 
     DisposableEffect(Unit) {
         onDispose {
-            tts.stop()
+            tts.release()
         }
     }
 
@@ -159,24 +189,22 @@ fun ReadingPracticeScreen(
                 .padding(bottom = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // "Kembali" pill
                 Box(
                     modifier = Modifier
                         .shadow(4.dp, PillShape)
                         .clip(PillShape)
                         .background(AksaWhite)
-                        .clickable(onClick = onNavigateBack)
+                        .clickable(onClick = requestExit)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = AksaIcons.ArrowBack,
+                            painter = AksaIcons.arrowBack(),
                             contentDescription = "Kembali",
                             tint = AksaDarkBrown,
                             modifier = Modifier.size(18.dp)
@@ -246,7 +274,6 @@ fun ReadingPracticeScreen(
                                     color = AksaOrange
                                 )
 
-                                // Audio narration button
                                 Box(
                                     modifier = Modifier
                                         .clip(PillShape)
@@ -258,7 +285,7 @@ fun ReadingPracticeScreen(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            imageVector = AksaIcons.VolumeUp,
+                                            painter = AksaIcons.volumeUp(),
                                             contentDescription = "Dengarkan",
                                             tint = AksaDarkBrown,
                                             modifier = Modifier.size(16.dp)
@@ -354,11 +381,9 @@ fun ReadingPracticeScreen(
                             onClick = {
                                 if (currentPanelIndex < storyPanels.size - 1) {
                                     currentPanelIndex++
-                                    tts.speak(storyPanels[currentPanelIndex].text)
                                 } else {
                                     stage = ReadingStage.COMPREHENSION_QUIZ
                                     currentQuestionIndex = 0
-                                    tts.speak(questions[0].questionText)
                                 }
                             },
                             modifier = Modifier.weight(1f)
@@ -404,7 +429,7 @@ fun ReadingPracticeScreen(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            imageVector = AksaIcons.VolumeUp,
+                                            painter = AksaIcons.volumeUp(),
                                             contentDescription = "Dengarkan",
                                             tint = AksaDarkBrown,
                                             modifier = Modifier.size(16.dp)
@@ -463,6 +488,22 @@ fun ReadingPracticeScreen(
                                                 isAnswered = true
                                                 val correct = choice == currentQ.targetAnswer
                                                 isCorrect = correct
+                                                val childId = runCatching { activeChildResolver.getSync() }
+                                                    .getOrDefault(AksaUserState.currentProfileId)
+                                                val log = AnswerLog(
+                                                    answerId = "ans_${sessionId}_reading_${currentQ.id}",
+                                                    sessionId = sessionId,
+                                                    childId = childId,
+                                                    moduleId = "sungai_cerita",
+                                                    activityId = "reading_comprehension",
+                                                    questionId = currentQ.id,
+                                                    targetChar = currentQ.targetAnswer,
+                                                    chosenChar = choice,
+                                                    isCorrect = correct,
+                                                    responseTimeMs = 2000L,
+                                                    timestamp = System.currentTimeMillis()
+                                                )
+                                                recordedAnswers.add(log)
                                                 if (correct) {
                                                     correctCount++
                                                     tts.speak("Benar! Pintar sekali!")
@@ -486,7 +527,7 @@ fun ReadingPracticeScreen(
                                             )
                                             if (effectiveIsAnswered && isChoiceCorrect) {
                                                 Icon(
-                                                    imageVector = AksaIcons.Check,
+                                                    painter = AksaIcons.check(),
                                                     contentDescription = null,
                                                     tint = AksaLimeDark,
                                                     modifier = Modifier.size(20.dp)
@@ -499,7 +540,6 @@ fun ReadingPracticeScreen(
 
                             Spacer(modifier = Modifier.height(18.dp))
 
-                            // Feedback Banner
                             AnimatedVisibility(
                                 visible = effectiveIsAnswered,
                                 enter = fadeIn() + slideInVertically(initialOffsetY = { 20 })
@@ -523,7 +563,7 @@ fun ReadingPracticeScreen(
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                imageVector = if (effectiveIsCorrect) AksaIcons.Check else AksaIcons.Info,
+                                                painter = if (effectiveIsCorrect) AksaIcons.check() else AksaIcons.info(),
                                                 contentDescription = null,
                                                 tint = feedbackBorder,
                                                 modifier = Modifier.size(20.dp)
@@ -561,25 +601,39 @@ fun ReadingPracticeScreen(
                                         selectedChoice = null
                                         isAnswered = false
                                         isCorrect = false
-                                        tts.speak(questions[currentQuestionIndex].questionText)
                                     } else {
                                         if (!sessionCommitted) {
                                             sessionCommitted = true
+                                            isSavingSession = true
                                             coroutineScope.launch {
-                                                val sessionResult = SessionResult(
-                                                    sessionId = "session_reading_${UUID.randomUUID()}",
-                                                    childId = "child_marvin_demo",
-                                                    moduleId = "sungai_cerita",
-                                                    activityId = "reading_comprehension",
-                                                    startedAt = System.currentTimeMillis() - 150_000,
-                                                    completedAt = System.currentTimeMillis(),
-                                                    totalQuestions = questions.size,
-                                                    correctAnswers = correctCount,
-                                                    incorrectAnswers = questions.size - correctCount,
-                                                    accuracy = correctCount.toFloat() / questions.size.toFloat(),
-                                                    status = SessionStatus.COMPLETED
-                                                )
-                                                AksaRepositoryProvider.sessionRepository.saveSessionResult(sessionResult)
+                                                try {
+                                                    withContext(NonCancellable) {
+                                                        val actualChildId = activeChildResolver()
+                                                        for (ans in recordedAnswers) {
+                                                            AksaRepositoryProvider.sessionRepository
+                                                                .recordAnswer(ans.copy(childId = actualChildId))
+                                                                .getOrThrow()
+                                                        }
+                                                        val sessionResult = SessionResult(
+                                                            sessionId = sessionId,
+                                                            childId = actualChildId,
+                                                            moduleId = "sungai_cerita",
+                                                            activityId = "reading_comprehension",
+                                                            startedAt = sessionStartedAt,
+                                                            completedAt = System.currentTimeMillis(),
+                                                            totalQuestions = questions.size,
+                                                            correctAnswers = correctCount,
+                                                            incorrectAnswers = questions.size - correctCount,
+                                                            accuracy = correctCount.toFloat() / questions.size.toFloat(),
+                                                            status = SessionStatus.COMPLETED
+                                                        )
+                                                        AksaRepositoryProvider.sessionRepository
+                                                            .saveSessionResult(sessionResult)
+                                                            .getOrThrow()
+                                                    }
+                                                } finally {
+                                                    isSavingSession = false
+                                                }
                                             }
                                         }
                                         stage = ReadingStage.COMPLETION
@@ -627,8 +681,8 @@ fun ReadingPracticeScreen(
 
                             Spacer(modifier = Modifier.height(18.dp))
 
-                            val scoreText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "3 / 3" else "$correctCount / ${questions.size}"
-                            val accuracyText = if (isDevPreview && visualState == PreviewVisualState.SESSION_COMPLETED) "100%" else "${((correctCount.toFloat() / questions.size) * 100).toInt()}%"
+                            val scoreText = "$correctCount / ${questions.size}"
+                            val accuracyText = "${((correctCount.toFloat() / questions.size) * 100).toInt()}%"
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -697,20 +751,35 @@ fun ReadingPracticeScreen(
                                     selectedChoice = null
                                     correctCount = 0
                                     sessionCommitted = false
+                                    sessionId = "session_reading_${UUID.randomUUID()}"
+                                    sessionStartedAt = System.currentTimeMillis()
+                                    recordedAnswers.clear()
                                 }
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
 
                             AksaButton(
-                                text = "Lihat Peta Petualangan",
+                                text = if (isSavingSession) "Menyimpan progres..." else "Lihat Peta Petualangan",
                                 style = AksaButtonStyle.PRIMARY_ORANGE,
+                                enabled = !isSavingSession,
                                 onClick = onNavigateToLevelMap
                             )
                         }
                     }
                 }
             }
+        }
+
+        if (showExitConfirmation) {
+            com.aksa.app.ui.components.AksaExitConfirmationDialog(
+                isMiniGame = false,
+                onContinue = { showExitConfirmation = false },
+                onExit = {
+                    showExitConfirmation = false
+                    onNavigateBack()
+                }
+            )
         }
     }
 }

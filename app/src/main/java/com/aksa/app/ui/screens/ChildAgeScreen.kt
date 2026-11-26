@@ -39,24 +39,23 @@ import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.components.AksaButton
 import com.aksa.app.ui.components.AksaButtonStyle
 import com.aksa.app.ui.components.MascotPeeking
+import com.aksa.app.ui.state.AksaUserState
 import com.aksa.app.ui.theme.AksaDarkBrown
-import com.aksa.app.ui.theme.AksaGrayBorder
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaOrangeDark
 import com.aksa.app.ui.theme.AksaPeachLight
-import com.aksa.app.ui.theme.AksaSoftPeach
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
-import com.aksa.app.ui.theme.AksaYellowDark
 import com.aksa.app.ui.theme.Poppins
+import com.aksa.app.ui.viewmodel.CreateProfileViewModel
 
 @Composable
 fun ChildAgeScreen(
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    viewModel: CreateProfileViewModel? = null
 ) {
-    var selectedAge by remember { mutableIntStateOf(8) }
+    var selectedAge by remember { mutableIntStateOf(viewModel?.uiState?.value?.age ?: 8) }
     val ages = listOf(6, 7, 8, 9, 10, 11, 12)
 
     Box(
@@ -71,7 +70,6 @@ fun ChildAgeScreen(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Step pill indicator
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(32.dp))
@@ -79,7 +77,7 @@ fun ChildAgeScreen(
                     .padding(horizontal = 20.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "LANGKAH 2 DARI 2",
+                    text = "LANGKAH 2 DARI 3",
                     fontFamily = Poppins,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
@@ -90,7 +88,6 @@ fun ChildAgeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // White Rounded Form Card
             val cardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
@@ -121,7 +118,6 @@ fun ChildAgeScreen(
                         modifier = Modifier.padding(top = 6.dp, bottom = 24.dp)
                     )
 
-                    // Grid of selectable age cards (6, 7, 8, 9, 10, 11, 12)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -156,11 +152,14 @@ fun ChildAgeScreen(
 
                     Spacer(modifier = Modifier.height(30.dp))
 
-                    // Button: Lanjut
                     AksaButton(
                         text = "Lanjut",
                         style = AksaButtonStyle.PRIMARY_ORANGE,
-                        onClick = onNavigateToHome
+                        onClick = {
+                            AksaUserState.age = selectedAge
+                            viewModel?.setAge(selectedAge)
+                            onNavigateToHome()
+                        }
                     )
                 }
             }
@@ -168,7 +167,6 @@ fun ChildAgeScreen(
             Spacer(modifier = Modifier.height(140.dp)) // Space for peeking mascot
         }
 
-        // Mascot peeking from bottom
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -233,7 +231,6 @@ private fun AgeSelectionCard(
             )
         }
 
-        // Small cute star badge if selected
         if (isSelected) {
             Box(
                 modifier = Modifier
@@ -244,7 +241,7 @@ private fun AgeSelectionCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = AksaIcons.Star,
+                    painter = AksaIcons.star(),
                     contentDescription = null,
                     tint = AksaWhite,
                     modifier = Modifier.size(12.dp)

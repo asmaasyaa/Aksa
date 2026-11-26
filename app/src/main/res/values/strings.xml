@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AKSA</string>
+    <string name="default_web_client_id" translatable="false">669934971348-eneet8so9jsk5ou1srb054u0ko07h115.apps.googleusercontent.com</string>
 </resources>

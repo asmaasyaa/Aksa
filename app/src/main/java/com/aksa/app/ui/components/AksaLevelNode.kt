@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
@@ -23,23 +24,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.theme.AksaDarkBrown
-import com.aksa.app.ui.theme.AksaGrayDisabled
 import com.aksa.app.ui.theme.AksaGrayText
 import com.aksa.app.ui.theme.AksaIcons
 import com.aksa.app.ui.theme.AksaLime
 import com.aksa.app.ui.theme.AksaLimeDark
 import com.aksa.app.ui.theme.AksaOrange
-import com.aksa.app.ui.theme.AksaOrangeDark
 import com.aksa.app.ui.theme.AksaWhite
 import com.aksa.app.ui.theme.AksaYellow
 import com.aksa.app.ui.theme.AksaYellowDark
+import com.aksa.app.ui.theme.PillShape
 import com.aksa.app.ui.theme.Poppins
 
 enum class LevelNodeStatus {
@@ -100,7 +99,7 @@ fun AksaLevelNode(
         Box(
             modifier = Modifier
                 .size(size * pulseScale)
-                .clickable(enabled = status != LevelNodeStatus.LOCKED, onClick = onClick),
+                .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
             // Bottom 3D bevel
@@ -124,7 +123,7 @@ fun AksaLevelNode(
                     LevelNodeStatus.ACTIVE -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = AksaIcons.Star,
+                                painter = AksaIcons.star(),
                                 contentDescription = null,
                                 tint = AksaOrange,
                                 modifier = Modifier.size(18.dp)
@@ -140,7 +139,7 @@ fun AksaLevelNode(
                     }
                     LevelNodeStatus.COMPLETED -> {
                         Icon(
-                            imageVector = AksaIcons.Check,
+                            painter = AksaIcons.check(),
                             contentDescription = "Completed",
                             tint = AksaWhite,
                             modifier = Modifier.size(34.dp)
@@ -148,7 +147,7 @@ fun AksaLevelNode(
                     }
                     LevelNodeStatus.LOCKED -> {
                         Icon(
-                            imageVector = AksaIcons.Lock,
+                            painter = AksaIcons.lock(),
                             contentDescription = "Locked",
                             tint = AksaGrayText,
                             modifier = Modifier.size(26.dp)
@@ -160,13 +159,24 @@ fun AksaLevelNode(
 
         if (!title.isNullOrEmpty()) {
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = title,
-                fontFamily = Poppins,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = if (status == LevelNodeStatus.LOCKED) AksaGrayText else AksaDarkBrown
-            )
+            Box(
+                modifier = Modifier
+                    .clip(PillShape)
+                    .background(AksaWhite.copy(alpha = 0.85f))
+                    .padding(horizontal = 10.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontFamily = Poppins,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = if (status == LevelNodeStatus.LOCKED) {
+                        AksaDarkBrown.copy(alpha = 0.72f)
+                    } else {
+                        AksaDarkBrown
+                    }
+                )
+            }
         }
     }
 }

@@ -23,11 +23,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aksa.app.ui.theme.AksaDarkBrown
 import com.aksa.app.ui.theme.AksaIcons
-import com.aksa.app.ui.theme.AksaGrayBackground
 import com.aksa.app.ui.theme.AksaOrange
 import com.aksa.app.ui.theme.AksaPeachLight
 import com.aksa.app.ui.theme.AksaSoftPeach
@@ -59,7 +59,7 @@ fun AksaProfileCard(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar circle with selected Aksa avatar
+            // Avatar circle
             Box(
                 modifier = Modifier
                     .size(62.dp)
@@ -74,56 +74,52 @@ fun AksaProfileCard(
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-            // Profile info
+            // Profile info (disusun vertikal agar badge modul tidak terjepit)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = name,
                     fontFamily = Poppins,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = AksaDarkBrown
+                    fontSize = 17.sp,
+                    color = AksaDarkBrown,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = age,
+                    fontFamily = Poppins,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                    color = AksaDarkBrown.copy(alpha = 0.7f)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .background(AksaPeachLight, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Icon(
+                        painter = AksaIcons.star(),
+                        contentDescription = null,
+                        tint = AksaYellowDark,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = age,
+                        text = level,
                         fontFamily = Poppins,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                        color = AksaDarkBrown.copy(alpha = 0.7f)
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = AksaDarkBrown,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .background(AksaDarkBrown.copy(alpha = 0.3f), CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .background(AksaPeachLight, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = AksaIcons.Star,
-                            contentDescription = null,
-                            tint = AksaYellowDark,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = level,
-                            fontFamily = Poppins,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = AksaDarkBrown
-                        )
-                    }
                 }
             }
 
@@ -141,18 +137,19 @@ fun AksaProfileCard(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(
-                        imageVector = AksaIcons.Flame,
+                        painter = AksaIcons.flame(),
                         contentDescription = "Streak",
                         tint = AksaOrange,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "$streakCount Streak",
                         fontFamily = Poppins,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = AksaDarkBrown
+                        fontSize = 12.sp,
+                        color = AksaDarkBrown,
+                        maxLines = 1
                     )
                 }
             }
