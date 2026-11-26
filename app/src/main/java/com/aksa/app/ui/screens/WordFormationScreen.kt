@@ -86,6 +86,42 @@ data class WordQuestion(
     val shuffled: List<String>
 )
 
+private fun shuffleNotEqual(letters: List<String>): List<String> {
+    if (letters.distinct().size <= 1) return letters
+    var candidate = letters.shuffled()
+    var attempts = 0
+    while (candidate == letters && attempts < 5) {
+        candidate = letters.shuffled()
+        attempts++
+    }
+    return candidate
+}
+
+private val wordQuestionPool = listOf(
+    WordQuestion("wq_1", "BOLA", "⚽", "Benda bulat untuk bermain", "Susun kata: BOLA. Benda bulat untuk bermain.", listOf("B", "O", "L", "A"), listOf("L", "A", "B", "O")),
+    WordQuestion("wq_2", "BUKU", "📘", "Tempat membaca cerita seru", "Susun kata: BUKU. Tempat membaca cerita seru.", listOf("B", "U", "K", "U"), listOf("U", "K", "B", "U")),
+    WordQuestion("wq_3", "KUDA", "🐴", "Hewan yang berlari kencang", "Susun kata: KUDA. Hewan yang berlari kencang.", listOf("K", "U", "D", "A"), listOf("D", "A", "K", "U")),
+    WordQuestion("wq_4", "MATA", "👀", "Anggota tubuh untuk melihat", "Susun kata: MATA. Anggota tubuh untuk melihat.", listOf("M", "A", "T", "A"), listOf("T", "A", "M", "A")),
+    WordQuestion("wq_5", "SAPI", "🐄", "Hewan penghasil susu segar", "Susun kata: SAPI. Hewan penghasil susu segar.", listOf("S", "A", "P", "I"), listOf("P", "I", "S", "A")),
+    WordQuestion("wq_6", "BAJU", "👕", "Pakaian yang kita kenakan", "Susun kata: BAJU. Pakaian yang kita kenakan.", listOf("B", "A", "J", "U"), listOf("J", "U", "B", "A")),
+    WordQuestion("wq_7", "TOPI", "🧢", "Dipakai di kepala saat panas", "Susun kata: TOPI. Dipakai di kepala saat panas.", listOf("T", "O", "P", "I"), listOf("P", "I", "T", "O")),
+    WordQuestion("wq_8", "IKAN", "🐟", "Hewan yang hidup di air", "Susun kata: IKAN. Hewan yang hidup di air.", listOf("I", "K", "A", "N"), listOf("K", "N", "I", "A")),
+    WordQuestion("wq_9", "APEL", "🍎", "Buah manis berwarna merah", "Susun kata: APEL. Buah manis berwarna merah.", listOf("A", "P", "E", "L"), listOf("P", "L", "A", "E")),
+    WordQuestion("wq_10", "DAUN", "🍃", "Bagian pohon berwarna hijau", "Susun kata: DAUN. Bagian pohon berwarna hijau.", listOf("D", "A", "U", "N"), listOf("U", "N", "D", "A")),
+    WordQuestion("wq_11", "AWAN", "☁️", "Gumpalan putih di langit", "Susun kata: AWAN. Gumpalan putih di langit.", listOf("A", "W", "A", "N"), listOf("W", "N", "A", "A")),
+    WordQuestion("wq_12", "RODA", "🛞", "Bagian bundar pada mobil", "Susun kata: RODA. Bagian bundar pada mobil.", listOf("R", "O", "D", "A"), listOf("D", "A", "R", "O")),
+    WordQuestion("wq_13", "PITA", "🎀", "Hiasan rambut yang cantik", "Susun kata: PITA. Hiasan rambut yang cantik.", listOf("P", "I", "T", "A"), listOf("T", "A", "P", "I")),
+    WordQuestion("wq_14", "KADO", "🎁", "Hadiah spesial saat ulang tahun", "Susun kata: KADO. Hadiah spesial saat ulang tahun.", listOf("K", "A", "D", "O"), listOf("D", "O", "K", "A")),
+    WordQuestion("wq_15", "NASI", "🍚", "Makanan pokok setiap hari", "Susun kata: NASI. Makanan pokok setiap hari.", listOf("N", "A", "S", "I"), listOf("S", "I", "N", "A"))
+)
+
+private fun generateWordFormationSession(count: Int = 5): List<WordQuestion> {
+    return wordQuestionPool
+        .shuffled()
+        .take(count)
+        .map { q -> q.copy(shuffled = shuffleNotEqual(q.letters)) }
+}
+
 @Composable
 fun WordFormationScreen(
     onNavigateBack: () -> Unit,
@@ -96,55 +132,7 @@ fun WordFormationScreen(
     val tts = remember { AndroidTextToSpeechHelper(context) }
     val isTtsReady by tts.isReady.collectAsState()
 
-    val questions = remember {
-        listOf(
-            WordQuestion(
-                id = "wq_1",
-                word = "BOLA",
-                emoji = "⚽",
-                clueText = "Benda bulat untuk bermain",
-                speechText = "Susun kata: BOLA. Benda bulat untuk bermain.",
-                letters = listOf("B", "O", "L", "A"),
-                shuffled = listOf("L", "A", "B", "O")
-            ),
-            WordQuestion(
-                id = "wq_2",
-                word = "BUKU",
-                emoji = "📘",
-                clueText = "Tempat membaca cerita seru",
-                speechText = "Susun kata: BUKU. Tempat membaca cerita seru.",
-                letters = listOf("B", "U", "K", "U"),
-                shuffled = listOf("U", "K", "B", "U")
-            ),
-            WordQuestion(
-                id = "wq_3",
-                word = "KUDA",
-                emoji = "🐴",
-                clueText = "Hewan yang berlari kencang",
-                speechText = "Susun kata: KUDA. Hewan yang berlari kencang.",
-                letters = listOf("K", "U", "D", "A"),
-                shuffled = listOf("D", "A", "K", "U")
-            ),
-            WordQuestion(
-                id = "wq_4",
-                word = "MATA",
-                emoji = "👀",
-                clueText = "Anggota tubuh untuk melihat",
-                speechText = "Susun kata: MATA. Anggota tubuh untuk melihat.",
-                letters = listOf("M", "A", "T", "A"),
-                shuffled = listOf("T", "A", "M", "A")
-            ),
-            WordQuestion(
-                id = "wq_5",
-                word = "SAPI",
-                emoji = "🐄",
-                clueText = "Hewan penghasil susu segar",
-                speechText = "Susun kata: SAPI. Hewan penghasil susu segar.",
-                letters = listOf("S", "A", "P", "I"),
-                shuffled = listOf("P", "I", "S", "A")
-            )
-        )
-    }
+    var questions by remember { mutableStateOf(generateWordFormationSession()) }
 
     var sessionId by remember { mutableStateOf("session_word_${UUID.randomUUID()}") }
     var sessionStartedAt by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -164,7 +152,7 @@ fun WordFormationScreen(
     val isComplete = selectedIndices.size == currentQ.letters.size
     val isCorrect = isComplete && currentLetters == currentQ.letters
 
-    LaunchedEffect(currentQuestionIndex, isTtsReady) {
+    LaunchedEffect(sessionId, currentQuestionIndex, isTtsReady) {
         if (isTtsReady && !showCompletionDialog) {
             tts.speak(questions[currentQuestionIndex].speechText)
         }
@@ -622,6 +610,7 @@ fun WordFormationScreen(
                             style = AksaButtonStyle.SECONDARY_LIME,
                             onClick = {
                                 showCompletionDialog = false
+                                questions = generateWordFormationSession()
                                 currentQuestionIndex = 0
                                 selectedIndices.clear()
                                 correctCount = 0

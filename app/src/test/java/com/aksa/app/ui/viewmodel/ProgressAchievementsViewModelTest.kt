@@ -65,6 +65,7 @@ class ProgressAchievementsViewModelTest {
             Result.success(profiles.first())
         override suspend fun updateProfile(userId: String, profileId: String, name: String, avatarId: String, age: Int) =
             Result.success(profiles.first())
+        override suspend fun deleteProfile(userId: String, profileId: String) = Result.success(Unit)
         override suspend fun getActiveChildProfile(guardianUid: String, activeProfileId: String?): Profile? =
             if (!activeProfileId.isNullOrBlank()) profiles.firstOrNull { it.profileId == activeProfileId }
             else profiles.firstOrNull()
@@ -78,6 +79,7 @@ class ProgressAchievementsViewModelTest {
     ) : SessionRepository {
         override suspend fun recordAnswer(answer: AnswerLog) = Result.success(Unit)
         override suspend fun getAnswersForSession(sessionId: String) = emptyList<AnswerLog>()
+        override suspend fun getAnswersForChild(childId: String) = emptyList<AnswerLog>()
         override suspend fun saveSessionResult(result: SessionResult) = Result.success(Unit)
         override suspend fun getCompletedSessions(childId: String) = sessionsByChild[childId].orEmpty()
         override fun observeCompletedSessions(childId: String): Flow<List<SessionResult>> =
