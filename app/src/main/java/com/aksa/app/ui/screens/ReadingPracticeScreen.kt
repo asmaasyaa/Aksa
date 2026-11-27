@@ -83,11 +83,73 @@ data class ComprehensionQuestion(
     val choices: List<String>
 )
 
+data class StorySession(
+    val panels: List<StoryPanel>,
+    val questions: List<ComprehensionQuestion>
+)
+
 enum class ReadingStage {
     READING_STORY,
     COMPREHENSION_QUIZ,
     COMPLETION
 }
+
+private val storySessionPool = listOf(
+    // Cerita 1 — Kancil dan Kebun Buah (cerita asli)
+    StorySession(
+        panels = listOf(
+            StoryPanel("Kancil dan Kebun Buah", "Kancil berjalan riang ke kebun buah di dekat sungai yang jernih.", "🦌🌊"),
+            StoryPanel("Apel Merah yang Manis", "Di kebun, Kancil memetik buah apel merah yang matang dan manis rasanya.", "🍎🧺"),
+            StoryPanel("Berbagi Bersama Sahabat", "Kancil membagikan buah apel kepada burung pipit dan kelinci sahabatnya.", "🐦🐰")
+        ),
+        questions = listOf(
+            ComprehensionQuestion("s1_q1", "Siapa yang pergi ke kebun buah di dekat sungai?", "Kancil", listOf("Kancil", "Gajah", "Kucing")),
+            ComprehensionQuestion("s1_q2", "Buah apa yang dipetik oleh Kancil di kebun?", "Apel merah", listOf("Apel merah", "Jeruk", "Pisang")),
+            ComprehensionQuestion("s1_q3", "Kepada siapa Kancil membagikan buah apel?", "Burung dan kelinci", listOf("Burung dan kelinci", "Harimau", "Buaya"))
+        )
+    ),
+    // Cerita 2 — Kupu-kupu dan Bunga
+    StorySession(
+        panels = listOf(
+            StoryPanel("Kupu-kupu dan Taman Bunga", "Kupu-kupu cantik terbang ke taman bunga yang penuh warna-warni.", "🦋🌸"),
+            StoryPanel("Madu yang Lezat", "Kupu-kupu hinggap di bunga mawar merah untuk menghisap madu yang manis.", "🌹🍯"),
+            StoryPanel("Berteman dengan Lebah", "Lebah kecil datang dan berteman dengan kupu-kupu di taman bunga.", "🐝🌺")
+        ),
+        questions = listOf(
+            ComprehensionQuestion("s2_q1", "Ke mana kupu-kupu terbang?", "Taman bunga", listOf("Taman bunga", "Sungai", "Hutan")),
+            ComprehensionQuestion("s2_q2", "Bunga apa yang dihinggapi kupu-kupu?", "Bunga mawar merah", listOf("Bunga mawar merah", "Bunga matahari", "Bunga melati")),
+            ComprehensionQuestion("s2_q3", "Siapa yang datang berteman dengan kupu-kupu?", "Lebah kecil", listOf("Lebah kecil", "Semut", "Belalang"))
+        )
+    ),
+    // Cerita 3 — Bebek Kecil di Sungai
+    StorySession(
+        panels = listOf(
+            StoryPanel("Bebek Kecil di Sungai", "Bebek kecil berenang senang di sungai yang mengalir tenang.", "🦆🏞️"),
+            StoryPanel("Menemukan Ikan", "Bebek menyelam dan menemukan ikan kecil yang bersembunyi di balik batu.", "🐟🪨"),
+            StoryPanel("Pulang Bersama Ibu", "Saat senja, ibu bebek memanggil dan mereka pulang bersama ke sarang.", "🌅🏠")
+        ),
+        questions = listOf(
+            ComprehensionQuestion("s3_q1", "Di mana bebek kecil berenang?", "Di sungai", listOf("Di sungai", "Di danau", "Di kolam")),
+            ComprehensionQuestion("s3_q2", "Apa yang ditemukan bebek saat menyelam?", "Ikan kecil", listOf("Ikan kecil", "Batu besar", "Daun hijau")),
+            ComprehensionQuestion("s3_q3", "Siapa yang memanggil bebek saat senja?", "Ibu bebek", listOf("Ibu bebek", "Ayah bebek", "Teman bebek"))
+        )
+    ),
+    // Cerita 4 — Tupai dan Biji Pinus
+    StorySession(
+        panels = listOf(
+            StoryPanel("Tupai dan Biji Pinus", "Tupai berlari cepat di atas pohon pinus yang tinggi dan rindang.", "🐿️🌲"),
+            StoryPanel("Mengumpulkan Makanan", "Tupai mengumpulkan biji pinus untuk disimpan sebagai bekal di musim hujan.", "🌰🎒"),
+            StoryPanel("Berbagi dengan Kelinci", "Tupai baik hati memberikan sebagian bijinya kepada kelinci yang kelaparan.", "🐰❤️")
+        ),
+        questions = listOf(
+            ComprehensionQuestion("s4_q1", "Di mana tupai berlari?", "Di atas pohon pinus", listOf("Di atas pohon pinus", "Di dalam gua", "Di tepi sungai")),
+            ComprehensionQuestion("s4_q2", "Apa yang dikumpulkan tupai?", "Biji pinus", listOf("Biji pinus", "Buah apel", "Daun kering")),
+            ComprehensionQuestion("s4_q3", "Kepada siapa tupai memberikan makanannya?", "Kelinci", listOf("Kelinci", "Burung", "Rusa"))
+        )
+    )
+)
+
+private fun generateReadingSession(): StorySession = storySessionPool.shuffled().first()
 
 @Composable
 fun ReadingPracticeScreen(
@@ -98,20 +160,9 @@ fun ReadingPracticeScreen(
     val coroutineScope = rememberCoroutineScope()
     val tts = remember { AndroidTextToSpeechHelper(context) }
 
-    val storyPanels = remember {
-        listOf(
-            StoryPanel("Kancil dan Kebun Buah", "Kancil berjalan riang ke kebun buah di dekat sungai yang jernih.", "🦌🌊"),
-            StoryPanel("Apel Merah yang Manis", "Di kebun, Kancil memetik buah apel merah yang matang dan manis rasanya.", "🍎🧺"),
-            StoryPanel("Berbagi Bersama Sahabat", "Kancil membagikan buah apel kepada burung pipit dan kelinci sahabatnya.", "🐦🐰")
-        )
-    }
-    val questions = remember {
-        listOf(
-            ComprehensionQuestion("cq_1", "Siapa yang pergi ke kebun buah di dekat sungai?", "Kancil", listOf("Kancil", "Gajah", "Kucing")),
-            ComprehensionQuestion("cq_2", "Buah apa yang dipetik oleh Kancil di kebun?", "Apel merah", listOf("Apel merah", "Jeruk", "Pisang")),
-            ComprehensionQuestion("cq_3", "Kepada siapa Kancil membagikan buah apel?", "Burung dan kelinci", listOf("Burung dan kelinci", "Harimau", "Buaya"))
-        )
-    }
+    var currentSession by remember { mutableStateOf(generateReadingSession()) }
+    val storyPanels = currentSession.panels
+    val questions = currentSession.questions
 
     var sessionId by remember { mutableStateOf("session_reading_${UUID.randomUUID()}") }
     var sessionStartedAt by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -550,7 +601,7 @@ fun ReadingPracticeScreen(
                                     val feedbackMsg = if (effectiveIsCorrect) {
                                         "Luar biasa! Pemahamanmu sangat tepat."
                                     } else {
-                                        "Belum tepat. Ingat kembali cerita: Kancil membagikan apel kepada ${currentQ.targetAnswer}."
+                                        "Belum tepat. Ingat kembali cerita tadi. Jawaban yang benar adalah: ${currentQ.targetAnswer}."
                                     }
 
                                     Box(
@@ -745,10 +796,13 @@ fun ReadingPracticeScreen(
                                 text = "Baca Cerita Lagi",
                                 style = AksaButtonStyle.SECONDARY_LIME,
                                 onClick = {
+                                    currentSession = generateReadingSession()
                                     stage = ReadingStage.READING_STORY
                                     currentPanelIndex = 0
                                     currentQuestionIndex = 0
                                     selectedChoice = null
+                                    isAnswered = false
+                                    isCorrect = false
                                     correctCount = 0
                                     sessionCommitted = false
                                     sessionId = "session_reading_${UUID.randomUUID()}"
